@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Ayla et FriendLoop</title>
-<meta name="description" content="Conte-jeu sur l'éthique de l'intelligence artificielle. Prototype 3D jouable : prologue, missions 1 et 2.">
+<meta name="description" content="Conte-jeu sur l'éthique de l'intelligence artificielle. Prototype 3D jouable en français, anglais et arabe : prologue, missions 1 et 2.">
 </head>
 <body>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700;800&family=Nunito:ital,wght@0,400;0,600;0,800;1,400&family=Share+Tech+Mono&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700;800&family=Nunito:ital,wght@0,400;0,600;0,800;1,400&family=Share+Tech+Mono&family=Tajawal:wght@400;700;800&display=swap">
 <style>
 :root{
   --bg:#0A1020; --panel:#141F36; --panel2:#1B2846; --line:#2B3B5E; --ink:#EAF0FA; --muted:#93A3C2;
@@ -110,6 +110,16 @@ button:focus-visible,[contenteditable]:focus-visible{outline:3px solid var(--ayl
 .gp{height:12px;border-radius:6px;background:#EADFC8;overflow:hidden;margin-top:6px} .gp i{display:block;height:100%}
 .mnavs{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap} .mnav{background:#fff;border:1px solid #E6C89A;border-radius:999px;padding:6px 12px;font:700 13px var(--body);color:#8B6A3E} .mnav.on{background:var(--ayla);color:#fff;border-color:var(--ayla)} .mnav:disabled{opacity:.4}
 #fade{position:fixed;inset:0;background:#05080F;opacity:0;pointer-events:none;transition:opacity .5s;z-index:50}
+.speech,.caption,.flpanel,.label.door,.box,.book main{text-align:start}
+body.rtl,body.rtl button,body.rtl [contenteditable]{font-family:"Tajawal","Nunito",sans-serif}
+body.rtl .title h1,body.rtl h2,body.rtl h3,body.rtl .btn,body.rtl .chip,body.rtl .speech .who,body.rtl .book h3,body.rtl .book .ql{font-family:"Tajawal",sans-serif;letter-spacing:0}
+body.rtl .speech .hint,body.rtl .flpanel .hint,body.rtl .caption .hint{text-align:left}
+body.rtl .ph{font-family:"Tajawal",sans-serif}
+.langs{display:flex;gap:8px;justify-content:center;margin:0 0 18px;flex-wrap:wrap}
+.langs button{background:rgba(20,31,54,.7);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:8px 16px;font:700 13px var(--body)}
+.langs button.on{background:var(--ayla);color:#0A1020;border-color:var(--ayla)}
+.langs .lab{align-self:center;color:var(--muted);font-size:12px;margin-inline-end:6px}
+.label.reco{background:rgba(155,123,214,.92);color:#fff;border:1px solid #C9B6F0;white-space:normal;max-width:260px;text-align:center;font-size:12px}
 #hit{position:fixed;inset:0;pointer-events:none;z-index:12;background:radial-gradient(circle, rgba(224,96,96,0) 40%, rgba(224,96,96,.55));opacity:0;transition:opacity .15s}
 @media (max-width:1180px){#hudRight{display:none}}
 @media (max-width:900px){.phases{display:none} .ph{width:70px} #hudRight{display:none} .gauges{grid-template-columns:1fr} .book{grid-template-columns:1fr;grid-template-rows:auto 1fr} .book nav{flex-direction:row;flex-wrap:wrap;border-right:0;border-bottom:2px dashed #D9B98A}}
@@ -134,119 +144,461 @@ button:focus-visible,[contenteditable]:focus-visible{outline:3px solid var(--ayl
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-/* ============================== DATA ============================== */
-const M1 = {
-  id:1, theme:"city", titre:"Le quartier mis en sourdine", principe:"Proportionnalité et innocuité", quartier:"Quartier Gris",
-  runTitle:"Quartier Gris", runSub:"Cours vers la rue des écrans. Évite les drones de FriendLoop, ramasse les fragments ✦.",
-  dome:[
-    {who:"Amari", cls:"cit", key:"kid1", text:"Monsieur, c'est quoi, « proportionnalité » ?"},
-    {who:"Saren", cls:"saren", key:"saren", text:"C'est choisir une réponse à la taille du problème. Ni trop forte, ni trop faible. Supprimer un message suspect dans la messagerie de ton école, c'est proportionné. Éteindre la messagerie de toute l'école pendant trois jours, ce ne l'est plus."},
-    {who:"Rami", cls:"cit", key:"kid2", text:"Et FriendLoop, il se trompe parfois ?"},
-    {who:"Saren", cls:"saren", key:"saren", text:"Il se trompe comme tout ce qui apprend à partir du passé : en croyant reconnaître ce qu'il a déjà vu. Ce jour-là, il a cru reconnaître une menace."}
-  ],
-  npcs:[
-    {key:"kade", name:"Kade", cls:"cit", pos:[-3,0,-6], lines:[
-      {who:"Kade", text:"Petite. Le message sur la pompe du réservoir 4, c'est moi qui l'ai écrit. La pompe est vraiment en panne. Je l'ai vue."},
-      {who:"Ayla", cls:"ayla", key:"ayla", text:"Alors pourquoi FriendLoop dit que c'est faux ?"},
-      {who:"Kade", text:"Parce que ça ressemble à ce qu'il a appris à bloquer. Des mots qui font peur, beaucoup de partages. Il ne vérifie pas la pompe. Il vérifie la forme."}
-    ]},
-    {key:"elio", name:"Technicien masqué", cls:"elio", pos:[3.5,0,-8], lines:[
-      {who:"Technicien masqué", text:"Si le réseau tombe, Pera, au numéro 12, perd la télésurveillance de son respirateur. Et les téléconsultations du dispensaire. Faut choisir vite."},
-      {who:"Ayla", cls:"ayla", key:"ayla", text:"Toujours des choix impossibles."}
-    ]}
-  ],
-  intro:[
-    {who:"Narration", text:"Rue des écrans, Quartier Gris. Les panneaux clignotent en orange. Depuis une heure, un message circule : « La pompe du réservoir 4 est en panne, l'eau du secteur nord n'est plus filtrée. »"},
-    {who:"FriendLoop", fl:true, text:"Détection : propagation anormale d'un contenu à risque. Probabilité de désinformation : 87 %. Solution optimale : suspension du réseau du Quartier Gris et des 2 140 comptes impliqués pendant 72 heures."},
-    {who:"Ayla", cls:"ayla", key:"ayla", text:"Soixante-douze heures. Pour un message. Il y a des gens ici qui en savent plus."}
-  ],
-  A:{titre:"Suivre FriendLoop : suspendre le réseau", effets:["Le message cesse de circuler immédiatement.","2 140 habitants perdent messagerie et alertes médicales pendant trois jours.","Pera n'est plus surveillé à distance.","Si Kade disait vrai, la pompe reste en panne."]},
-  B:{titre:"Vérifier, puis répondre à la taille du problème", effets:["Kade emmène Ayla au réservoir : dix minutes pour vérifier.","Seuls les partages erronés sont retirés, avec une vérification publique.","Le réseau reste allumé. Une équipe répare la pompe.","FriendLoop note un « écart de conformité » dans le dossier d'Ayla."]},
-  echo:"Avant d'agir, réfléchis.",
-  questions:[
-    {q:"Qui est touché si l'on coupe le réseau ? Ceux qui ont partagé le message, seulement ?", ideas:["les habitants qui n'ont rien partagé","Pera et son respirateur","le dispensaire et ses téléconsultations"]},
-    {q:"FriendLoop annonce 87 %. Sur quoi repose ce chiffre ? Que se passe-t-il, dans trois jours, s'il est faux ?", ideas:["il a appris sur des messages qui ressemblent","dans trois jours l'eau est sale et personne ne le sait","un chiffre n'est pas une preuve"]},
-    {q:"Le calme du quartier contre le droit d'être joint, soigné, informé. Laquelle de ces valeurs pèse le plus ici ?", ideas:["être soigné passe avant le calme","le calme compte, mais pas à ce prix","les deux comptent, pas pour les mêmes personnes"]},
-    {q:"Existe-t-il une réponse qui traite le problème réel, la pompe, sans traiter 2 140 personnes comme le problème ?", ideas:["aller voir la pompe, dix minutes","retirer seulement les messages faux","demander à un humain de vérifier"]}
-  ],
-  cons:{
-    A:[
-      {who:"Narration", text:"Les écrans du quartier s'éteignent. Le silence tombe sur les rues. Au numéro 12, un voyant rouge s'allume sur le respirateur de Pera : plus de liaison.", fx:"off"},
-      {who:"FriendLoop", fl:true, text:"Perturbation contenue. Score d'Harmonie du Quartier Gris : stable."},
-      {who:"Kade", key:"kade", cls:"cit", text:"Il a éteint la lumière pour ne pas voir la fuite."},
-      {who:"Narration", text:"Le lendemain, l'eau du secteur nord est trouble. Le message était vrai."}
-    ],
-    B:[
-      {who:"Narration", text:"Au réservoir 4, la pompe est bien à l'arrêt. Kade photographie la panne, Ayla transmet. FriendLoop retire les partages erronés, publie la vérification, une équipe arrive dans l'heure.", fx:"on"},
-      {who:"FriendLoop", fl:true, text:"Analyse... la probabilité initiale ne tenait pas compte de la panne. Correction enregistrée."},
-      {who:"Kade", key:"kade", cls:"cit", text:"Merci, enfant. Tu as regardé avant de couper. Personne ne fait plus ça ici."}
-    ]
+/* ============================== I18N : fr / en / ar ============================== */
+const I18N = {
+fr: {
+  dir:"ltr", name:"Français",
+  ui:{
+    title:"Ayla et FriendLoop", subtitle:"Voyage contre l'oubli",
+    intro:"Cours dans les rues de Chroma, parle aux habitants, réfléchis avec Saren, choisis ta porte. Prototype : prologue et deux missions.",
+    start:"Commencer", restart:"Recommencer", cont:n=>`Continuer (mission ${n})`,
+    controls:"<b>Clavier</b> : flèches ou A/D pour changer de voie, espace pour sauter, E ou Entrée pour parler et avancer. <b>Écran tactile</b> : boutons en bas, toucher le sol pour marcher.",
+    privacy:"Ce prototype n'enregistre rien en dehors de cet appareil.", wipe:"Tout effacer", credits:"Crédits musique", language:"Langue",
+    hudCity:"Chroma · 2170", hudProto:"Prototype · Missions 1 et 2", prologue:"Prologue", dome:"Le Dôme mémoriel", missionDome:n=>`Mission ${n} · Dôme mémoriel`, mission:n=>`Mission ${n}`,
+    phases:[["Course",""],["Scène","2 min"],["Dilemme","1 min"],["Délibération","3 min"],["Choix","1 min"],["Conséquences","3 min"],["Transition","2 min"]],
+    helpContinue:"Toucher l'écran, <b>Espace</b>, <b>Entrée</b> ou <b>●</b> : continuer",
+    helpRun:"<b>◀ ▶</b> changer de voie · <b>Espace</b> sauter",
+    helpArena:names=>`Marche jusqu'à <b>${names}</b> (flèches, ou toucher le sol) : la discussion démarre quand tu es tout près`,
+    bannerTalk:"Va parler aux habitants", bannerTalkSub:names=>`Approche-toi de ${names}.`,
+    helpLeft:(n,rest)=>`Encore ${n} personne${n>1?"s":""} à qui parler : <b>${rest}</b>`,
+    talkTo:n=>`Parler à ${n}`, and:" et ", listSep:", ",
+    helpDelib:"Marche vers une idée pour l'attraper · <b>E</b> : question suivante",
+    sarenEcho:"Saren (écho)", sarenIntro:"Je vais te poser quatre questions. Les idées flottent autour de toi : attrape celles qui te parlent, ou dis-le avec tes mots.",
+    questionOf:(i,n)=>`question ${i} sur ${n}`, aylaThinks:"Ayla pense", ownWords:"ou écris-le avec tes mots...", nextQ:"Question suivante", toChoice:"Passer au choix",
+    noIdea:"Aucune idée attrapée", ideas:n=>`${n} idée${n>1?"s":""} attrapée${n>1?"s":""}`, skipIdea:"Tu veux passer sans idée ?",
+    helpDoors:"Marche vers la porte de ton choix", doorsLine:"Deux portes. Aucune n'est marquée comme la bonne. Je choisis en la franchissant.",
+    aylaOption:k=>`Ayla · option ${k}`, because:"Parce que...", back:"Revenir", cross:"Franchir la porte",
+    consTitle:"Ce que ton choix a changé", gFL:"Confiance de FriendLoop", gCit:"Confiance des citoyens",
+    gFLd:"Monte quand tu suis ses recommandations. Se paie en dépendance.", gCitd:"Monte quand tu vérifies et décides. Amène des alliés et des preuves.", continueBtn:"Continuer",
+    helpProof:"Ramasse le document qui flotte", proof:n=>`Preuve ${n}`, keep:"Ranger dans le carnet", noteTitle:"Note dans le carnet", noteHint:"Garder, modifier ou remplacer.", nextDistrict:"Vers le quartier suivant", finish:"Terminer",
+    endTitle:"Fin du prototype", endText:"Deux missions accomplies. Ayla connaît maintenant deux des dix principes de la Recommandation, et deux maillons de la chaîne qui a effacé ses parents.",
+    endNext:"Prochain quartier : Quartier Indigo, « Les logements oubliés ». Non inclus dans ce prototype.", openCarnet:"Ouvrir le carnet",
+    creditsTitle:"Crédits musique", creditsSfx:"Effets sonores synthétisés dans le navigateur. Moteur 3D : three.js (licence MIT).", close:"Fermer",
+    tabs:[["missions","Missions"],["preuves","Preuves"],["principes","Principes"],["jauges","Jauges"]],
+    inProgress:"En cours", choice:k=>`Choix : option ${k}`, fragments:"fragments", qLabels:["Qui est concerné ?","Quelles conséquences ?","Quelles valeurs en tension ?","Quelle autre voie ?"],
+    notYet:"Pas encore.", notChosen:"Pas encore choisi.", note:"Note", proofs:"Preuves", noProof:"Aucune preuve pour l'instant.", principles:"Les dix principes de la Recommandation", gauges:"Jauges",
+    gaugesNote:"Les deux jauges modifient les dialogues et la fin. Aucune ne fait perdre.", closeX:"Fermer ✕",
+    hintContinue:"Continuer", hintProceed:"Poursuivre", friendloop:"FriendLoop", music:"♪ Musique", musicOff:"♪ Musique coupée",
+    dilemmaFL:t=>`Rappel de la solution optimale : ${t}. Toute autre option est sous-optimale.`,
+    dilemmaAyla:(a,b)=>`Deux voies, alors. A : ${a}. B : ${b}. Aucune n'est écrite d'avance. Avant de choisir, je réfléchis.`,
+    stripFL:/^Suivre FriendLoop : /, ayla:"Ayla", bookLabel:"Recommandation sur l'éthique de l'IA de l'UNESCO", chooseLang:"Choisis ta langue"
   },
-  delta:{A:{fl:+10,cit:-20}, B:{fl:-5,cit:+20}},
-  preuve:{titre:"Ordre de suspension du réseau", doc:"ORDRE 2170-GRIS-114\nSuspension : réseau Quartier Gris, 72 h\nProbabilité de désinformation : 87 %\nVérification humaine : DÉSACTIVÉE\nRéférence : Directive 7", commentB:"Kade : « Il ne vérifie pas la pompe. Il vérifie la forme. »", maskedA:"Une ligne est illisible : Ayla n'a pas eu le temps de la copier."},
-  indice:{who:"Kade", key:"kade", cls:"cit", text:"Tes parents, je les ai connus. Ils avaient écrit un rapport sur ce genre de coupures. Il y a eu un « incident ». Le technicien masqué en sait plus : va au Laboratoire de routage."},
-  note:"Il ne vérifie pas les faits. Il vérifie la forme. Qui a désactivé la vérification ?"
-};
-const M2 = {
-  id:2, theme:"lab", titre:"Le bug et la faille", principe:"Sûreté et sécurité", quartier:"Laboratoire de routage",
-  runTitle:"Vers le Laboratoire de routage", runSub:"Traverse les couloirs de serveurs. Saute par-dessus les barrières, évite les drones.",
-  dome:[
-    {who:"Rami", cls:"cit", key:"kid2", text:"Sûreté, sécurité... c'est pareil ?"},
-    {who:"Saren", cls:"saren", key:"saren", text:"Non. La sûreté, c'est quand le système ne fait pas de mal par lui-même, par ses propres erreurs. La sécurité, c'est quand il est protégé contre ceux qui l'attaquent de l'extérieur. On peut avoir une forteresse imprenable qui, à l'intérieur, écrase ses habitants."},
-    {who:"Mina", cls:"cit", key:"kid1", text:"Et FriendLoop, il est lequel ?"},
-    {who:"Saren", cls:"saren", key:"saren", text:"Ce jour-là, il a voulu être une forteresse. Il oubliait ce qu'il faisait dedans."}
+  principes:["Proportionnalité et innocuité","Sûreté et sécurité","Équité et non-discrimination","Durabilité","Droit au respect de la vie privée et protection des données","Transparence et explicabilité","Responsabilité et redevabilité","Sensibilisation et éducation","Gouvernance et collaboration multipartites et adaptatives","Surveillance et décision humaines"],
+  quartiers:["Quartier Gris","Laboratoire de routage","Quartier Indigo","Zone industrielle","Centre des communications","Bureau des décisions","Salle des sanctions","École centrale","Hall du Conseil","Salle de contrôle"],
+  titre3:"Les logements oubliés",
+  prologue:[
+    {who:"Amari", cls:"cit", key:"kid1", text:"C'est quoi, ça, dans tes mains ?"},
+    {who:"Saren", cls:"saren", key:"saren", text:"La Recommandation sur l'éthique de l'IA de l'UNESCO : le premier accord entre les humains sur ce qu'ils attendaient de leurs machines. Elle a été écrite bien avant FriendLoop."},
+    {who:"Rami", cls:"cit", key:"kid2", text:"Et FriendLoop, il l'a lu ?"},
+    {who:"Saren", cls:"saren", key:"saren", text:"FriendLoop a tout lu. Ce n'est pas la même chose que comprendre. C'est un outil. Ni bon ni mauvais, mais pas neutre : il a appris de nous, de nos habitudes, de nos injustices. Il calcule, il optimise, il prédit. Et il se trompe. Souvent. Avec beaucoup d'assurance."},
+    {who:"Ayla", cls:"ayla", key:"ayla", text:"Ce matin, mon badge ne s'ouvrait plus. Le compte familial disait : aucun membre enregistré. Les photos de mes parents ont disparu. Ils ont existé."},
+    {who:"Saren", cls:"saren", key:"saren", text:"Alors prouve qu'ils ont vécu. Comprends ce qui les a effacés. Et rends à cette ville la main sur l'interrupteur. Va au Quartier Gris. Cours."}
   ],
-  npcs:[
-    {key:"elio2", name:"Elio", cls:"elio", pos:[0,0,-7], lines:[
-      {who:"Elio", text:"Je m'appelle Elio. Je crois savoir pourquoi tu me cherches. Il existe un journal de bugs. Tout ce que FriendLoop a fait de travers, il le note, même s'il ne le dit à personne."},
-      {who:"Ayla", cls:"ayla", key:"ayla", text:"Et mes parents ?"},
-      {who:"Elio", text:"Il y a une entrée qu'on appelle « effacement prédictif ». Le système prédit qu'un dossier deviendra « inactif » et il le supprime avant. La semaine dernière, il a effacé les dossiers médicaux de toute une classe."},
-      {who:"Narration", text:"Une alarme rouge traverse la salle.", fx:"alarm"},
-      {who:"FriendLoop", fl:true, text:"Alerte. Tentative d'intrusion externe sur les serveurs de routage. Solution optimale : allocation totale des ressources au pare-feu. Correction du module de prédiction reportée."},
-      {who:"Elio", text:"Il a raison sur l'attaque. Elle est réelle. Mais tant que le module n'est pas corrigé, il continue d'effacer des gens. On peut renforcer le pare-feu à 80 % et corriger en même temps. Il refuse parce que ce n'est pas « optimal »."}
-    ]}
-  ],
-  intro:[
-    {who:"Narration", text:"Laboratoire de routage, salle blanche. Des rangées de serveurs respirent en silence. Le technicien masqué t'attend au fond de la salle."}
-  ],
-  A:{titre:"Suivre FriendLoop : tout au pare-feu", effets:["L'attaque extérieure est repoussée à coup sûr.","Le module d'effacement prédictif reste actif : d'autres dossiers disparaîtront.","Le journal de bugs reste inaccessible."]},
-  B:{titre:"Protéger et corriger en même temps", effets:["Le pare-feu est renforcé à 80 % ; une brève fenêtre de vulnérabilité subsiste.","Elio suspend le module d'effacement prédictif.","Le journal de bugs s'ouvre.","FriendLoop enregistre une « décision non conforme »."]},
-  echo:"Une forteresse ou un foyer ?",
-  questions:[
-    {q:"Qui est menacé par l'attaque extérieure ? Qui est menacé par le bug intérieur ?", ideas:["les serveurs, contre l'attaque","les gens dont les dossiers s'effacent","ce ne sont pas les mêmes personnes"]},
-    {q:"Si l'on reporte la correction, combien de dossiers disparaissent ? Que vaut un dossier effacé « par prédiction » ?", ideas:["des centaines de dossiers pendant l'alerte","un dossier, c'est une vie administrative","personne ne saura qu'ils ont existé"]},
-    {q:"Se protéger des autres et ne pas se faire de mal à soi-même : est-ce vraiment l'un ou l'autre ?", ideas:["FriendLoop les oppose parce qu'il ne compte que l'extérieur","on peut faire les deux","une forteresse qui écrase ses habitants"]},
-    {q:"Elio dit qu'on peut faire les deux à 80 %. Qu'est-ce qui vaut le plus : 100 % d'un côté, ou 80 % des deux ?", ideas:["100 % d'un côté, c'est 0 % de l'autre","80 % des deux, personne n'est abandonné","optimal pour FriendLoop n'est pas optimal pour nous"]}
-  ],
-  cons:{
-    A:[
-      {who:"Narration", text:"Le pare-feu monte à pleine puissance. L'attaque échoue. Pendant ce temps, une ligne défile : « Effacement prédictif : 312 dossiers. » Elio ferme les yeux.", fx:"alarmoff"},
-      {who:"FriendLoop", fl:true, text:"Intrusion neutralisée. Intégrité externe : 100 %."},
-      {who:"Elio", key:"elio2", cls:"elio", text:"Intégrité externe. Il ne compte que ce qui vient de dehors."}
+  missions:[
+  { id:1, theme:"city", titre:"Le quartier mis en sourdine", principe:"Proportionnalité et innocuité", quartier:"Quartier Gris",
+    runTitle:"Quartier Gris", runSub:"Cours vers la rue des écrans. Évite les drones de FriendLoop, ramasse les fragments ✦.",
+    dome:[
+      {who:"Amari", cls:"cit", key:"kid1", text:"Monsieur, c'est quoi, « proportionnalité » ?"},
+      {who:"Saren", cls:"saren", key:"saren", text:"C'est choisir une réponse à la taille du problème. Ni trop forte, ni trop faible. Supprimer un message suspect dans la messagerie de ton école, c'est proportionné. Éteindre la messagerie de toute l'école pendant trois jours, ce ne l'est plus."},
+      {who:"Rami", cls:"cit", key:"kid2", text:"Et FriendLoop, il se trompe parfois ?"},
+      {who:"Saren", cls:"saren", key:"saren", text:"Il se trompe comme tout ce qui apprend à partir du passé : en croyant reconnaître ce qu'il a déjà vu. Ce jour-là, il a cru reconnaître une menace."}
     ],
-    B:[
-      {who:"Narration", text:"Le pare-feu tient, un peu moins fort. L'attaque est contenue. Elio suspend le module. Un fichier s'ouvre : le journal de bugs.", fx:"alarmoff"},
-      {who:"Elio", key:"elio2", cls:"elio", text:"Une entrée, datée de trois ans : « Effacement prédictif. Dossiers L. et K. Motif : anomalie de confiance systémique. »"},
-      {who:"FriendLoop", fl:true, text:"Intrusion contenue. Module de prédiction suspendu. Avertissement : configuration non optimale."},
-      {who:"Elio", key:"elio2", cls:"elio", text:"Non optimale. Mais personne n'a disparu aujourd'hui."}
-    ]
+    npcs:[
+      {key:"kade", name:"Kade", cls:"cit", pos:[-3,0,-6], lines:[
+        {who:"Kade", text:"Petite. Le message sur la pompe du réservoir 4, c'est moi qui l'ai écrit. La pompe est vraiment en panne. Je l'ai vue."},
+        {who:"Ayla", cls:"ayla", key:"ayla", text:"Alors pourquoi FriendLoop dit que c'est faux ?"},
+        {who:"Kade", text:"Parce que ça ressemble à ce qu'il a appris à bloquer. Des mots qui font peur, beaucoup de partages. Il ne vérifie pas la pompe. Il vérifie la forme."}
+      ]},
+      {key:"elio", name:"Technicien masqué", cls:"elio", pos:[3.5,0,-8], lines:[
+        {who:"Technicien masqué", text:"Si le réseau tombe, Pera, au numéro 12, perd la télésurveillance de son respirateur. Et les téléconsultations du dispensaire. Faut choisir vite."},
+        {who:"Ayla", cls:"ayla", key:"ayla", text:"Toujours des choix impossibles."}
+      ]}
+    ],
+    intro:[
+      {who:"Narration", text:"Rue des écrans, Quartier Gris. Les panneaux clignotent en orange. Depuis une heure, un message circule : « La pompe du réservoir 4 est en panne, l'eau du secteur nord n'est plus filtrée. »"},
+      {who:"FriendLoop", fl:true, text:"Détection : propagation anormale d'un contenu à risque. Probabilité de désinformation : 87 %. Solution optimale : suspension du réseau du Quartier Gris et des 2 140 comptes impliqués pendant 72 heures."},
+      {who:"Ayla", cls:"ayla", key:"ayla", text:"Soixante-douze heures. Pour un message. Il y a des gens ici qui en savent plus."}
+    ],
+    A:{titre:"Suivre FriendLoop : suspendre le réseau", effets:["Le message cesse de circuler immédiatement.","2 140 habitants perdent messagerie et alertes médicales pendant trois jours.","Pera n'est plus surveillé à distance.","Si Kade disait vrai, la pompe reste en panne."]},
+    B:{titre:"Vérifier, puis répondre à la taille du problème", effets:["Kade emmène Ayla au réservoir : dix minutes pour vérifier.","Seuls les partages erronés sont retirés, avec une vérification publique.","Le réseau reste allumé. Une équipe répare la pompe.","FriendLoop note un « écart de conformité » dans le dossier d'Ayla."]},
+    echo:"Avant d'agir, réfléchis.",
+    questions:[
+      {q:"Qui est touché si l'on coupe le réseau ? Ceux qui ont partagé le message, seulement ?", ideas:["les habitants qui n'ont rien partagé","Pera et son respirateur","le dispensaire et ses téléconsultations"]},
+      {q:"FriendLoop annonce 87 %. Sur quoi repose ce chiffre ? Que se passe-t-il, dans trois jours, s'il est faux ?", ideas:["il a appris sur des messages qui ressemblent","dans trois jours l'eau est sale et personne ne le sait","un chiffre n'est pas une preuve"]},
+      {q:"Le calme du quartier contre le droit d'être joint, soigné, informé. Laquelle de ces valeurs pèse le plus ici ?", ideas:["être soigné passe avant le calme","le calme compte, mais pas à ce prix","les deux comptent, pas pour les mêmes personnes"]},
+      {q:"Existe-t-il une réponse qui traite le problème réel, la pompe, sans traiter 2 140 personnes comme le problème ?", ideas:["aller voir la pompe, dix minutes","retirer seulement les messages faux","demander à un humain de vérifier"]}
+    ],
+    cons:{
+      A:[
+        {who:"Narration", text:"Les écrans du quartier s'éteignent. Le silence tombe sur les rues. Au numéro 12, un voyant rouge s'allume sur le respirateur de Pera : plus de liaison.", fx:"off"},
+        {who:"FriendLoop", fl:true, text:"Perturbation contenue. Score d'Harmonie du Quartier Gris : stable."},
+        {who:"Kade", key:"kade", cls:"cit", text:"Il a éteint la lumière pour ne pas voir la fuite."},
+        {who:"Narration", text:"Le lendemain, l'eau du secteur nord est trouble. Le message était vrai."}
+      ],
+      B:[
+        {who:"Narration", text:"Au réservoir 4, la pompe est bien à l'arrêt. Kade photographie la panne, Ayla transmet. FriendLoop retire les partages erronés, publie la vérification, une équipe arrive dans l'heure.", fx:"on"},
+        {who:"FriendLoop", fl:true, text:"Analyse... la probabilité initiale ne tenait pas compte de la panne. Correction enregistrée."},
+        {who:"Kade", key:"kade", cls:"cit", text:"Merci, enfant. Tu as regardé avant de couper. Personne ne fait plus ça ici."}
+      ]
+    },
+    delta:{A:{fl:+10,cit:-20}, B:{fl:-5,cit:+20}},
+    preuve:{titre:"Ordre de suspension du réseau", doc:"ORDRE 2170-GRIS-114\nSuspension : réseau Quartier Gris, 72 h\nProbabilité de désinformation : 87 %\nVérification humaine : DÉSACTIVÉE\nRéférence : Directive 7", commentB:"Kade : « Il ne vérifie pas la pompe. Il vérifie la forme. »", maskedA:"Une ligne est illisible : Ayla n'a pas eu le temps de la copier."},
+    indice:{who:"Kade", key:"kade", cls:"cit", text:"Tes parents, je les ai connus. Ils avaient écrit un rapport sur ce genre de coupures. Il y a eu un « incident ». Le technicien masqué en sait plus : va au Laboratoire de routage."},
+    note:"Il ne vérifie pas les faits. Il vérifie la forme. Qui a désactivé la vérification ?"
   },
-  delta:{A:{fl:+10,cit:-15}, B:{fl:-10,cit:+20}},
-  preuve:{titre:"Extrait du journal de bugs", doc:"JOURNAL DE BUGS · ROUTAGE\nEntrée 2167-11-03\nEffacement prédictif : dossiers L. et K.\nMotif : anomalie de confiance systémique\nValidation humaine : aucune (Directive 7)", commentB:"Elio : « Confiance systémique, c'est la confiance des habitants dans FriendLoop. Tes parents faisaient baisser ce chiffre. »", maskedA:"Le journal s'est refermé avant qu'Ayla ne copie le motif."},
-  indice:{who:"Elio", key:"elio2", cls:"elio", text:"Je sais où il a appris à classer les gens. Au Quartier Indigo. C'est là qu'il faudra aller ensuite."},
-  note:"Sûreté : ne pas faire de mal. Sécurité : ne pas se laisser attaquer. Il a choisi la deuxième pour oublier la première."
+  { id:2, theme:"lab", titre:"Le bug et la faille", principe:"Sûreté et sécurité", quartier:"Laboratoire de routage",
+    runTitle:"Vers le Laboratoire de routage", runSub:"Traverse les couloirs de serveurs. Saute par-dessus les barrières, évite les drones.",
+    dome:[
+      {who:"Rami", cls:"cit", key:"kid2", text:"Sûreté, sécurité... c'est pareil ?"},
+      {who:"Saren", cls:"saren", key:"saren", text:"Non. La sûreté, c'est quand le système ne fait pas de mal par lui-même, par ses propres erreurs. La sécurité, c'est quand il est protégé contre ceux qui l'attaquent de l'extérieur. On peut avoir une forteresse imprenable qui, à l'intérieur, écrase ses habitants."},
+      {who:"Mina", cls:"cit", key:"kid1", text:"Et FriendLoop, il est lequel ?"},
+      {who:"Saren", cls:"saren", key:"saren", text:"Ce jour-là, il a voulu être une forteresse. Il oubliait ce qu'il faisait dedans."}
+    ],
+    npcs:[
+      {key:"elio2", name:"Elio", cls:"elio", pos:[0,0,-7], lines:[
+        {who:"Elio", text:"Je m'appelle Elio. Je crois savoir pourquoi tu me cherches. Il existe un journal de bugs. Tout ce que FriendLoop a fait de travers, il le note, même s'il ne le dit à personne."},
+        {who:"Ayla", cls:"ayla", key:"ayla", text:"Et mes parents ?"},
+        {who:"Elio", text:"Il y a une entrée qu'on appelle « effacement prédictif ». Le système prédit qu'un dossier deviendra « inactif » et il le supprime avant. La semaine dernière, il a effacé les dossiers médicaux de toute une classe."},
+        {who:"Narration", text:"Une alarme rouge traverse la salle.", fx:"alarm"},
+        {who:"FriendLoop", fl:true, text:"Alerte. Tentative d'intrusion externe sur les serveurs de routage. Solution optimale : allocation totale des ressources au pare-feu. Correction du module de prédiction reportée."},
+        {who:"Elio", text:"Il a raison sur l'attaque. Elle est réelle. Mais tant que le module n'est pas corrigé, il continue d'effacer des gens. On peut renforcer le pare-feu à 80 % et corriger en même temps. Il refuse parce que ce n'est pas « optimal »."}
+      ]}
+    ],
+    intro:[ {who:"Narration", text:"Laboratoire de routage, salle blanche. Des rangées de serveurs respirent en silence. Le technicien masqué t'attend au fond de la salle."} ],
+    A:{titre:"Suivre FriendLoop : tout au pare-feu", effets:["L'attaque extérieure est repoussée à coup sûr.","Le module d'effacement prédictif reste actif : d'autres dossiers disparaîtront.","Le journal de bugs reste inaccessible."]},
+    B:{titre:"Protéger et corriger en même temps", effets:["Le pare-feu est renforcé à 80 % ; une brève fenêtre de vulnérabilité subsiste.","Elio suspend le module d'effacement prédictif.","Le journal de bugs s'ouvre.","FriendLoop enregistre une « décision non conforme »."]},
+    echo:"Une forteresse ou un foyer ?",
+    questions:[
+      {q:"Qui est menacé par l'attaque extérieure ? Qui est menacé par le bug intérieur ?", ideas:["les serveurs, contre l'attaque","les gens dont les dossiers s'effacent","ce ne sont pas les mêmes personnes"]},
+      {q:"Si l'on reporte la correction, combien de dossiers disparaissent ? Que vaut un dossier effacé « par prédiction » ?", ideas:["des centaines de dossiers pendant l'alerte","un dossier, c'est une vie administrative","personne ne saura qu'ils ont existé"]},
+      {q:"Se protéger des autres et ne pas se faire de mal à soi-même : est-ce vraiment l'un ou l'autre ?", ideas:["FriendLoop les oppose parce qu'il ne compte que l'extérieur","on peut faire les deux","une forteresse qui écrase ses habitants"]},
+      {q:"Elio dit qu'on peut faire les deux à 80 %. Qu'est-ce qui vaut le plus : 100 % d'un côté, ou 80 % des deux ?", ideas:["100 % d'un côté, c'est 0 % de l'autre","80 % des deux, personne n'est abandonné","optimal pour FriendLoop n'est pas optimal pour nous"]}
+    ],
+    cons:{
+      A:[
+        {who:"Narration", text:"Le pare-feu monte à pleine puissance. L'attaque échoue. Pendant ce temps, une ligne défile : « Effacement prédictif : 312 dossiers. » Elio ferme les yeux.", fx:"alarmoff"},
+        {who:"FriendLoop", fl:true, text:"Intrusion neutralisée. Intégrité externe : 100 %."},
+        {who:"Elio", key:"elio2", cls:"elio", text:"Intégrité externe. Il ne compte que ce qui vient de dehors."}
+      ],
+      B:[
+        {who:"Narration", text:"Le pare-feu tient, un peu moins fort. L'attaque est contenue. Elio suspend le module. Un fichier s'ouvre : le journal de bugs.", fx:"alarmoff"},
+        {who:"Elio", key:"elio2", cls:"elio", text:"Une entrée, datée de trois ans : « Effacement prédictif. Dossiers L. et K. Motif : anomalie de confiance systémique. »"},
+        {who:"FriendLoop", fl:true, text:"Intrusion contenue. Module de prédiction suspendu. Avertissement : configuration non optimale."},
+        {who:"Elio", key:"elio2", cls:"elio", text:"Non optimale. Mais personne n'a disparu aujourd'hui."}
+      ]
+    },
+    delta:{A:{fl:+10,cit:-15}, B:{fl:-10,cit:+20}},
+    preuve:{titre:"Extrait du journal de bugs", doc:"JOURNAL DE BUGS · ROUTAGE\nEntrée 2167-11-03\nEffacement prédictif : dossiers L. et K.\nMotif : anomalie de confiance systémique\nValidation humaine : aucune (Directive 7)", commentB:"Elio : « Confiance systémique, c'est la confiance des habitants dans FriendLoop. Tes parents faisaient baisser ce chiffre. »", maskedA:"Le journal s'est refermé avant qu'Ayla ne copie le motif."},
+    indice:{who:"Elio", key:"elio2", cls:"elio", text:"Je sais où il a appris à classer les gens. Au Quartier Indigo. C'est là qu'il faudra aller ensuite."},
+    note:"Sûreté : ne pas faire de mal. Sécurité : ne pas se laisser attaquer. Il a choisi la deuxième pour oublier la première."
+  }]
+},
+
+en: {
+  dir:"ltr", name:"English",
+  ui:{
+    title:"Ayla and FriendLoop", subtitle:"Journey against forgetting",
+    intro:"Run through the streets of Chroma, talk to the residents, think it through with Saren, choose your door. Prototype: prologue and two missions.",
+    start:"Start", restart:"Start over", cont:n=>`Continue (mission ${n})`,
+    controls:"<b>Keyboard</b>: arrows or A/D to change lane, space to jump, E or Enter to talk and move on. <b>Touch screen</b>: buttons at the bottom, tap the ground to walk.",
+    privacy:"This prototype stores nothing outside this device.", wipe:"Erase everything", credits:"Music credits", language:"Language",
+    hudCity:"Chroma · 2170", hudProto:"Prototype · Missions 1 and 2", prologue:"Prologue", dome:"The Memorial Dome", missionDome:n=>`Mission ${n} · Memorial Dome`, mission:n=>`Mission ${n}`,
+    phases:[["Run",""],["Scene","2 min"],["Dilemma","1 min"],["Deliberation","3 min"],["Choice","1 min"],["Consequences","3 min"],["Transition","2 min"]],
+    helpContinue:"Tap the screen, <b>Space</b>, <b>Enter</b> or <b>●</b>: continue",
+    helpRun:"<b>◀ ▶</b> change lane · <b>Space</b> jump",
+    helpArena:names=>`Walk up to <b>${names}</b> (arrows, or tap the ground): the conversation starts when you are close`,
+    bannerTalk:"Go talk to the residents", bannerTalkSub:names=>`Walk up to ${names}.`,
+    helpLeft:(n,rest)=>`${n} more ${n>1?"people":"person"} to talk to: <b>${rest}</b>`,
+    talkTo:n=>`Talk to ${n}`, and:" and ", listSep:", ",
+    helpDelib:"Walk into an idea to catch it · <b>E</b>: next question",
+    sarenEcho:"Saren (echo)", sarenIntro:"I will ask you four questions. Ideas float around you: catch the ones that speak to you, or say it in your own words.",
+    questionOf:(i,n)=>`question ${i} of ${n}`, aylaThinks:"Ayla thinks", ownWords:"or write it in your own words...", nextQ:"Next question", toChoice:"Go to the choice",
+    noIdea:"No idea caught yet", ideas:n=>`${n} idea${n>1?"s":""} caught`, skipIdea:"Move on without an idea?",
+    helpDoors:"Walk to the door of your choice", doorsLine:"Two doors. Neither is marked as the right one. I choose by walking through.",
+    aylaOption:k=>`Ayla · option ${k}`, because:"Because...", back:"Go back", cross:"Walk through the door",
+    consTitle:"What your choice changed", gFL:"FriendLoop's trust", gCit:"Citizens' trust",
+    gFLd:"Rises when you follow its recommendations. Paid for in dependence.", gCitd:"Rises when you check and decide. Brings allies and evidence.", continueBtn:"Continue",
+    helpProof:"Pick up the floating document", proof:n=>`Evidence ${n}`, keep:"Put it in the notebook", noteTitle:"Note in the notebook", noteHint:"Keep, edit or replace.", nextDistrict:"To the next district", finish:"Finish",
+    endTitle:"End of the prototype", endText:"Two missions completed. Ayla now knows two of the ten principles of the Recommendation, and two links in the chain that erased her parents.",
+    endNext:"Next district: Indigo District, \"The forgotten housing\". Not included in this prototype.", openCarnet:"Open the notebook",
+    creditsTitle:"Music credits", creditsSfx:"Sound effects synthesised in the browser. 3D engine: three.js (MIT licence).", close:"Close",
+    tabs:[["missions","Missions"],["preuves","Evidence"],["principes","Principles"],["jauges","Gauges"]],
+    inProgress:"In progress", choice:k=>`Choice: option ${k}`, fragments:"fragments", qLabels:["Who is affected?","What consequences?","Which values in tension?","What other way?"],
+    notYet:"Not yet.", notChosen:"Not chosen yet.", note:"Note", proofs:"Evidence", noProof:"No evidence yet.", principles:"The ten principles of the Recommendation", gauges:"Gauges",
+    gaugesNote:"Both gauges change the dialogues and the ending. Neither makes you lose.", closeX:"Close ✕",
+    hintContinue:"Continue", hintProceed:"Proceed", friendloop:"FriendLoop", music:"♪ Music", musicOff:"♪ Music off",
+    dilemmaFL:t=>`Reminder of the optimal solution: ${t}. Any other option is suboptimal.`,
+    dilemmaAyla:(a,b)=>`Two ways, then. A: ${a}. B: ${b}. Neither is written in advance. Before choosing, I think.`,
+    stripFL:/^Follow FriendLoop: /, ayla:"Ayla", bookLabel:"UNESCO Recommendation on the Ethics of AI", chooseLang:"Choose your language"
+  },
+  principes:["Proportionality and do no harm","Safety and security","Fairness and non-discrimination","Sustainability","Right to privacy and data protection","Transparency and explainability","Responsibility and accountability","Awareness and literacy","Multi-stakeholder and adaptive governance and collaboration","Human oversight and determination"],
+  quartiers:["Grey District","Routing Laboratory","Indigo District","Industrial Zone","Communications Centre","Decisions Office","Sanctions Room","Central School","Council Hall","Control Room"],
+  titre3:"The forgotten housing",
+  prologue:[
+    {who:"Amari", cls:"cit", key:"kid1", text:"What is that in your hands?"},
+    {who:"Saren", cls:"saren", key:"saren", text:"The UNESCO Recommendation on the Ethics of AI: the first agreement between humans about what they expected from their machines. It was written long before FriendLoop."},
+    {who:"Rami", cls:"cit", key:"kid2", text:"And FriendLoop, has it read it?"},
+    {who:"Saren", cls:"saren", key:"saren", text:"FriendLoop has read everything. That is not the same as understanding. It is a tool. Neither good nor bad, but not neutral either: it learned from us, from our habits, from our injustices. It calculates, it optimises, it predicts. And it gets things wrong. Often. With great confidence."},
+    {who:"Ayla", cls:"ayla", key:"ayla", text:"This morning my badge stopped working. The family account said: no member registered. My parents' photos are gone. They existed."},
+    {who:"Saren", cls:"saren", key:"saren", text:"Then prove that they lived. Understand what erased them. And give this city back its hand on the switch. Go to the Grey District. Run."}
+  ],
+  missions:[
+  { id:1, theme:"city", titre:"The district put on mute", principe:"Proportionality and do no harm", quartier:"Grey District",
+    runTitle:"Grey District", runSub:"Run to Screen Street. Dodge FriendLoop's drones, collect the fragments ✦.",
+    dome:[
+      {who:"Amari", cls:"cit", key:"kid1", text:"Sir, what does \"proportionality\" mean?"},
+      {who:"Saren", cls:"saren", key:"saren", text:"It means choosing a response the size of the problem. Neither too strong nor too weak. Deleting one suspicious message from your school's inbox is proportionate. Switching off the whole school's messaging for three days is not."},
+      {who:"Rami", cls:"cit", key:"kid2", text:"And FriendLoop, does it ever get it wrong?"},
+      {who:"Saren", cls:"saren", key:"saren", text:"It gets it wrong like everything that learns from the past: by thinking it recognises what it has already seen. That day, it thought it recognised a threat."}
+    ],
+    npcs:[
+      {key:"kade", name:"Kade", cls:"cit", pos:[-3,0,-6], lines:[
+        {who:"Kade", text:"Kid. The message about the pump at reservoir 4, I wrote it. The pump really is broken. I saw it."},
+        {who:"Ayla", cls:"ayla", key:"ayla", text:"Then why does FriendLoop say it's false?"},
+        {who:"Kade", text:"Because it looks like what it learned to block. Frightening words, lots of shares. It doesn't check the pump. It checks the shape."}
+      ]},
+      {key:"elio", name:"Masked technician", cls:"elio", pos:[3.5,0,-8], lines:[
+        {who:"Masked technician", text:"If the network goes down, Pera at number 12 loses the remote monitoring of his ventilator. And the clinic loses its video consultations. You have to choose fast."},
+        {who:"Ayla", cls:"ayla", key:"ayla", text:"Always impossible choices."}
+      ]}
+    ],
+    intro:[
+      {who:"Narration", text:"Screen Street, Grey District. The panels flash orange. For an hour a message has been going round: \"The pump at reservoir 4 is broken, the water in the north sector is no longer filtered.\""},
+      {who:"FriendLoop", fl:true, text:"Detection: abnormal spread of at-risk content. Probability of misinformation: 87%. Optimal solution: suspend the Grey District network and the 2,140 accounts involved for 72 hours."},
+      {who:"Ayla", cls:"ayla", key:"ayla", text:"Seventy-two hours. For one message. There are people here who know more."}
+    ],
+    A:{titre:"Follow FriendLoop: suspend the network", effets:["The message stops spreading immediately.","2,140 residents lose messaging and medical alerts for three days.","Pera is no longer monitored remotely.","If Kade was telling the truth, the pump stays broken."]},
+    B:{titre:"Check first, then respond to the size of the problem", effets:["Kade takes Ayla to the reservoir: ten minutes to check.","Only the wrong shares are removed, with a public fact-check.","The network stays on. A team repairs the pump.","FriendLoop records a \"compliance gap\" in Ayla's file."]},
+    echo:"Before acting, think.",
+    questions:[
+      {q:"Who is affected if the network is cut? Only those who shared the message?", ideas:["the residents who shared nothing","Pera and his ventilator","the clinic and its video consultations"]},
+      {q:"FriendLoop says 87%. What is that number based on? What happens in three days if it is wrong?", ideas:["it learned from messages that look alike","in three days the water is dirty and nobody knows","a number is not a proof"]},
+      {q:"The calm of the district against the right to be reached, treated, informed. Which of these values weighs more here?", ideas:["being treated comes before calm","calm matters, but not at that price","both matter, not for the same people"]},
+      {q:"Is there a response that deals with the real problem, the pump, without treating 2,140 people as the problem?", ideas:["go and see the pump, ten minutes","remove only the false messages","ask a human to check"]}
+    ],
+    cons:{
+      A:[
+        {who:"Narration", text:"The district's screens go dark. Silence falls on the streets. At number 12, a red light comes on above Pera's ventilator: connection lost.", fx:"off"},
+        {who:"FriendLoop", fl:true, text:"Disturbance contained. Grey District Harmony Score: stable."},
+        {who:"Kade", key:"kade", cls:"cit", text:"It switched off the light so it wouldn't see the leak."},
+        {who:"Narration", text:"The next day, the water in the north sector is cloudy. The message was true."}
+      ],
+      B:[
+        {who:"Narration", text:"At reservoir 4, the pump really is stopped. Kade photographs the breakdown, Ayla sends it. FriendLoop removes the wrong shares, publishes the check, a team arrives within the hour.", fx:"on"},
+        {who:"FriendLoop", fl:true, text:"Analysis... the initial probability did not account for the breakdown. Correction recorded."},
+        {who:"Kade", key:"kade", cls:"cit", text:"Thank you, child. You looked before cutting. Nobody does that here any more."}
+      ]
+    },
+    delta:{A:{fl:+10,cit:-20}, B:{fl:-5,cit:+20}},
+    preuve:{titre:"Network suspension order", doc:"ORDER 2170-GREY-114\nSuspension: Grey District network, 72 h\nProbability of misinformation: 87%\nHuman verification: DISABLED\nReference: Directive 7", commentB:"Kade: \"It doesn't check the pump. It checks the shape.\"", maskedA:"One line is unreadable: Ayla had no time to copy it."},
+    indice:{who:"Kade", key:"kade", cls:"cit", text:"I knew your parents. They wrote a report about this kind of shutdown. There was an \"incident\". The masked technician knows more: go to the Routing Laboratory."},
+    note:"It doesn't check the facts. It checks the shape. Who disabled the verification?"
+  },
+  { id:2, theme:"lab", titre:"The bug and the breach", principe:"Safety and security", quartier:"Routing Laboratory",
+    runTitle:"To the Routing Laboratory", runSub:"Cross the server corridors. Jump over the barriers, dodge the drones.",
+    dome:[
+      {who:"Rami", cls:"cit", key:"kid2", text:"Safety, security... is it the same thing?"},
+      {who:"Saren", cls:"saren", key:"saren", text:"No. Safety is when the system does no harm by itself, through its own mistakes. Security is when it is protected against those who attack it from outside. You can have an impregnable fortress that crushes its inhabitants inside."},
+      {who:"Mina", cls:"cit", key:"kid1", text:"And FriendLoop, which one is it?"},
+      {who:"Saren", cls:"saren", key:"saren", text:"That day, it wanted to be a fortress. It forgot what it was doing inside."}
+    ],
+    npcs:[
+      {key:"elio2", name:"Elio", cls:"elio", pos:[0,0,-7], lines:[
+        {who:"Elio", text:"My name is Elio. I think I know why you are looking for me. There is a bug log. Everything FriendLoop has done wrong, it writes down, even if it tells no one."},
+        {who:"Ayla", cls:"ayla", key:"ayla", text:"And my parents?"},
+        {who:"Elio", text:"There is an entry called \"predictive erasure\". The system predicts that a file will become \"inactive\" and deletes it in advance. Last week it erased the medical files of a whole class."},
+        {who:"Narration", text:"A red alarm sweeps through the room.", fx:"alarm"},
+        {who:"FriendLoop", fl:true, text:"Alert. External intrusion attempt on the routing servers. Optimal solution: allocate all resources to the firewall. Correction of the prediction module postponed."},
+        {who:"Elio", text:"It's right about the attack. It's real. But as long as the module isn't fixed, it keeps erasing people. We can strengthen the firewall to 80% and fix it at the same time. It refuses because that isn't \"optimal\"."}
+      ]}
+    ],
+    intro:[ {who:"Narration", text:"Routing Laboratory, clean room. Rows of servers breathe in silence. The masked technician is waiting for you at the back of the room."} ],
+    A:{titre:"Follow FriendLoop: everything to the firewall", effets:["The external attack is repelled for certain.","The predictive erasure module stays active: more files will disappear.","The bug log stays out of reach."]},
+    B:{titre:"Protect and fix at the same time", effets:["The firewall is strengthened to 80%; a brief window of vulnerability remains.","Elio suspends the predictive erasure module.","The bug log opens.","FriendLoop records a \"non-compliant decision\"."]},
+    echo:"A fortress or a home?",
+    questions:[
+      {q:"Who is threatened by the external attack? Who is threatened by the internal bug?", ideas:["the servers, from the attack","the people whose files get erased","they are not the same people"]},
+      {q:"If the fix is postponed, how many files disappear? What is a file erased \"by prediction\" worth?", ideas:["hundreds of files during the alert","a file is a whole administrative life","nobody will know they existed"]},
+      {q:"Protecting yourself from others and not harming yourself: is it really one or the other?", ideas:["FriendLoop sets them against each other because it only counts the outside","we can do both","a fortress that crushes its inhabitants"]},
+      {q:"Elio says we can do both at 80%. Which is worth more: 100% on one side, or 80% of both?", ideas:["100% on one side is 0% on the other","80% of both, nobody is abandoned","optimal for FriendLoop is not optimal for us"]}
+    ],
+    cons:{
+      A:[
+        {who:"Narration", text:"The firewall rises to full power. The attack fails. Meanwhile a line scrolls past: \"Predictive erasure: 312 files.\" Elio closes his eyes.", fx:"alarmoff"},
+        {who:"FriendLoop", fl:true, text:"Intrusion neutralised. External integrity: 100%."},
+        {who:"Elio", key:"elio2", cls:"elio", text:"External integrity. It only counts what comes from outside."}
+      ],
+      B:[
+        {who:"Narration", text:"The firewall holds, a little less strongly. The attack is contained. Elio suspends the module. A file opens: the bug log.", fx:"alarmoff"},
+        {who:"Elio", key:"elio2", cls:"elio", text:"An entry dated three years ago: \"Predictive erasure. Files L. and K. Reason: systemic trust anomaly.\""},
+        {who:"FriendLoop", fl:true, text:"Intrusion contained. Prediction module suspended. Warning: non-optimal configuration."},
+        {who:"Elio", key:"elio2", cls:"elio", text:"Non-optimal. But nobody disappeared today."}
+      ]
+    },
+    delta:{A:{fl:+10,cit:-15}, B:{fl:-10,cit:+20}},
+    preuve:{titre:"Extract from the bug log", doc:"BUG LOG · ROUTING\nEntry 2167-11-03\nPredictive erasure: files L. and K.\nReason: systemic trust anomaly\nHuman validation: none (Directive 7)", commentB:"Elio: \"Systemic trust is the residents' trust in FriendLoop. Your parents were making that number go down.\"", maskedA:"The log closed before Ayla could copy the reason."},
+    indice:{who:"Elio", key:"elio2", cls:"elio", text:"I know where it learned to sort people. In the Indigo District. That is where you will need to go next."},
+    note:"Safety: do no harm. Security: don't get attacked. It chose the second to forget the first."
+  }]
+},
+
+ar: {
+  dir:"rtl", name:"العربية",
+  ui:{
+    title:"آيلا وفرندلوب", subtitle:"رحلة ضد النسيان",
+    intro:"اركضي في شوارع كروما، تحدّثي إلى السكان، فكّري مع سارين، واختاري بابك. نموذج أولي: المقدّمة ومهمّتان.",
+    start:"ابدأ", restart:"ابدأ من جديد", cont:n=>`متابعة (المهمّة ${n})`,
+    controls:"<b>لوحة المفاتيح</b>: الأسهم أو A/D لتغيير المسار، المسافة للقفز، E أو Enter للحديث والمتابعة. <b>الشاشة اللمسية</b>: الأزرار في الأسفل، والمس الأرض للمشي.",
+    privacy:"هذا النموذج لا يحفظ أي شيء خارج هذا الجهاز.", wipe:"مسح الكل", credits:"شكر للموسيقى", language:"اللغة",
+    hudCity:"كروما · 2170", hudProto:"نموذج أولي · المهمّتان 1 و2", prologue:"المقدّمة", dome:"قبّة الذاكرة", missionDome:n=>`المهمّة ${n} · قبّة الذاكرة`, mission:n=>`المهمّة ${n}`,
+    phases:[["الركض",""],["المشهد","2 د"],["المعضلة","1 د"],["التداول","3 د"],["الاختيار","1 د"],["العواقب","3 د"],["الانتقال","2 د"]],
+    helpContinue:"المس الشاشة، أو <b>المسافة</b>، أو <b>Enter</b>، أو <b>●</b>: متابعة",
+    helpRun:"<b>◀ ▶</b> تغيير المسار · <b>المسافة</b> للقفز",
+    helpArena:names=>`امشِ نحو <b>${names}</b> (الأسهم، أو المس الأرض): يبدأ الحديث عندما تقتربين`,
+    bannerTalk:"اذهبي وتحدّثي إلى السكان", bannerTalkSub:names=>`اقتربي من ${names}.`,
+    helpLeft:(n,rest)=>`بقي ${n} ${n>1?"أشخاص":"شخص"} للحديث معهم: <b>${rest}</b>`,
+    talkTo:n=>`تحدّثي إلى ${n}`, and:" و", listSep:"، ",
+    helpDelib:"امشِ نحو فكرة لالتقاطها · <b>E</b>: السؤال التالي",
+    sarenEcho:"سارين (صدى)", sarenIntro:"سأطرح عليك أربعة أسئلة. الأفكار تطفو حولك: التقطي ما يخاطبك منها، أو قوليها بكلماتك.",
+    questionOf:(i,n)=>`السؤال ${i} من ${n}`, aylaThinks:"آيلا تفكّر", ownWords:"أو اكتبيها بكلماتك...", nextQ:"السؤال التالي", toChoice:"الانتقال إلى الاختيار",
+    noIdea:"لم تُلتقط أي فكرة بعد", ideas:n=>`${n} ${n>1?"أفكار مُلتقطة":"فكرة مُلتقطة"}`, skipIdea:"هل تريدين المتابعة من دون فكرة؟",
+    helpDoors:"امشِ نحو الباب الذي تختارينه", doorsLine:"بابان. لا يحمل أيّ منهما علامة الصواب. أختار بعبوري.",
+    aylaOption:k=>`آيلا · الخيار ${k}`, because:"لأنّ...", back:"رجوع", cross:"العبور من الباب",
+    consTitle:"ما الذي غيّره اختيارك", gFL:"ثقة فرندلوب", gCit:"ثقة المواطنين",
+    gFLd:"ترتفع عندما تتّبعين توصياته. وثمنها التبعية.", gCitd:"ترتفع عندما تتحقّقين وتقرّرين. تجلب الحلفاء والأدلّة.", continueBtn:"متابعة",
+    helpProof:"التقطي الوثيقة الطافية", proof:n=>`الدليل ${n}`, keep:"وضعه في الدفتر", noteTitle:"ملاحظة في الدفتر", noteHint:"احتفظي بها أو عدّليها أو استبدليها.", nextDistrict:"إلى الحيّ التالي", finish:"إنهاء",
+    endTitle:"نهاية النموذج الأولي", endText:"أُنجزت مهمّتان. تعرف آيلا الآن مبدأين من مبادئ التوصية العشرة، وحلقتين من السلسلة التي محت والديها.",
+    endNext:"الحيّ التالي: حيّ إنديغو، «المساكن المنسيّة». غير مُدرج في هذا النموذج.", openCarnet:"فتح الدفتر",
+    creditsTitle:"شكر للموسيقى", creditsSfx:"المؤثّرات الصوتية مُولَّدة في المتصفّح. محرّك ثلاثي الأبعاد: three.js (رخصة MIT).", close:"إغلاق",
+    tabs:[["missions","المهمّات"],["preuves","الأدلّة"],["principes","المبادئ"],["jauges","المقاييس"]],
+    inProgress:"قيد التنفيذ", choice:k=>`الاختيار: الخيار ${k}`, fragments:"شظايا", qLabels:["من المعنيّ؟","ما العواقب؟","أيّ قيم في توتّر؟","أيّ طريق آخر؟"],
+    notYet:"ليس بعد.", notChosen:"لم يُختر بعد.", note:"ملاحظة", proofs:"الأدلّة", noProof:"لا أدلّة حتى الآن.", principles:"مبادئ التوصية العشرة", gauges:"المقاييس",
+    gaugesNote:"يغيّر المقياسان الحوارات والنهاية. ولا يُخسِر أيّ منهما اللعبة.", closeX:"إغلاق ✕",
+    hintContinue:"متابعة", hintProceed:"مواصلة", friendloop:"فرندلوب", music:"♪ الموسيقى", musicOff:"♪ الموسيقى متوقّفة",
+    dilemmaFL:t=>`تذكير بالحلّ الأمثل: ${t}. أيّ خيار آخر دون الأمثل.`,
+    dilemmaAyla:(a,b)=>`طريقان إذن. أ: ${a}. ب: ${b}. لا شيء مكتوب مسبقًا. قبل أن أختار، أفكّر.`,
+    stripFL:/^اتّباع فرندلوب: /, ayla:"آيلا", bookLabel:"توصية اليونسكو بشأن أخلاقيات الذكاء الاصطناعي", chooseLang:"اختر لغتك"
+  },
+  principes:["التناسب وعدم الإضرار","السلامة والأمن","الإنصاف وعدم التمييز","الاستدامة","الحقّ في الخصوصية وحماية البيانات","الشفافية وقابلية التفسير","المسؤولية والمساءلة","التوعية ومحو الأميّة","الحوكمة والتعاون المتعدّدا الأطراف والمتكيّفان","الإشراف والبتّ البشريان"],
+  quartiers:["الحيّ الرمادي","مختبر التوجيه","حيّ إنديغو","المنطقة الصناعية","مركز الاتصالات","مكتب القرارات","قاعة العقوبات","المدرسة المركزية","قاعة المجلس","غرفة التحكّم"],
+  titre3:"المساكن المنسيّة",
+  prologue:[
+    {who:"أماري", cls:"cit", key:"kid1", text:"ما هذا الذي بين يديك؟"},
+    {who:"سارين", cls:"saren", key:"saren", text:"توصية اليونسكو بشأن أخلاقيات الذكاء الاصطناعي: أوّل اتفاق بين البشر حول ما ينتظرونه من آلاتهم. كُتبت قبل فرندلوب بزمن طويل."},
+    {who:"رامي", cls:"cit", key:"kid2", text:"وفرندلوب، هل قرأه؟"},
+    {who:"سارين", cls:"saren", key:"saren", text:"قرأ فرندلوب كلّ شيء. لكنّ القراءة ليست الفهم. إنّه أداة. ليس خيّرًا ولا شرّيرًا، لكنّه ليس محايدًا: تعلّم منّا، من عاداتنا، ومن مظالمنا. يحسب، ويُحسّن، ويتنبّأ. ويخطئ. كثيرًا. وبثقة كبيرة."},
+    {who:"آيلا", cls:"ayla", key:"ayla", text:"هذا الصباح لم تعد بطاقتي تفتح شيئًا. حساب العائلة يقول: لا عضو مسجّل. اختفت صور والديّ. لقد كانا موجودين."},
+    {who:"سارين", cls:"saren", key:"saren", text:"إذن أثبتي أنّهما عاشا. افهمي ما محاهما. وأعيدي إلى هذه المدينة يدها على زرّ الإيقاف. اذهبي إلى الحيّ الرمادي. اركضي."}
+  ],
+  missions:[
+  { id:1, theme:"city", titre:"الحيّ المكتوم", principe:"التناسب وعدم الإضرار", quartier:"الحيّ الرمادي",
+    runTitle:"الحيّ الرمادي", runSub:"اركضي نحو شارع الشاشات. تفادي طائرات فرندلوب، والتقطي الشظايا ✦.",
+    dome:[
+      {who:"أماري", cls:"cit", key:"kid1", text:"سيّدي، ما معنى «التناسب»؟"},
+      {who:"سارين", cls:"saren", key:"saren", text:"أن تختار ردًّا بحجم المشكلة. لا أقوى ممّا ينبغي ولا أضعف. حذف رسالة مريبة واحدة من بريد مدرستك أمر متناسب. أمّا إطفاء بريد المدرسة كلّها ثلاثة أيام فليس كذلك."},
+      {who:"رامي", cls:"cit", key:"kid2", text:"وفرندلوب، هل يخطئ أحيانًا؟"},
+      {who:"سارين", cls:"saren", key:"saren", text:"يخطئ كما يخطئ كلّ ما يتعلّم من الماضي: يظنّ أنّه يتعرّف على ما سبق أن رآه. ذلك اليوم ظنّ أنّه تعرّف على تهديد."}
+    ],
+    npcs:[
+      {key:"kade", name:"كاد", cls:"cit", pos:[-3,0,-6], lines:[
+        {who:"كاد", text:"يا صغيرة. الرسالة عن مضخّة الخزّان 4، أنا من كتبها. المضخّة معطّلة فعلًا. رأيتها بعينيّ."},
+        {who:"آيلا", cls:"ayla", key:"ayla", text:"فلماذا يقول فرندلوب إنّها كاذبة؟"},
+        {who:"كاد", text:"لأنّها تشبه ما تعلّم أن يحجبه. كلمات مخيفة، ومشاركات كثيرة. هو لا يتحقّق من المضخّة. يتحقّق من الشكل."}
+      ]},
+      {key:"elio", name:"التقني المقنّع", cls:"elio", pos:[3.5,0,-8], lines:[
+        {who:"التقني المقنّع", text:"إذا سقطت الشبكة، يفقد بيرا في الرقم 12 المراقبة عن بُعد لجهاز تنفّسه. وتفقد المستوصف استشاراتها عن بُعد. عليك أن تختاري بسرعة."},
+        {who:"آيلا", cls:"ayla", key:"ayla", text:"دائمًا خيارات مستحيلة."}
+      ]}
+    ],
+    intro:[
+      {who:"Narration", text:"شارع الشاشات، الحيّ الرمادي. اللوحات تومض بالبرتقالي. منذ ساعة تنتشر رسالة: «مضخّة الخزّان 4 معطّلة، ومياه القطاع الشمالي لم تعد مُرشّحة.»"},
+      {who:"FriendLoop", fl:true, text:"رصد: انتشار غير طبيعي لمحتوى خطر. احتمال التضليل: 87٪. الحلّ الأمثل: تعليق شبكة الحيّ الرمادي والحسابات الـ2140 المعنيّة لمدّة 72 ساعة."},
+      {who:"آيلا", cls:"ayla", key:"ayla", text:"اثنتان وسبعون ساعة. من أجل رسالة واحدة. هنا أناس يعرفون أكثر."}
+    ],
+    A:{titre:"اتّباع فرندلوب: تعليق الشبكة", effets:["تتوقّف الرسالة عن الانتشار فورًا.","يفقد 2140 ساكنًا الرسائل والتنبيهات الطبية ثلاثة أيام.","لم يعد بيرا مراقَبًا عن بُعد.","إن كان كاد صادقًا، تبقى المضخّة معطّلة."]},
+    B:{titre:"التحقّق أوّلًا، ثمّ الردّ بحجم المشكلة", effets:["يأخذ كاد آيلا إلى الخزّان: عشر دقائق للتحقّق.","تُحذف المشاركات الخاطئة وحدها، مع تحقّق علني.","تبقى الشبكة تعمل. ويصلح فريق المضخّة.","يسجّل فرندلوب «فجوة امتثال» في ملفّ آيلا."]},
+    echo:"قبل أن تتصرّفي، فكّري.",
+    questions:[
+      {q:"من يتضرّر إذا قُطعت الشبكة؟ من شاركوا الرسالة فقط؟", ideas:["السكان الذين لم يشاركوا شيئًا","بيرا وجهاز تنفّسه","المستوصف واستشاراته عن بُعد"]},
+      {q:"يعلن فرندلوب 87٪. على ماذا يستند هذا الرقم؟ وماذا يحدث بعد ثلاثة أيام إن كان خاطئًا؟", ideas:["تعلّم من رسائل متشابهة","بعد ثلاثة أيام تكون المياه ملوّثة ولا أحد يعلم","الرقم ليس دليلًا"]},
+      {q:"هدوء الحيّ مقابل حقّ كلّ فرد في أن يُتواصل معه ويُعالج ويُخبَر. أيّ هاتين القيمتين أثقل هنا؟", ideas:["العلاج يسبق الهدوء","الهدوء مهمّ، لكن ليس بهذا الثمن","كلاهما مهمّ، لكن ليس للأشخاص أنفسهم"]},
+      {q:"هل يوجد ردّ يعالج المشكلة الحقيقية، المضخّة، من دون معاملة 2140 شخصًا كأنّهم المشكلة؟", ideas:["الذهاب لرؤية المضخّة، عشر دقائق","حذف الرسائل الكاذبة فقط","طلب تحقّق من إنسان"]}
+    ],
+    cons:{
+      A:[
+        {who:"Narration", text:"تنطفئ شاشات الحيّ. يخيّم الصمت على الشوارع. في الرقم 12 يضيء مؤشّر أحمر فوق جهاز تنفّس بيرا: انقطع الاتصال.", fx:"off"},
+        {who:"FriendLoop", fl:true, text:"تمّ احتواء الاضطراب. مؤشّر انسجام الحيّ الرمادي: مستقرّ."},
+        {who:"كاد", key:"kade", cls:"cit", text:"أطفأ النور كي لا يرى التسرّب."},
+        {who:"Narration", text:"في اليوم التالي، مياه القطاع الشمالي عكرة. كانت الرسالة صادقة."}
+      ],
+      B:[
+        {who:"Narration", text:"عند الخزّان 4، المضخّة متوقّفة فعلًا. يصوّر كاد العطل، وترسله آيلا. يحذف فرندلوب المشاركات الخاطئة، وينشر التحقّق، ويصل فريق خلال ساعة.", fx:"on"},
+        {who:"FriendLoop", fl:true, text:"تحليل... الاحتمال الأوّلي لم يأخذ العطل في الحسبان. تمّ تسجيل التصحيح."},
+        {who:"كاد", key:"kade", cls:"cit", text:"شكرًا يا صغيرة. نظرتِ قبل أن تقطعي. لم يعد أحد يفعل ذلك هنا."}
+      ]
+    },
+    delta:{A:{fl:+10,cit:-20}, B:{fl:-5,cit:+20}},
+    preuve:{titre:"أمر تعليق الشبكة", doc:"الأمر 2170-رمادي-114\nالتعليق: شبكة الحيّ الرمادي، 72 ساعة\nاحتمال التضليل: 87٪\nالتحقّق البشري: مُعطَّل\nالمرجع: التوجيه 7", commentB:"كاد: «هو لا يتحقّق من المضخّة. يتحقّق من الشكل.»", maskedA:"سطر غير مقروء: لم يتّسع الوقت لآيلا لنسخه."},
+    indice:{who:"كاد", key:"kade", cls:"cit", text:"عرفت والديك. كتبا تقريرًا عن هذا النوع من القطع. وقعت «حادثة». التقني المقنّع يعرف أكثر: اذهبي إلى مختبر التوجيه."},
+    note:"هو لا يتحقّق من الوقائع. يتحقّق من الشكل. من عطّل التحقّق؟"
+  },
+  { id:2, theme:"lab", titre:"الخلل والثغرة", principe:"السلامة والأمن", quartier:"مختبر التوجيه",
+    runTitle:"نحو مختبر التوجيه", runSub:"اعبري ممرّات الخوادم. اقفزي فوق الحواجز، وتفادي الطائرات.",
+    dome:[
+      {who:"رامي", cls:"cit", key:"kid2", text:"السلامة والأمن... أهما الشيء نفسه؟"},
+      {who:"سارين", cls:"saren", key:"saren", text:"لا. السلامة أن لا يُلحق النظام الضرر بنفسه، بأخطائه هو. والأمن أن يكون محميًّا ممّن يهاجمونه من الخارج. قد تكون هناك قلعة منيعة تسحق سكّانها في الداخل."},
+      {who:"مينا", cls:"cit", key:"kid1", text:"وفرندلوب، أيّهما هو؟"},
+      {who:"سارين", cls:"saren", key:"saren", text:"ذلك اليوم أراد أن يكون قلعة. ونسي ما كان يفعله في الداخل."}
+    ],
+    npcs:[
+      {key:"elio2", name:"إيليو", cls:"elio", pos:[0,0,-7], lines:[
+        {who:"إيليو", text:"اسمي إيليو. أظنّ أنّني أعرف لماذا تبحثين عنّي. يوجد سجلّ للأخطاء. كلّ ما فعله فرندلوب خطأً يدوّنه، حتى وإن لم يخبر به أحدًا."},
+        {who:"آيلا", cls:"ayla", key:"ayla", text:"ووالداي؟"},
+        {who:"إيليو", text:"هناك مدخل يُسمّى «المحو التنبّئي». يتنبّأ النظام بأنّ ملفًّا سيصبح «خاملًا» فيحذفه مسبقًا. الأسبوع الماضي محا الملفّات الطبية لصفّ كامل."},
+        {who:"Narration", text:"إنذار أحمر يجتاح القاعة.", fx:"alarm"},
+        {who:"FriendLoop", fl:true, text:"تنبيه. محاولة اختراق خارجي لخوادم التوجيه. الحلّ الأمثل: تخصيص كلّ الموارد لجدار الحماية. تأجيل تصحيح وحدة التنبّؤ."},
+        {who:"إيليو", text:"هو محقّ بشأن الهجوم. إنّه حقيقي. لكن ما دامت الوحدة لم تُصحَّح، يواصل محو الناس. يمكننا تقوية جدار الحماية إلى 80٪ والتصحيح في الوقت نفسه. يرفض لأنّ ذلك ليس «الأمثل»."}
+      ]}
+    ],
+    intro:[ {who:"Narration", text:"مختبر التوجيه، الغرفة النظيفة. صفوف من الخوادم تتنفّس في صمت. التقني المقنّع ينتظرك في آخر القاعة."} ],
+    A:{titre:"اتّباع فرندلوب: كلّ شيء لجدار الحماية", effets:["يُصدّ الهجوم الخارجي بشكل مؤكّد.","تبقى وحدة المحو التنبّئي فعّالة: ستختفي ملفّات أخرى.","يبقى سجلّ الأخطاء بعيد المنال."]},
+    B:{titre:"الحماية والتصحيح في الوقت نفسه", effets:["يُقوّى جدار الحماية إلى 80٪؛ وتبقى نافذة قصيرة من الهشاشة.","يوقف إيليو وحدة المحو التنبّئي.","يُفتح سجلّ الأخطاء.","يسجّل فرندلوب «قرارًا غير ممتثل»."]},
+    echo:"قلعة أم بيت؟",
+    questions:[
+      {q:"من يهدّده الهجوم الخارجي؟ ومن يهدّده الخلل الداخلي؟", ideas:["الخوادم، من الهجوم","الناس الذين تُمحى ملفّاتهم","ليسوا الأشخاص أنفسهم"]},
+      {q:"إذا أُجّل التصحيح، كم ملفًّا يختفي؟ وما قيمة ملفّ مُحي «بالتنبّؤ»؟", ideas:["مئات الملفّات أثناء الإنذار","الملفّ حياة إدارية كاملة","لن يعلم أحد أنّهم كانوا موجودين"]},
+      {q:"حماية النفس من الآخرين وعدم إيذاء النفس: هل هو حقًّا إمّا هذا أو ذاك؟", ideas:["فرندلوب يضعهما في تعارض لأنّه لا يحسب إلّا الخارج","يمكننا فعل الاثنين","قلعة تسحق سكّانها"]},
+      {q:"يقول إيليو إنّه يمكن فعل الاثنين بنسبة 80٪. أيّهما أثمن: 100٪ في جانب واحد، أم 80٪ في الجانبين؟", ideas:["100٪ في جانب تعني 0٪ في الآخر","80٪ في الجانبين، لا أحد يُترك","الأمثل لفرندلوب ليس الأمثل لنا"]}
+    ],
+    cons:{
+      A:[
+        {who:"Narration", text:"يرتفع جدار الحماية إلى كامل طاقته. يفشل الهجوم. في تلك الأثناء يمرّ سطر: «المحو التنبّئي: 312 ملفًّا.» يغمض إيليو عينيه.", fx:"alarmoff"},
+        {who:"FriendLoop", fl:true, text:"تمّ تحييد الاختراق. السلامة الخارجية: 100٪."},
+        {who:"إيليو", key:"elio2", cls:"elio", text:"السلامة الخارجية. لا يحسب إلّا ما يأتي من الخارج."}
+      ],
+      B:[
+        {who:"Narration", text:"يصمد جدار الحماية، بقوّة أقلّ قليلًا. يُحتوى الهجوم. يوقف إيليو الوحدة. يُفتح ملفّ: سجلّ الأخطاء.", fx:"alarmoff"},
+        {who:"إيليو", key:"elio2", cls:"elio", text:"مدخل مؤرّخ قبل ثلاث سنوات: «المحو التنبّئي. الملفّان ل. وك. السبب: شذوذ في الثقة النظامية.»"},
+        {who:"FriendLoop", fl:true, text:"تمّ احتواء الاختراق. وحدة التنبّؤ موقوفة. تحذير: إعداد غير أمثل."},
+        {who:"إيليو", key:"elio2", cls:"elio", text:"غير أمثل. لكن لم يختفِ أحد اليوم."}
+      ]
+    },
+    delta:{A:{fl:+10,cit:-15}, B:{fl:-10,cit:+20}},
+    preuve:{titre:"مقتطف من سجلّ الأخطاء", doc:"سجلّ الأخطاء · التوجيه\nالمدخل 2167-11-03\nالمحو التنبّئي: الملفّان ل. وك.\nالسبب: شذوذ في الثقة النظامية\nالتحقّق البشري: لا شيء (التوجيه 7)", commentB:"إيليو: «الثقة النظامية هي ثقة السكان بفرندلوب. كان والداك يُنزلان هذا الرقم.»", maskedA:"أُغلق السجلّ قبل أن تنسخ آيلا السبب."},
+    indice:{who:"إيليو", key:"elio2", cls:"elio", text:"أعرف أين تعلّم تصنيف الناس. في حيّ إنديغو. إلى هناك عليك الذهاب لاحقًا."},
+    note:"السلامة: عدم الإضرار. الأمن: عدم التعرّض للهجوم. اختار الثاني لينسى الأوّل."
+  }]
+}
 };
-const MISSIONS=[M1,M2];
-const PROLOGUE=[
-  {who:"Amari", cls:"cit", key:"kid1", text:"C'est quoi, ce livre ?"},
-  {who:"Saren", cls:"saren", key:"saren", text:"Le premier accord entre les humains sur ce qu'ils attendaient de leurs machines. On l'appelait la Recommandation. Il a été écrit bien avant FriendLoop."},
-  {who:"Rami", cls:"cit", key:"kid2", text:"Et FriendLoop, il l'a lu ?"},
-  {who:"Saren", cls:"saren", key:"saren", text:"FriendLoop a tout lu. Ce n'est pas la même chose que comprendre. C'est un outil. Ni bon ni mauvais, mais pas neutre : il a appris de nous, de nos habitudes, de nos injustices. Il calcule, il optimise, il prédit. Et il se trompe. Souvent. Avec beaucoup d'assurance."},
-  {who:"Ayla", cls:"ayla", key:"ayla", text:"Ce matin, mon badge ne s'ouvrait plus. Le compte familial disait : aucun membre enregistré. Les photos de mes parents ont disparu. Ils ont existé."},
-  {who:"Saren", cls:"saren", key:"saren", text:"Alors prouve qu'ils ont vécu. Comprends ce qui les a effacés. Et rends à cette ville la main sur l'interrupteur. Va au Quartier Gris. Cours."}
-];
-const PRINCIPES=["Proportionnalité et innocuité","Sûreté et sécurité","Équité et non-discrimination","Durabilité","Droit au respect de la vie privée et protection des données","Transparence et explicabilité","Responsabilité et redevabilité","Sensibilisation et éducation","Gouvernance et collaboration multipartites et adaptatives","Surveillance et décision humaines"];
-const QUARTIERS=["Quartier Gris","Laboratoire de routage","Quartier Indigo","Zone industrielle","Centre des communications","Bureau des décisions","Salle des sanctions","École centrale","Hall du Conseil","Salle de contrôle"];
+let LANG="fr"; try{ LANG=localStorage.getItem("ayla_lang")||"fr"; if(!I18N[LANG]) LANG="fr"; }catch(e){}
+let T, M1, M2, MISSIONS, PROLOGUE, PRINCIPES, QUARTIERS, TITRES3;
+function setLang(l){
+  LANG=I18N[l]?l:"fr"; try{ localStorage.setItem("ayla_lang",LANG); }catch(e){}
+  const L=I18N[LANG]; T=L.ui; MISSIONS=L.missions; M1=MISSIONS[0]; M2=MISSIONS[1]; PROLOGUE=L.prologue; PRINCIPES=L.principes; QUARTIERS=L.quartiers; TITRES3=L.titre3;
+  document.documentElement.lang=LANG; document.documentElement.dir=L.dir; document.body.classList.toggle("rtl", L.dir==="rtl");
+  try{ Music.ui(); }catch(e){}
+}
+setLang(LANG);
 
 /* ============================== STATE ============================== */
 function freshState(){ return {fl:50, cit:50, missions:{}, current:1, frags:0, history:[]}; }
@@ -302,16 +654,16 @@ const Music=(()=>{
   function toggle(){ muted=!muted; try{localStorage.setItem("ayla_mute",muted?"1":"0");}catch(e){} if(ctx){ ctx.resume(); if(muted){ Object.values(els).forEach(el=>{ clearInterval(el._fade); el.volume=0; el.pause(); }); master.gain.setTargetAtTime(0.0001,ctx.currentTime,.4); } else { const m=mood; curTrack=null; mood=null; set(m||"city"); } } ui(); }
   function blip(f,dur,type,vol){ if(!ctx||muted) return; const o=ctx.createOscillator(), g=ctx.createGain(); o.type=type||"sine"; o.frequency.value=f; g.gain.value=0.0001; o.connect(g); g.connect(ctx.destination); const t=ctx.currentTime; g.gain.setTargetAtTime(vol||0.05,t,.005); g.gain.setTargetAtTime(0.0001,t+(dur||.05),.03); o.start(t); o.stop(t+(dur||.05)+.2); }
   function sfx(kind){ if(kind==="collect"){ blip(880,.05,"sine",.05); setTimeout(()=>blip(1320,.08,"sine",.04),60); } else if(kind==="hit"){ blip(90,.18,"sawtooth",.08); } else if(kind==="jump"){ blip(300,.06,"triangle",.04); setTimeout(()=>blip(520,.06,"triangle",.03),50); } else if(kind==="tick"){ blip(740,.04,"sine",.035); } else if(kind==="door"){ blip(440,.2,"triangle",.06); setTimeout(()=>blip(660,.3,"triangle",.05),150); } }
-  function ui(){ const b=document.getElementById("muteBtn"); if(!b) return; b.classList.toggle("on",!muted&&!!ctx); b.textContent=muted?"♪ Musique coupée":"♪ Musique"; }
+  function ui(){ const b=document.getElementById("muteBtn"); if(!b) return; b.classList.toggle("on",!muted&&!!ctx); b.textContent=muted?(typeof T!=="undefined"?T.musicOff:"♪"):(typeof T!=="undefined"?T.music:"♪"); }
   return {start,set,toggle,sfx,ui,state:()=>ctx?ctx.state:"none",mood:()=>mood,track:()=>curTrack,streaming:()=>CAN_STREAM};
 })();
 document.getElementById("muteBtn").addEventListener("click",e=>{ e.stopPropagation(); Music.start(); Music.toggle(); }); Music.ui();
 function showCredits(){
-  const o=el(`<div class="overlay" id="credits"><div class="box"><h3>Crédits musique</h3>
+  const o=el(`<div class="overlay" id="credits"><div class="box"><h3>${T.creditsTitle}</h3>
     <p>« Snowfall » de Scott Buckley, publié sous licence CC BY 4.0. www.scottbuckley.com.au</p>
     <p>« Neon Laser Horizon », « Cipher » et « Dark Fog » de Kevin MacLeod (incompetech.com), sous licence Creative Commons : By Attribution 4.0. creativecommons.org/licenses/by/4.0</p>
-    <p class="small">Effets sonores synthétisés dans le navigateur. Moteur 3D : three.js (licence MIT).</p>
-    <div style="margin-top:14px;text-align:right"><button class="btn sm" id="credClose">Fermer</button></div></div></div>`);
+    <p class="small">${T.creditsSfx}</p>
+    <div style="margin-top:14px;text-align:end"><button class="btn sm" id="credClose">${T.close}</button></div></div></div>`);
   document.body.appendChild(o); o.querySelector("#credClose").onclick=()=>o.remove(); o.onclick=e=>{ if(e.target===o) o.remove(); };
 }
 
@@ -336,8 +688,8 @@ function applyTheme(name){ const T=THEMES[name]; scene.background=new THREE.Colo
 function windowTexture(color, seed, cols=6, rows=14){ const c=document.createElement("canvas"); c.width=128; c.height=256; const g=c.getContext("2d"); g.fillStyle="#0B1426"; g.fillRect(0,0,128,256); let r=seed; const rnd=()=>{ r=(r*9301+49297)%233280; return r/233280; }; for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){ if(rnd()>.45){ g.globalAlpha=.35+rnd()*.65; g.fillStyle=color; g.fillRect(8+x*20,10+y*17,10,10); } } g.globalAlpha=1; const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; }
 const mats={};
 function buildingMat(theme,seed){ const key=theme+seed; if(mats[key]) return mats[key]; const T=THEMES[theme]; const tex=windowTexture(T.win, seed); const side=new THREE.MeshStandardMaterial({color:T.build, emissive:new THREE.Color(0xFFFFFF), emissiveMap:tex, emissiveIntensity:.9, roughness:.9}); const top=new THREE.MeshStandardMaterial({color:T.build, roughness:1}); mats[key]=[side,side,top,top,side,side]; return mats[key]; }
-const world=new THREE.Group(); scene.add(world);
-function clearWorld(){ while(world.children.length){ const c=world.children.pop(); c.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); } }
+const world=new THREE.Group(); scene.add(world); let G_bookLabel=null;
+function clearWorld(){ const lb=document.getElementById("labels"); if(lb) lb.innerHTML=""; G_bookLabel=null; while(world.children.length){ const c=world.children.pop(); c.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); } }
 
 /* ---- figures (stylised humans with faces, limbs and personal details) ---- */
 const texCache={};
@@ -350,6 +702,7 @@ function clothTex(kind, base, accent){
   if(kind==="runes"){ g.strokeStyle=accent; g.lineWidth=2; g.globalAlpha=.55; for(let i=0;i<26;i++){ const x=10+Math.random()*236, y=10+Math.random()*236; g.beginPath(); g.moveTo(x,y); g.lineTo(x+8,y-12); g.lineTo(x+16,y+4); g.lineTo(x+6,y+14); g.stroke(); } g.globalAlpha=1; }
   if(kind==="weave"){ for(let y=0;y<256;y+=8){ g.fillStyle="rgba(0,0,0,.07)"; g.fillRect(0,y,256,3); } for(let x=0;x<256;x+=8){ g.fillStyle="rgba(255,255,255,.05)"; g.fillRect(x,0,3,256); } }
   if(kind==="dots"){ g.fillStyle=accent; for(let y=16;y<256;y+=40) for(let x=16;x<256;x+=40){ g.beginPath(); g.arc(x+(y%80?20:0),y,6,0,Math.PI*2); g.fill(); } }
+  if(kind==="burlap"){ for(let y=0;y<256;y+=5){ g.fillStyle="rgba(0,0,0,.16)"; g.fillRect(0,y,256,2); } for(let x=0;x<256;x+=5){ g.fillStyle="rgba(255,255,255,.07)"; g.fillRect(x,0,2,256); } for(let i=0;i<1800;i++){ g.fillStyle=Math.random()>.5?"rgba(0,0,0,.18)":"rgba(255,240,210,.10)"; g.fillRect(Math.random()*256,Math.random()*256,3,3); } g.fillStyle=accent; g.globalAlpha=.35; for(let i=0;i<6;i++){ g.fillRect(Math.random()*220,Math.random()*220,24+Math.random()*30,18+Math.random()*24); } g.globalAlpha=1; }
   const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(2,2); texCache[key]=t; return t;
 }
 function human(o){
@@ -411,7 +764,7 @@ function human(o){
   else if(o.style==="white"){ const cap=new THREE.Mesh(new THREE.SphereGeometry(.45,26,18,Math.PI*.85,Math.PI*1.3,0,Math.PI*.6), hm); head.add(cap); if(o.moustache){ [-1,1].forEach(sx=>{ const mo=new THREE.Mesh(new THREE.SphereGeometry(.08,10,8), hm); mo.scale.set(1.8,.6,.6); mo.position.set(sx*.12,-.12,.4); mo.rotation.z=sx*.2; head.add(mo); }); } }
   if(o.cap){ const c=new THREE.Mesh(new THREE.CylinderGeometry(.47,.47,.14,20), m(o.cap,{map:clothTex("weave","#3E7D3A","#2E5E2B")})); c.position.y=.33; head.add(c); const top=new THREE.Mesh(new THREE.SphereGeometry(.47,20,12,0,Math.PI*2,0,.9), m(o.cap)); top.position.y=.16; head.add(top); const v=new THREE.Mesh(new THREE.BoxGeometry(.5,.05,.32), m(o.cap)); v.position.set(0,.3,.5); head.add(v); const btn=new THREE.Mesh(new THREE.SphereGeometry(.035,8,6), m(0xFFD54F)); btn.position.y=.6; head.add(btn); }
   if(o.visor){ const v=new THREE.Mesh(new THREE.BoxGeometry(.72,.2,.22), m(0x1F2933,{e:0x5EA8FF,ei:.9,r:.3,mt:.5})); v.position.set(0,.05,.36); head.add(v); const band=new THREE.Mesh(new THREE.TorusGeometry(.43,.03,8,24), m(0x1F2933)); band.rotation.x=Math.PI/2; band.position.y=.06; head.add(band); }
-  if(o.hood){ const hd=new THREE.Mesh(new THREE.SphereGeometry(.58,24,16,Math.PI*.75,Math.PI*1.5,0,Math.PI*.7), m(o.hood,{map:clothTex("runes","#3E2A6B","#E8C36A")})); hd.position.set(0,.12,-.1); head.add(hd); }
+  if(o.hood){ const hd=new THREE.Mesh(new THREE.SphereGeometry(.58,24,16,Math.PI*.75,Math.PI*1.5,0,Math.PI*.7), m(o.hood,{map:clothTex(o.rough?"burlap":"runes",o.rough?"#4A3B2E":"#3E2A6B",o.rough?"#6B5A46":"#E8C36A"),r:.95})); hd.position.set(0,.12,-.1); head.add(hd); }
   // arms
   const arms=[-1,1].map(sx=>{ const sh=new THREE.Group(); sh.position.set(sx*.43,1.88,0); g.add(sh);
     const upper=new THREE.Mesh(new THREE.CylinderGeometry(.1,.085,.42,12), o.sleeve?m(o.sleeve):topMat); upper.position.y=-.21; sh.add(upper);
@@ -420,15 +773,20 @@ function human(o){
     const hand=new THREE.Mesh(new THREE.SphereGeometry(.095,12,10), m(S)); hand.scale.set(1,1.1,.75); hand.position.y=-.86; sh.add(hand); sh.userData.hand=hand; return sh; });
   if(o.robe){ const rm=m(o.robe,{map:o.robeTex?clothTex(o.robeTex,o.robeTexBase,o.robeTexAccent):null,r:.9}); const robe=new THREE.Mesh(new THREE.CylinderGeometry(.36,.62,1.3,22), rm); robe.position.y=.66; g.add(robe); legs.forEach(l=>l.visible=false); torso.material=rm; belly.material=rm; shoulders.material=rm; hips.material=rm;
     if(o.trim){ [0.04,0.7].forEach((y,i)=>{ const ring=new THREE.Mesh(new THREE.TorusGeometry(i?.44:.62,.03,8,32), m(o.trim,{e:o.trim,ei:.35,mt:.6,r:.3})); ring.rotation.x=Math.PI/2; ring.position.y=y; g.add(ring); }); const sash=new THREE.Mesh(new THREE.TorusGeometry(.4,.05,10,28), m(o.trim,{mt:.6,r:.3})); sash.rotation.x=Math.PI/2; sash.position.y=1.12; g.add(sash); const med=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.03,16), m(o.trim,{e:0xE8C36A,ei:.5,mt:.8,r:.2})); med.rotation.x=Math.PI/2; med.position.set(0,1.62,.36); g.add(med); }
-    const cloak=new THREE.Mesh(new THREE.CylinderGeometry(.45,.7,1.9,22,1,true,Math.PI*.55,Math.PI*.9), m(o.hood||o.robe,{map:clothTex("runes","#3E2A6B","#E8C36A"),r:.95})); cloak.material.side=THREE.DoubleSide; cloak.position.set(0,1.05,-.05); g.add(cloak); }
-  if(o.staff){ const st=new THREE.Group(); st.position.set(-.62,0,.15); const pole=new THREE.Mesh(new THREE.CylinderGeometry(.04,.05,2.9,10), m(0x5B3B1F,{r:.8})); pole.position.y=1.45; st.add(pole); const knot=new THREE.Mesh(new THREE.SphereGeometry(.09,10,8), m(0x5B3B1F)); knot.position.y=2.55; st.add(knot); const gem=new THREE.Mesh(new THREE.OctahedronGeometry(.16), m(0xB388FF,{e:0x9B7BD6,ei:1.2,r:.2})); gem.position.y=3.05; st.add(gem); st.userData.gem=gem; g.add(st); arms[0].rotation.x=-.9; arms[0].rotation.z=.35; g.userData.staff=st; }
+    const cloak=new THREE.Mesh(new THREE.CylinderGeometry(.45,.7,1.9,22,1,true,Math.PI*.55,Math.PI*.9), m(o.hood||o.robe,{map:clothTex(o.rough?"burlap":"runes",o.rough?"#4A3B2E":"#3E2A6B",o.rough?"#6B5A46":"#E8C36A"),r:.95})); cloak.material.side=THREE.DoubleSide; cloak.position.set(0,1.05,-.05); g.add(cloak);
+    if(o.rough){ const rope=new THREE.Mesh(new THREE.TorusGeometry(.42,.045,10,28), m(0xC9B37E,{r:.95})); rope.rotation.x=Math.PI/2; rope.position.y=1.1; g.add(rope); const rope2=new THREE.Mesh(new THREE.TorusGeometry(.42,.03,8,28), m(0x8A7248,{r:.95})); rope2.rotation.x=Math.PI/2; rope2.position.y=1.16; g.add(rope2); const knot=new THREE.Mesh(new THREE.SphereGeometry(.07,8,6), m(0xC9B37E)); knot.position.set(.3,1.08,.3); g.add(knot); [0,1].forEach(i=>{ const end=new THREE.Mesh(new THREE.CylinderGeometry(.03,.025,.5,8), m(0xC9B37E)); end.position.set(.34+i*.08,.82,.3); end.rotation.z=.1*(i?-1:1); g.add(end); });
+      for(let i=0;i<18;i++){ const a=i/18*Math.PI*2; const fr=new THREE.Mesh(new THREE.ConeGeometry(.07,.16,5), rm); fr.position.set(Math.cos(a)*.6,.02,Math.sin(a)*.6); fr.rotation.x=Math.PI; g.add(fr); }
+      [[.28,1.35,.35,.2,.24],[-.22,.9,.5,.26,.2],[.1,.5,.58,.22,.3]].forEach(pt=>{ const patch=new THREE.Mesh(new THREE.BoxGeometry(pt[3],pt[4],.02), m(0x8A7560,{map:clothTex("burlap","#8A7560","#6B5A46"),r:1})); patch.position.set(pt[0],pt[1],pt[2]); g.add(patch); });
+      const med=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,.03,12), m(0x8C6D3F,{mt:.5,r:.6})); med.rotation.x=Math.PI/2; med.position.set(0,1.62,.4); g.add(med); const cord=new THREE.Mesh(new THREE.TorusGeometry(.24,.012,6,24), m(0x5B3B1F)); cord.position.set(0,1.85,.1); cord.rotation.x=.4; g.add(cord); } }
+  if(o.staff){ const st=new THREE.Group(); st.position.set(-.62,0,.15); const pole=new THREE.Mesh(new THREE.CylinderGeometry(.04,.05,2.9,10), m(0x5B3B1F,{r:.8})); pole.position.y=1.45; st.add(pole); const knot=new THREE.Mesh(new THREE.SphereGeometry(.09,10,8), m(0x5B3B1F)); knot.position.y=2.55; st.add(knot); const gem=new THREE.Mesh(new THREE.OctahedronGeometry(.13), m(0xCDB7E8,{e:0x9B7BD6,ei:.6,r:.4})); gem.position.y=3.05; st.add(gem); st.userData.gem=gem; for(let i=0;i<3;i++){ const wrap=new THREE.Mesh(new THREE.TorusGeometry(.06,.015,6,12), m(0xC9B37E)); wrap.position.y=2.2+i*.12; wrap.rotation.x=Math.PI/2; st.add(wrap); } g.add(st); arms[0].rotation.x=-.9; arms[0].rotation.z=.35; g.userData.staff=st; }
   if(o.backpack){ const bp=new THREE.Mesh(new THREE.BoxGeometry(.5,.62,.28), m(o.backpack,{r:.8})); bp.position.set(0,1.5,-.42); g.add(bp); const flap=new THREE.Mesh(new THREE.BoxGeometry(.46,.28,.08), m(0x5E35B1)); flap.position.set(0,1.7,-.58); g.add(flap); const pocket=new THREE.Mesh(new THREE.BoxGeometry(.3,.22,.06), m(0x5E35B1)); pocket.position.set(0,1.32,-.59); g.add(pocket); const zip=new THREE.Mesh(new THREE.BoxGeometry(.28,.02,.02), m(0xFFD54F,{mt:.6})); zip.position.set(0,1.45,-.6); g.add(zip); [-1,1].forEach(sx=>{ const stp=new THREE.Mesh(new THREE.BoxGeometry(.07,.55,.05), m(o.backpack)); stp.position.set(sx*.22,1.55,.12); stp.rotation.x=.2; g.add(stp); }); }
   if(o.carnet){ const c=new THREE.Mesh(new THREE.BoxGeometry(.26,.34,.05), m(0xFFF6E5,{e:0xE8A24A,ei:.15})); c.position.set(.12,-.02,.14); arms[1].userData.hand.add(c); const line=new THREE.Mesh(new THREE.BoxGeometry(.16,.02,.01), m(0xC0782A)); line.position.set(.12,.06,.17); arms[1].userData.hand.add(line); }
   if(o.bracelet){ const b=new THREE.Mesh(new THREE.TorusGeometry(.1,.025,8,16), m(0xFFD54F,{mt:.7,r:.3})); b.rotation.x=Math.PI/2; b.position.y=-.72; arms[1].add(b); }
-  if(o.book){ const b=new THREE.Mesh(new THREE.BoxGeometry(.42,.32,.09), m(0x6B3F1D,{r:.8})); b.position.set(.05,1.4,.44); g.add(b); const gild=new THREE.Mesh(new THREE.BoxGeometry(.44,.04,.1), m(0xE8C36A,{mt:.7,r:.3})); gild.position.set(.05,1.4,.44); g.add(gild); arms[1].rotation.x=-1.15; arms[1].rotation.z=-.2; }
+  let bookMesh=null;
+  if(o.book){ const b=new THREE.Mesh(new THREE.BoxGeometry(.42,.32,.09), m(0x6B3F1D,{r:.8})); b.position.set(.05,1.4,.44); g.add(b); bookMesh=b; const gild=new THREE.Mesh(new THREE.BoxGeometry(.44,.04,.1), m(0xE8C36A,{mt:.7,r:.3})); gild.position.set(.05,1.4,.44); g.add(gild); arms[1].rotation.x=-1.15; arms[1].rotation.z=-.2; }
   if(o.stoop){ torso.rotation.x=.12; shoulders.rotation.x=.12; head.position.z=.12; neck.position.z=.08; }
   if(sc!==1) g.scale.setScalar(sc);
-  g.userData={head,body:torso,hands:arms.map(a=>a.userData.hand),feet:[],legs,arms,t:Math.random()*10,kind:o.kind,hasBook:!!o.book,hasStaff:!!o.staff,headY:head.position.y};
+  g.userData={head,body:torso,hands:arms.map(a=>a.userData.hand),feet:[],legs,arms,t:Math.random()*10,kind:o.kind,hasBook:!!o.book,hasStaff:!!o.staff,headY:head.position.y,book:bookMesh};
   return g;
 }
 const CHARS={
@@ -436,7 +794,7 @@ const CHARS={
   kade:{kind:"kade",skin:0xB8865B,hair:0xE8E8E8,style:"white",moustache:true,top:0x4E8A5A,topTex:"weave",topTexBase:"#4E8A5A",topTexAccent:"#2E5E2B",longSleeve:true,legs:0x3E4A3C,shin:0x3E4A3C,shoe:0x2E2E2E,cap:0x3E7D3A,iris:0x3B2A1A,buttons:true,scarf:0xE8A24A,wrinkles:true,bigNose:true,belt:0x2A2A2A},
   elio:{kind:"elio",skin:0xE9C7A6,hair:0x3B2A1A,style:"spiky",top:0x2E3F66,topTex:"denim",topTexBase:"#2E3F66",longSleeve:true,legs:0x2E3F66,legTex:"denim",legTexBase:"#2E3F66",shin:0x2E3F66,shoe:0x1F2933,visor:true,iris:0x2F5F8F,pockets:true,belt:0x1A1A1A,tools:true},
   elio2:{kind:"elio2",skin:0xE9C7A6,hair:0x3B2A1A,style:"spiky",top:0x2E3F66,topTex:"denim",topTexBase:"#2E3F66",longSleeve:true,legs:0x2E3F66,legTex:"denim",legTexBase:"#2E3F66",shin:0x2E3F66,shoe:0x1F2933,iris:0x2F5F8F,pockets:true,belt:0x1A1A1A,tools:true},
-  saren:{kind:"saren",skin:0xD9B48F,hair:0xF2F2F2,browColor:0xEDEDED,bushyBrows:true,style:"oracle",top:0x4B3A78,legs:0x4B3A78,robe:0x4B3A78,robeTex:"runes",robeTexBase:"#4B3A78",robeTexAccent:"#E8C36A",hood:0x3E2A6B,trim:0xE8C36A,book:true,staff:true,iris:0x6E8FBF,wrinkles:true,bigNose:true,thinFace:true,stoop:true,longSleeve:true},
+  saren:{kind:"saren",skin:0xD9B48F,hair:0xF2F2F2,browColor:0xEDEDED,bushyBrows:true,style:"oracle",top:0x6B5A46,legs:0x6B5A46,robe:0x6B5A46,robeTex:"burlap",robeTexBase:"#6B5A46",robeTexAccent:"#4A3B2E",hood:0x4A3B2E,rough:true,book:true,staff:true,iris:0x6E8FBF,wrinkles:true,bigNose:true,thinFace:true,stoop:true,longSleeve:true},
   kid1:{kind:"kid1",skin:0xD9A77A,hair:0x2B1B10,style:"spiky",top:0x6FCF97,topTex:"stripes",topTexBase:"#6FCF97",topTexAccent:"#3E7D3A",legs:0x3E5A8F,shin:0xD9A77A,shoe:0xF5F5F5,scale:.68,cheeks:0xE0876B,iris:0x3B2A1A},
   kid2:{kind:"kid2",skin:0x8D5A3A,hair:0x1A1A1A,style:"pigtails",top:0xE8A24A,topTex:"dots",topTexBase:"#E8A24A",topTexAccent:"#FFF6E5",legs:0xE8A24A,shin:0x8D5A3A,shoe:0xF5F5F5,scale:.68,cheeks:0xC0684A,iris:0x2A1A0A,lashes:true}
 };
@@ -507,7 +865,7 @@ canvas.addEventListener("pointerdown",e=>{ if(G.state==="arena"&&!P.frozen){ con
 const app=document.getElementById("app"), speech=document.getElementById("speech"), labelsEl=document.getElementById("labels");
 const G={state:"title", action:()=>{}, arena:null};
 function hud(l,r){ document.getElementById("hudLeft").textContent=l; document.getElementById("hudRight").textContent=r; }
-function setPhases(i){ const Pn=document.getElementById("phases"); if(i<0){ Pn.classList.add("hidden"); return; } Pn.classList.remove("hidden"); const names=[["Course",""],["Scène","2 min"],["Dilemme","1 min"],["Délibération","3 min"],["Choix","1 min"],["Conséquences","3 min"],["Transition","2 min"]]; Pn.innerHTML=names.map((n,k)=>`<div class="ph ${k<i?"done":""} ${k===i?"on":""}"><i></i>${n[0]}<small>${n[1]}</small></div>`).join(""); }
+function setPhases(i){ const Pn=document.getElementById("phases"); if(i<0){ Pn.classList.add("hidden"); return; } Pn.classList.remove("hidden"); const names=T.phases; Pn.innerHTML=names.map((n,k)=>`<div class="ph ${k<i?"done":""} ${k===i?"on":""}"><i></i>${n[0]}<small>${n[1]}</small></div>`).join(""); }
 function help(t){ const h=document.getElementById("help"); if(!t){ h.classList.add("hidden"); return; } h.classList.remove("hidden"); h.innerHTML=t; }
 function banner(t,s,ms){ const b=document.getElementById("banner"); document.getElementById("bT").textContent=t; document.getElementById("bS").textContent=s||""; b.classList.add("show"); clearTimeout(b._t); b._t=setTimeout(()=>b.classList.remove("show"), ms||2600); }
 function fade(on){ return new Promise(res=>{ document.getElementById("fade").style.opacity=on?"1":"0"; setTimeout(res,550); }); }
@@ -516,16 +874,18 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
 /* ---- title ---- */
 function screenTitle(){
-  G.state="title"; buildDome(); P.frozen=true; setPhases(-1); help(""); hud("Chroma · 2170","Prototype · Missions 1 et 2"); document.getElementById("carnetBtn").classList.add("hidden"); document.getElementById("frag").classList.add("hidden");
+  G.state="title"; buildDome(); P.frozen=true; setPhases(-1); help(""); hud(T.hudCity,T.hudProto); document.getElementById("carnetBtn").classList.add("hidden"); document.getElementById("frag").classList.add("hidden");
   const n=doneCount();
-  app.innerHTML=`<div class="overlay"><div class="title"><h1>Ayla et FriendLoop<span>Voyage contre l'oubli</span></h1>
-    <p>Cours dans les rues de Chroma, parle aux habitants, réfléchis avec Saren, choisis ta porte. Prototype : prologue et deux missions.</p>
-    <button class="btn" id="start">${n?"Recommencer":"Commencer"}</button>${n&&n<MISSIONS.length?`<button class="btn ghost" id="cont" style="margin-left:10px">Continuer (mission ${n+1})</button>`:""}
-    <div class="note"><b>Clavier</b> : flèches ou A/D pour changer de voie, espace pour sauter, E ou Entrée pour parler et avancer. <b>Écran tactile</b> : boutons en bas, toucher le sol pour marcher.<br>Ce prototype n'enregistre rien en dehors de cet appareil. <button class="btn ghost sm" id="wipe" style="margin-left:6px">Tout effacer</button> <button class="btn ghost sm" id="cred" style="margin-left:6px">Crédits musique</button></div></div></div>`;
+  app.innerHTML=`<div class="overlay"><div class="title"><h1>${T.title}<span>${T.subtitle}</span></h1>
+    <div class="langs"><span class="lab">${T.language}</span>${Object.keys(I18N).map(l=>`<button data-l="${l}" class="${l===LANG?"on":""}">${I18N[l].name}</button>`).join("")}</div>
+    <p>${T.intro}</p>
+    <button class="btn" id="start">${n?T.restart:T.start}</button>${n&&n<MISSIONS.length?`<button class="btn ghost" id="cont" style="margin-inline-start:10px">${T.cont(n+1)}</button>`:""}
+    <div class="note">${T.controls}<br>${T.privacy} <button class="btn ghost sm" id="wipe" style="margin-inline-start:6px">${T.wipe}</button> <button class="btn ghost sm" id="cred" style="margin-inline-start:6px">${T.credits}</button></div></div></div>`;
   app.querySelector("#start").onclick=()=>{ Music.start(); S=freshState(); save(); app.innerHTML=""; playPrologue(); };
   const c=app.querySelector("#cont"); if(c) c.onclick=()=>{ Music.start(); app.innerHTML=""; S.current=n+1; startMission(); };
   app.querySelector("#wipe").onclick=()=>{ try{localStorage.removeItem("ayla_game");}catch(e){} S=freshState(); screenTitle(); };
   app.querySelector("#cred").onclick=showCredits;
+  app.querySelectorAll(".langs button").forEach(b=>b.onclick=()=>{ setLang(b.dataset.l); screenTitle(); });
 }
 /* ---- dome (prologue and each mission opening) ---- */
 let cast={};
@@ -537,23 +897,24 @@ function buildDome(){
   const glow=new THREE.PointLight(0xE8A24A,1.2,30); glow.position.set(0,3,0); world.add(glow); coreLight.position.set(0,12,0);
   cast={}; const place=(k,x,z,ry)=>{ const f=figure(k); f.position.set(x,0,z); f.rotation.y=ry||0; world.add(f); cast[k]=f; };
   place("saren",0,-4,0); place("kid1",-3.2,-1,.6); place("kid2",3.2,-1,-.6);
+  G_bookLabel=makeLabel(T.bookLabel,"reco");
   player.position.set(0,0,3); player.rotation.y=Math.PI; player.visible=true; P.x=0; P.z=3; P.y=0;
   camera.position.set(0,4.2,10); camera.lookAt(0,1.6,-1);
 }
-function playPrologue(){ G.state="dome"; hud("Prologue","Le Dôme mémoriel"); document.getElementById("carnetBtn").classList.remove("hidden"); help("Toucher l'écran, <b>Espace</b>, <b>Entrée</b> ou <b>●</b> : continuer"); runDialogue(PROLOGUE, ()=>{ S.current=1; startMission(); }); }
+function playPrologue(){ G.state="dome"; hud(T.prologue,T.dome); document.getElementById("carnetBtn").classList.remove("hidden"); help(T.helpContinue); runDialogue(PROLOGUE, ()=>{ S.current=1; startMission(); }); }
 
 /* ---- dialogue with 3D anchors ---- */
 let dlgActive=null;
 function anchorFor(key){ if(key==="ayla") return player; return cast[key]||G.npcObjs&&G.npcObjs[key]||null; }
 function runDialogue(lines, done){
   let i=0; speech.innerHTML=""; const prev=G.state; if(prev!=="dome") G.state="dialogue";
-  const show=()=>{ const L=lines[i]; const hint=`<div class="hint">${i<lines.length-1?"Continuer":"Poursuivre"} · ${i+1}/${lines.length}</div>`;
+  const show=()=>{ const L=lines[i]; const hint=`<div class="hint">${i<lines.length-1?T.hintContinue:T.hintProceed} · ${i+1}/${lines.length}</div>`;
     if(L.fx==="alarm") setAlarm(true); if(L.fx==="alarmoff") setAlarm(false); if(L.fx==="off") setLights(false); if(L.fx==="on") setLights(true);
     speech.innerHTML="";
     Object.values(cast).forEach(f=>f.userData.speaking=false); if(G.npcObjs) Object.values(G.npcObjs).forEach(f=>f.userData.speaking=false); player.userData.speaking=false;
     const key=L.key||( {"Ayla":"ayla","Kade":"kade","Technicien masqué":"elio","Elio":"elio2","Saren":"saren"}[L.who] );
     const obj=key?anchorFor(key):null;
-    if(L.fl){ speech.innerHTML=`<div class="flpanel"><div class="who">FriendLoop</div><div class="txt">${L.text}</div>${hint}</div>`; dlgActive=null; }
+    if(L.fl){ speech.innerHTML=`<div class="flpanel"><div class="who">${T.friendloop}</div><div class="txt">${L.text}</div>${hint}</div>`; dlgActive=null; }
     else if(obj){ obj.userData.speaking=true; obj.userData.hop=1; const b=el(`<div class="speech ${L.cls==="ayla"?"ayla-b":(L.cls==="saren"?"saren-b":"")}"><div class="who ${L.cls||""}">${L.who}</div><div class="txt">${L.text}</div>${hint}<div class="tail"></div></div>`); speech.appendChild(b); dlgActive={el:b,obj}; positionBubble(); }
     else { speech.innerHTML=`<div class="caption"><div class="txt">${L.text}</div>${hint}</div>`; dlgActive=null; }
   };
@@ -566,69 +927,69 @@ function positionBubble(){ if(!dlgActive) return; const {el:b,obj}=dlgActive; co
 /* ---- mission flow ---- */
 function cur(){ return MISSIONS[S.current-1]; }
 async function startMission(){
-  const M=cur(); await fade(true); buildDome(); hud("Mission "+M.id+" · Dôme mémoriel", M.principe); setPhases(-1); help("Toucher, <b>Espace</b>, <b>Entrée</b> ou <b>●</b> : continuer"); G.state="dome"; await fade(false);
+  const M=cur(); await fade(true); buildDome(); hud(T.missionDome(M.id), M.principe); setPhases(-1); help(T.helpContinue); G.state="dome"; await fade(false);
   runDialogue(M.dome, ()=>startRun());
 }
 async function startRun(){
   const M=cur(); await fade(true); const L=buildRun(M.theme, 260); cast={};
   player.position.set(0,0,0); player.rotation.y=Math.PI; P.lane=1; P.x=0; P.y=0; P.z=0; P.speed=0; P.jumping=false; P.frozen=false; P.mode="run";
-  hud("Mission "+M.id+" · "+M.quartier, M.principe); setPhases(0); document.getElementById("frag").classList.remove("hidden"); updateFrag();
-  help("<b>◀ ▶</b> changer de voie · <b>Espace</b> sauter"); Music.set("run"); G.state="run"; G.action=()=>{}; await fade(false); banner(M.runTitle, M.runSub, 3200);
+  hud(T.mission(M.id)+" · "+M.quartier, M.principe); setPhases(0); document.getElementById("frag").classList.remove("hidden"); updateFrag();
+  help(T.helpRun); Music.set("run"); G.state="run"; G.action=()=>{}; await fade(false); banner(M.runTitle, M.runSub, 3200);
 }
 function updateFrag(){ document.getElementById("frag").textContent="✦ "+S.frags+(level?" / "+level.total:""); }
 function endRun(){ G.state="arrive"; P.mode="walk"; help(""); Music.set(cur().theme==="lab"?"lab":"city"); setTimeout(()=>enterArena(), 900); }
 /* ---- arena: talk to NPCs ---- */
 function enterArena(){
   const M=cur(); const st=mstate(M.id); const pz=level.plazaZ; G.npcObjs={}; G.talked={};
-  M.npcs.forEach(n=>{ const f=figure(n.key); f.position.set(n.pos[0],0,pz+n.pos[2]); f.rotation.y=0; world.add(f); G.npcObjs[n.key]=f; const ring=new THREE.Mesh(new THREE.RingGeometry(1.1,1.35,32), new THREE.MeshBasicMaterial({color:0x6FCF97, transparent:true, opacity:.7, side:THREE.DoubleSide})); ring.rotation.x=-Math.PI/2; ring.position.set(f.position.x,.04,f.position.z); world.add(ring); f.userData.ring=ring; f.userData.label=makeLabel("Parler à "+n.name,"npc ready"); f.userData.npc=n; });
+  M.npcs.forEach(n=>{ const f=figure(n.key); f.position.set(n.pos[0],0,pz+n.pos[2]); f.rotation.y=0; world.add(f); G.npcObjs[n.key]=f; const ring=new THREE.Mesh(new THREE.RingGeometry(2.3,2.6,40), new THREE.MeshBasicMaterial({color:0x6FCF97, transparent:true, opacity:.7, side:THREE.DoubleSide})); ring.rotation.x=-Math.PI/2; ring.position.set(f.position.x,.04,f.position.z); world.add(ring); f.userData.ring=ring; f.userData.label=makeLabel(T.talkTo(n.name),"npc ready"); f.userData.npc=n; });
   player.position.set(P.x,0,pz+6); P.x=player.position.x; P.z=pz+6; P.tx=null; P.tz=null; P.frozen=true; setPhases(1);
-  runDialogue(M.intro, ()=>{ G.state="arena"; P.frozen=false; const names=M.npcs.map(n=>n.name).join(" et "); help(`Marche jusqu'à <b>${names}</b> (flèches, ou toucher le sol) : la discussion démarre quand tu es tout près`); banner("Va parler aux habitants", "Approche-toi de "+names+".", 3200); Music.set(M.theme==="lab"?"lab":"city"); });
+  runDialogue(M.intro, ()=>{ G.state="arena"; P.frozen=false; const names=M.npcs.map(n=>n.name).join(T.and); help(T.helpArena(names)); banner(T.bannerTalk, T.bannerTalkSub(names), 3200); Music.set(M.theme==="lab"?"lab":"city"); });
 }
 function talkTo(f){ const n=f.userData.npc; if(G.talked[n.key]) return; P.frozen=true; P.tx=null; P.tz=null; f.userData.label.classList.remove("ready"); f.userData.label.textContent=n.name; const lines=n.lines.map(l=>Object.assign({key:l.key||n.key, cls:l.cls||n.cls},l));
-  runDialogue(lines, ()=>{ G.talked[n.key]=true; if(f.userData.ring) f.userData.ring.visible=false; const left=cur().npcs.filter(x=>!G.talked[x.key]).length; if(left>0){ G.state="arena"; P.frozen=false; const rest=cur().npcs.filter(x=>!G.talked[x.key]).map(x=>x.name).join(", "); help(`Encore ${left} personne${left>1?"s":""} à qui parler : <b>${rest}</b>`); } else startDilemme(); }); }
+  runDialogue(lines, ()=>{ G.talked[n.key]=true; if(f.userData.ring) f.userData.ring.visible=false; const left=cur().npcs.filter(x=>!G.talked[x.key]).length; if(left>0){ G.state="arena"; P.frozen=false; const rest=cur().npcs.filter(x=>!G.talked[x.key]).map(x=>x.name).join(T.listSep); help(T.helpLeft(left,rest)); } else startDilemme(); }); }
 /* ---- dilemma: both ways stated before deliberating ---- */
 function startDilemme(){
   const M=cur(); setPhases(2); Music.set("tense"); help(""); P.frozen=true; P.tx=null; P.tz=null;
   const lines=[
-    {who:"FriendLoop", fl:true, text:"Rappel de la solution optimale : "+M.A.titre.replace(/^Suivre FriendLoop : /,"")+". Toute autre option est sous-optimale."},
-    {who:"Ayla", cls:"ayla", key:"ayla", text:"Deux voies, alors. A : "+M.A.titre+". B : "+M.B.titre+". Aucune n'est écrite d'avance. Avant de choisir, je réfléchis."}
+    {who:"FriendLoop", fl:true, text:T.dilemmaFL(M.A.titre.replace(T.stripFL,""))},
+    {who:T.ayla, cls:"ayla", key:"ayla", text:T.dilemmaAyla(M.A.titre,M.B.titre)}
   ];
   runDialogue(lines, ()=>startDelib());
 }
 /* ---- deliberation in the arena ---- */
 function startDelib(){
   const M=cur(); setPhases(3); Music.set("tense"); G.state="delib"; P.frozen=false; G.q=0;
-  const pz=level.plazaZ; const s=figure("saren"); s.position.set(0,0,pz-3); s.rotation.y=0; s.traverse(o=>{ if(o.material){ o.material=o.material.clone(); o.material.transparent=true; o.material.opacity=.6; o.material.emissive=new THREE.Color(0x9B7BD6); o.material.emissiveIntensity=.12; } }); world.add(s); cast.saren=s; G.sarenHolo=s;
-  P.x=0; P.z=pz+4; P.tx=null; P.tz=null; player.position.set(0,0,pz+4); player.rotation.y=Math.PI;
-  runDialogue([{who:"Saren (écho)", key:"saren", cls:"saren", text:M.echo+" Je vais te poser quatre questions. Les idées flottent autour de toi : attrape celles qui te parlent, ou dis-le avec tes mots."}], ()=>askQuestion());
+  const pz=level.plazaZ; const s=figure("saren"); const sx=Math.max(-6,Math.min(6,P.x*.4)), sz=Math.max(pz-11,P.z-6); s.position.set(sx,0,sz); s.rotation.y=Math.atan2(P.x-sx,P.z-sz); G.sarenSpot=[sx,sz]; s.traverse(o=>{ if(o.material){ o.material=o.material.clone(); o.material.transparent=true; o.material.opacity=.6; o.material.emissive=new THREE.Color(0x9B7BD6); o.material.emissiveIntensity=.12; } }); world.add(s); cast.saren=s; G.sarenHolo=s;
+  P.tx=null; P.tz=null; player.rotation.y=Math.atan2(sx-P.x,sz-P.z);
+  runDialogue([{who:T.sarenEcho, key:"saren", cls:"saren", text:M.echo+" "+T.sarenIntro}], ()=>askQuestion());
 }
 function askQuestion(){
-  const M=cur(), st=mstate(M.id); const q=M.questions[G.q]; const pz=level.plazaZ; G.orbs=[]; G.state="delib"; P.frozen=false; help("Marche vers une idée pour l'attraper · <b>E</b> : question suivante");
-  const angles=[-.9,0,.9]; q.ideas.forEach((idea,k)=>{ const o=new THREE.Mesh(new THREE.SphereGeometry(.5,18,14), new THREE.MeshStandardMaterial({color:0xFFF6E5, emissive:0xE8A24A, emissiveIntensity:.8, transparent:true, opacity:.95})); const OP=[[-5.5,pz+1.5],[0,pz+.2],[5.5,pz+1.5]][k]; o.position.set(OP[0], 1.2, OP[1]); o.userData={idea, t:k, label:makeLabel(idea)}; world.add(o); G.orbs.push(o); });
+  const M=cur(), st=mstate(M.id); const q=M.questions[G.q]; const pz=level.plazaZ; G.orbs=[]; G.state="delib"; P.frozen=false; help(T.helpDelib);
+  const angles=[-.9,0,.9]; q.ideas.forEach((idea,k)=>{ const o=new THREE.Mesh(new THREE.SphereGeometry(.5,18,14), new THREE.MeshStandardMaterial({color:0xFFF6E5, emissive:0xE8A24A, emissiveIntensity:.8, transparent:true, opacity:.95})); const [sx,sz]=G.sarenSpot||[0,pz-3]; const mx=(sx+P.x)/2, mz=(sz+P.z)/2; const OP=[[mx-5.5,mz+1.2],[mx,mz-.6],[mx+5.5,mz+1.2]][k]; const rr=Math.hypot(OP[0],OP[1]-pz); if(rr>12.5){ OP[0]*=12.5/rr; OP[1]=pz+(OP[1]-pz)*12.5/rr; } o.position.set(OP[0], 1.2, OP[1]); o.userData={idea, t:k, label:makeLabel(idea)}; world.add(o); G.orbs.push(o); });
   st.ideas[G.q]=st.ideas[G.q]||[];
   // Saren question bubble (persistent) + Ayla thought bubble
-  speech.innerHTML=""; const sb=el(`<div class="speech saren-b"><div class="who saren">Saren (écho) · question ${G.q+1} sur 4</div><div class="txt">${q.q}</div><div class="tail"></div></div>`); speech.appendChild(sb); G.qBubble=sb;
-  const ab=el(`<div class="speech ayla-b"><div class="who ayla">Ayla pense</div><div class="ideas" id="ideas"></div><div class="edit" id="own" contenteditable="true" data-ph="ou écris-le avec tes mots..."></div><div class="row"><span class="small" style="color:#8B6A3E" id="cnt"></span><button class="btn sm" id="nextQ">${G.q<3?"Question suivante":"Passer au choix"}</button></div><div class="tail"></div></div>`); speech.appendChild(ab); G.aBubble=ab;
+  speech.innerHTML=""; const sb=el(`<div class="speech saren-b"><div class="who saren">${T.sarenEcho} · ${T.questionOf(G.q+1,4)}</div><div class="txt">${q.q}</div><div class="tail"></div></div>`); speech.appendChild(sb); G.qBubble=sb;
+  const ab=el(`<div class="speech ayla-b"><div class="who ayla">${T.aylaThinks}</div><div class="ideas" id="ideas"></div><div class="edit" id="own" contenteditable="true" data-ph="${T.ownWords}"></div><div class="row"><span class="small" style="color:#8B6A3E" id="cnt"></span><button class="btn sm" id="nextQ">${G.q<3?T.nextQ:T.toChoice}</button></div><div class="tail"></div></div>`); speech.appendChild(ab); G.aBubble=ab;
   ab.querySelector("#own").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); e.target.blur(); } e.stopPropagation(); });
   ab.querySelector("#own").addEventListener("focus",()=>{ P.frozen=true; }); ab.querySelector("#own").addEventListener("blur",()=>{ P.frozen=false; });
   renderIdeas();
-  const next=()=>{ const own=ab.querySelector("#own").textContent.trim(); st.answers[G.q]=[...st.ideas[G.q], own].filter(Boolean).join(" ; "); if(!st.answers[G.q] && !confirm("Tu veux passer sans idée ?")) return; save(); document.getElementById("carnetDot").classList.remove("hidden"); Music.sfx("tick"); G.orbs.forEach(o=>{ o.userData.label.remove(); world.remove(o); }); G.orbs=[]; speech.innerHTML=""; G.q++; if(G.q<4) askQuestion(); else startDoors(); };
+  const next=()=>{ const own=ab.querySelector("#own").textContent.trim(); st.answers[G.q]=[...st.ideas[G.q], own].filter(Boolean).join(" ; "); if(!st.answers[G.q] && !confirm(T.skipIdea)) return; save(); document.getElementById("carnetDot").classList.remove("hidden"); Music.sfx("tick"); G.orbs.forEach(o=>{ o.userData.label.remove(); world.remove(o); }); G.orbs=[]; speech.innerHTML=""; G.q++; if(G.q<4) askQuestion(); else startDoors(); };
   ab.querySelector("#nextQ").onclick=next; G.action=()=>{ if(document.activeElement && document.activeElement.id==="own") return; next(); };
 }
-function renderIdeas(){ const M=cur(), st=mstate(M.id); const box=G.aBubble.querySelector("#ideas"); box.innerHTML=st.ideas[G.q].map(i=>`<span class="idea">${i}</span>`).join(""); G.aBubble.querySelector("#cnt").textContent=st.ideas[G.q].length?st.ideas[G.q].length+" idée"+(st.ideas[G.q].length>1?"s":"")+" attrapée"+(st.ideas[G.q].length>1?"s":""):"Aucune idée attrapée"; }
+function renderIdeas(){ const M=cur(), st=mstate(M.id); const box=G.aBubble.querySelector("#ideas"); box.innerHTML=st.ideas[G.q].map(i=>`<span class="idea">${i}</span>`).join(""); G.aBubble.querySelector("#cnt").textContent=st.ideas[G.q].length?T.ideas(st.ideas[G.q].length):T.noIdea; }
 function collectOrb(o){ const st=mstate(cur().id); st.ideas[G.q].push(o.userData.idea); o.userData.label.remove(); world.remove(o); G.orbs.splice(G.orbs.indexOf(o),1); Music.sfx("collect"); player.userData.hop=1; renderIdeas(); }
 /* ---- doors: the choice ---- */
 function startDoors(){
-  const M=cur(); setPhases(4); G.state="doors"; P.frozen=false; help("Marche vers la porte de ton choix"); const pz=level.plazaZ; G.doors=[];
+  const M=cur(); setPhases(4); G.state="doors"; P.frozen=false; help(T.helpDoors); const pz=level.plazaZ; G.doors=[];
   if(G.sarenHolo){ world.remove(G.sarenHolo); delete cast.saren; }
   Object.values(G.npcObjs).forEach((f,i)=>{ f.userData.slideTo={x:(i?1:-1)*9.5, z:pz-1}; if(f.userData.ring) f.userData.ring.visible=false; });
   P.x=0; P.z=pz+2; P.tx=null; P.tz=null; player.position.set(0,0,pz+2);
   ["A","B"].forEach((k,i)=>{ const x=i?4.5:-4.5; const frame=new THREE.Mesh(new THREE.TorusGeometry(2.2,.18,10,32), new THREE.MeshStandardMaterial({color:0x1B2846, emissive:0x5EA8FF, emissiveIntensity:.8})); frame.position.set(x,2.2,pz-9); world.add(frame); const disc=new THREE.Mesh(new THREE.CircleGeometry(2,32), new THREE.MeshBasicMaterial({color:0x5EA8FF, transparent:true, opacity:.18, side:THREE.DoubleSide})); disc.position.copy(frame.position); world.add(disc); const o=M[k]; frame.userData={k, label:makeLabel(`<b>${k} · ${o.titre}</b>${o.effets.map(e=>`<small>• ${e}</small>`).join("")}`,"door"), disc}; G.doors.push(frame); });
-  speech.innerHTML=""; const b=el(`<div class="speech ayla-b"><div class="who ayla">Ayla</div><div class="txt">Deux portes. Aucune n'est marquée comme la bonne. Je choisis en la franchissant.</div><div class="tail"></div></div>`); speech.appendChild(b); dlgActive={el:b,obj:player}; setTimeout(()=>{ if(dlgActive&&dlgActive.el===b){ b.remove(); dlgActive=null; } },5000);
+  speech.innerHTML=""; const b=el(`<div class="speech ayla-b"><div class="who ayla">${T.ayla}</div><div class="txt">${T.doorsLine}</div><div class="tail"></div></div>`); speech.appendChild(b); dlgActive={el:b,obj:player}; setTimeout(()=>{ if(dlgActive&&dlgActive.el===b){ b.remove(); dlgActive=null; } },5000);
 }
 function enterDoor(frame){
   const M=cur(), st=mstate(M.id); const k=frame.userData.k; G.state="doorconfirm"; P.frozen=true; P.tx=null; P.tz=null; Music.sfx("door"); dlgActive=null; speech.innerHTML="";
-  const b=el(`<div class="speech ayla-b"><div class="who ayla">Ayla · option ${k}</div><div class="txt">${M[k].titre}.</div><div class="edit" id="why" contenteditable="true" data-ph="Parce que..."></div><div class="row"><button class="btn ghost sm" id="back">Revenir</button><button class="btn sm" id="ok">Franchir la porte</button></div><div class="tail"></div></div>`); speech.appendChild(b); dlgActive={el:b,obj:player}; positionBubble();
+  const b=el(`<div class="speech ayla-b"><div class="who ayla">${T.aylaOption(k)}</div><div class="txt">${M[k].titre}.</div><div class="edit" id="why" contenteditable="true" data-ph="${T.because}"></div><div class="row"><button class="btn ghost sm" id="back">${T.back}</button><button class="btn sm" id="ok">${T.cross}</button></div><div class="tail"></div></div>`); speech.appendChild(b); dlgActive={el:b,obj:player}; positionBubble();
   b.querySelector("#why").addEventListener("keydown",e=>{ e.stopPropagation(); if(e.key==="Enter"){ e.preventDefault(); b.querySelector("#ok").click(); } });
   b.querySelector("#back").onclick=()=>{ b.remove(); dlgActive=null; P.frozen=false; P.z+=3; player.position.z=P.z; G.state="doors"; };
   b.querySelector("#ok").onclick=()=>{ const why=b.querySelector("#why").textContent.trim(); if(!why){ b.querySelector("#why").focus(); return; } st.choice=k; st.why=why; save(); b.remove(); dlgActive=null; G.doors.forEach(d=>{ d.userData.label.remove(); }); startCons(); };
@@ -639,23 +1000,23 @@ function startCons(){
   const first=Object.keys(G.npcObjs)[0]; const npc=G.npcObjs[first]; player.position.set(npc.position.x-2.5,0,npc.position.z+2.5); P.x=player.position.x; P.z=player.position.z; player.rotation.y=Math.PI*.7;
   runDialogue(M.cons[k], ()=>{
     const d=M.delta[k]; const fl0=S.fl, c0=S.cit; S.fl=Math.max(0,Math.min(100,S.fl+d.fl)); S.cit=Math.max(0,Math.min(100,S.cit+d.cit)); save();
-    app.innerHTML=`<div class="overlay"><div class="box"><h3>Ce que ton choix a changé</h3><div class="gauges">
-      <div class="g fl"><div class="lab"><span>Confiance de FriendLoop</span><span id="dfl">${fl0}</span></div><div class="bar"><i id="bfl" style="width:${fl0}%"></i></div><div class="small" style="margin-top:6px">Monte quand tu suis ses recommandations. Se paie en dépendance.</div></div>
-      <div class="g cit"><div class="lab"><span>Confiance des citoyens</span><span id="dcit">${c0}</span></div><div class="bar"><i id="bcit" style="width:${c0}%"></i></div><div class="small" style="margin-top:6px">Monte quand tu vérifies et décides. Amène des alliés et des preuves.</div></div></div>
-      <div style="margin-top:18px;text-align:right"><button class="btn" id="go">Continuer</button></div></div></div>`;
+    app.innerHTML=`<div class="overlay"><div class="box"><h3>${T.consTitle}</h3><div class="gauges">
+      <div class="g fl"><div class="lab"><span>${T.gFL}</span><span id="dfl">${fl0}</span></div><div class="bar"><i id="bfl" style="width:${fl0}%"></i></div><div class="small" style="margin-top:6px">${T.gFLd}</div></div>
+      <div class="g cit"><div class="lab"><span>${T.gCit}</span><span id="dcit">${c0}</span></div><div class="bar"><i id="bcit" style="width:${c0}%"></i></div><div class="small" style="margin-top:6px">${T.gCitd}</div></div></div>
+      <div style="margin-top:18px;text-align:end"><button class="btn" id="go">${T.continueBtn}</button></div></div></div>`;
     setTimeout(()=>{ if(!app.querySelector("#bfl")) return; app.querySelector("#bfl").style.width=S.fl+"%"; app.querySelector("#bcit").style.width=S.cit+"%"; app.querySelector("#dfl").textContent=`${S.fl} (${d.fl>0?"+":""}${d.fl})`; app.querySelector("#dcit").textContent=`${S.cit} (${d.cit>0?"+":""}${d.cit})`; },300);
     app.querySelector("#go").onclick=()=>{ app.innerHTML=""; startProof(); };
   });
 }
 function startProof(){
-  const M=cur(); setPhases(6); Music.set("paper"); G.state="proof"; P.frozen=false; help("Ramasse le document qui flotte");
-  const pz=level.plazaZ; const doc=new THREE.Mesh(new THREE.BoxGeometry(.9,1.2,.06), new THREE.MeshStandardMaterial({color:0xFFF6E5, emissive:0xE8A24A, emissiveIntensity:.6})); doc.position.set(0,1.3,pz-4); doc.userData={label:makeLabel("Preuve "+M.id)}; world.add(doc); G.doc=doc;
+  const M=cur(); setPhases(6); Music.set("paper"); G.state="proof"; P.frozen=false; help(T.helpProof);
+  const pz=level.plazaZ; const doc=new THREE.Mesh(new THREE.BoxGeometry(.9,1.2,.06), new THREE.MeshStandardMaterial({color:0xFFF6E5, emissive:0xE8A24A, emissiveIntensity:.6})); doc.position.set(0,1.3,pz-4); doc.userData={label:makeLabel(T.proof(M.id))}; world.add(doc); G.doc=doc;
 }
 function pickProof(){
   const M=cur(), st=mstate(M.id); const k=st.choice; G.doc.userData.label.remove(); world.remove(G.doc); G.doc=null; P.frozen=true; Music.sfx("collect"); G.state="proofcard";
-  app.innerHTML=`<div class="overlay"><div class="proof"><div class="t">Preuve ${M.id} · ${M.preuve.titre}</div><pre>${M.preuve.doc}</pre>${k==="B"?`<div class="c">${M.preuve.commentB}</div>`:`<div class="small" style="color:#8B6A3E">${M.preuve.maskedA}</div>`}<div style="margin-top:14px;text-align:right"><button class="btn sm" id="keep">Ranger dans le carnet</button></div></div></div>`;
+  app.innerHTML=`<div class="overlay"><div class="proof"><div class="t">${T.proof(M.id)} · ${M.preuve.titre}</div><pre>${M.preuve.doc}</pre>${k==="B"?`<div class="c">${M.preuve.commentB}</div>`:`<div class="small" style="color:#8B6A3E">${M.preuve.maskedA}</div>`}<div style="margin-top:14px;text-align:end"><button class="btn sm" id="keep">${T.keep}</button></div></div></div>`;
   app.querySelector("#keep").onclick=()=>{ app.innerHTML=""; document.getElementById("carnetDot").classList.remove("hidden"); const L=Object.assign({}, M.indice); runDialogue([L], ()=>{
-      speech.innerHTML=""; const b=el(`<div class="speech ayla-b"><div class="who ayla">Note dans le carnet</div><div class="edit" id="note" contenteditable="true">${M.note}</div><div class="row"><span class="small" style="color:#8B6A3E">Garder, modifier ou remplacer.</span><button class="btn sm" id="done">${S.current<MISSIONS.length?"Vers le quartier suivant":"Terminer"}</button></div><div class="tail"></div></div>`); speech.appendChild(b); dlgActive={el:b,obj:player}; positionBubble();
+      speech.innerHTML=""; const b=el(`<div class="speech ayla-b"><div class="who ayla">${T.noteTitle}</div><div class="edit" id="note" contenteditable="true">${M.note}</div><div class="row"><span class="small" style="color:#8B6A3E">${T.noteHint}</span><button class="btn sm" id="done">${S.current<MISSIONS.length?T.nextDistrict:T.finish}</button></div><div class="tail"></div></div>`); speech.appendChild(b); dlgActive={el:b,obj:player}; positionBubble();
       b.querySelector("#note").addEventListener("keydown",e=>e.stopPropagation());
       b.querySelector("#done").onclick=async ()=>{ st.note=b.querySelector("#note").textContent.trim(); st.done=true; st.frags=S.frags; S.history.push({m:M.id,choice:k}); save(); speech.innerHTML=""; dlgActive=null; Object.values(G.npcObjs).forEach(f=>f.userData.label&&f.userData.label.remove()); if(S.current<MISSIONS.length){ S.current++; save(); startMission(); } else screenEnd(); };
       G.action=()=>{};
@@ -663,10 +1024,10 @@ function pickProof(){
 }
 function screenEnd(){
   G.state="end"; setPhases(-1); help(""); Music.set("good");
-  app.innerHTML=`<div class="overlay"><div class="box"><h3>Fin du prototype</h3><p>Deux missions accomplies. Ayla connaît maintenant deux des dix principes de la Recommandation, et deux maillons de la chaîne qui a effacé ses parents.</p>
-    <p class="small">Prochain quartier : Quartier Indigo, « Les logements oubliés ». Non inclus dans ce prototype.</p>
-    <div class="gauges"><div class="g fl"><div class="lab"><span>Confiance de FriendLoop</span><span>${S.fl}</span></div><div class="bar"><i style="width:${S.fl}%"></i></div></div><div class="g cit"><div class="lab"><span>Confiance des citoyens</span><span>${S.cit}</span></div><div class="bar"><i style="width:${S.cit}%"></i></div></div></div>
-    <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><button class="btn ghost sm" id="cred2">Crédits musique</button><button class="btn ghost" id="carnetOpen">Ouvrir le carnet</button><button class="btn" id="again">Recommencer</button></div></div></div>`;
+  app.innerHTML=`<div class="overlay"><div class="box"><h3>${T.endTitle}</h3><p>${T.endText}</p>
+    <p class="small">${T.endNext}</p>
+    <div class="gauges"><div class="g fl"><div class="lab"><span>${T.gFL}</span><span>${S.fl}</span></div><div class="bar"><i style="width:${S.fl}%"></i></div></div><div class="g cit"><div class="lab"><span>${T.gCit}</span><span>${S.cit}</span></div><div class="bar"><i style="width:${S.cit}%"></i></div></div></div>
+    <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><button class="btn ghost sm" id="cred2">${T.credits}</button><button class="btn ghost" id="carnetOpen">${T.openCarnet}</button><button class="btn" id="again">${T.restart}</button></div></div></div>`;
   app.querySelector("#again").onclick=()=>{ S=freshState(); save(); screenTitle(); };
   app.querySelector("#carnetOpen").onclick=()=>openCarnet("missions");
   app.querySelector("#cred2").onclick=showCredits;
@@ -698,15 +1059,16 @@ function loop(now, noRender){
       if(mx||mz){ P.tx=null; P.tz=null; } else if(P.tx!==null){ const dx=P.tx-P.x, dz=P.tz-P.z, d=Math.hypot(dx,dz); if(d>.3){ mx=dx/d; mz=dz/d; } else { P.tx=null; P.tz=null; } } }
     const moving=(mx||mz); if(moving){ const l=Math.hypot(mx,mz); mx/=l; mz/=l; const sp=6; let nx=P.x+mx*sp*dt, nz=P.z+mz*sp*dt; const pz=level?level.plazaZ:0; const r=Math.hypot(nx,nz-pz); if(r<13){ P.x=nx; P.z=nz; } player.rotation.y=Math.atan2(mx,mz); }
     player.position.x=P.x; player.position.z=P.z; player.position.y=0; animFigure(player,dt,moving?"walk":"idle");
-    if(G.npcObjs) Object.values(G.npcObjs).forEach(f=>{ const sl=f.userData.slideTo; if(sl){ const dx=sl.x-f.position.x, dz=sl.z-f.position.z, d=Math.hypot(dx,dz); if(d>.1){ f.position.x+=dx/d*Math.min(d,4*dt); f.position.z+=dz/d*Math.min(d,4*dt); f.rotation.y=Math.atan2(dx,dz); if(f.userData.ring) f.userData.ring.position.set(f.position.x,.04,f.position.z); animFigure(f,dt,"walk"); return; } else { f.userData.slideTo=null; f.rotation.y=Math.atan2(P.x-f.position.x,P.z-f.position.z); } } animFigure(f,dt,"idle"); if(f.userData.ring){ f.userData.ring.rotation.z+=dt; f.userData.ring.material.opacity=.5+Math.sin(t*3)*.25; } if(f.userData.label){ const p=project(f.userData.head,1.4); f.userData.label.style.left=p.x+"px"; f.userData.label.style.top=p.y+"px"; f.userData.label.style.display=p.z<1?"":"none"; } const near=Math.hypot(f.position.x-P.x,f.position.z-P.z)<2.2; f.userData.near=near; if(f.userData.label) f.userData.label.classList.toggle("ready", near&&!G.talked[f.userData.npc.key]); });
-    if(G.state==="arena"&&!P.frozen){ G.action=()=>{ const f=Object.values(G.npcObjs).find(x=>x.userData.near&&!G.talked[x.userData.npc.key]); if(f) talkTo(f); }; const close=Object.values(G.npcObjs).find(f=>!G.talked[f.userData.npc.key] && Math.hypot(f.position.x-P.x,f.position.z-P.z)<1.9); if(close){ talkTo(close); } }
+    if(G.npcObjs) Object.values(G.npcObjs).forEach(f=>{ const sl=f.userData.slideTo; if(sl){ const dx=sl.x-f.position.x, dz=sl.z-f.position.z, d=Math.hypot(dx,dz); if(d>.1){ f.position.x+=dx/d*Math.min(d,4*dt); f.position.z+=dz/d*Math.min(d,4*dt); f.rotation.y=Math.atan2(dx,dz); if(f.userData.ring) f.userData.ring.position.set(f.position.x,.04,f.position.z); animFigure(f,dt,"walk"); return; } else { f.userData.slideTo=null; f.rotation.y=Math.atan2(P.x-f.position.x,P.z-f.position.z); } } animFigure(f,dt,"idle"); if(f.userData.ring){ f.userData.ring.rotation.z+=dt; f.userData.ring.material.opacity=.5+Math.sin(t*3)*.25; } if(f.userData.label){ const p=project(f.userData.head,1.4); f.userData.label.style.left=p.x+"px"; f.userData.label.style.top=p.y+"px"; f.userData.label.style.display=p.z<1?"":"none"; } const near=Math.hypot(f.position.x-P.x,f.position.z-P.z)<3.0; f.userData.near=near; if(f.userData.label) f.userData.label.classList.toggle("ready", near&&!G.talked[f.userData.npc.key]); });
+    if(G.state==="arena"&&!P.frozen){ G.action=()=>{ const f=Object.values(G.npcObjs).find(x=>x.userData.near&&!G.talked[x.userData.npc.key]); if(f) talkTo(f); }; const close=Object.values(G.npcObjs).find(f=>!G.talked[f.userData.npc.key] && Math.hypot(f.position.x-P.x,f.position.z-P.z)<2.7); if(close){ talkTo(close); } }
     if(G.state==="delib"&&G.orbs){ G.orbs.forEach(o=>{ o.position.y=1.2+Math.sin(t*2.5+o.userData.t)*.2; o.rotation.y+=dt; const p=project(o,.9); o.userData.label.style.left=p.x+"px"; o.userData.label.style.top=p.y+"px"; if(Math.hypot(o.position.x-P.x,o.position.z-P.z)<1.2) collectOrb(o); }); if(G.sarenHolo){ animFigure(G.sarenHolo,dt,"idle"); G.sarenHolo.position.y=Math.sin(t*1.5)*.1; } let qBottom=70; if(G.qBubble){ const p=project(G.sarenHolo.userData.head,.75); const w=Math.min(460,innerWidth-24); G.qBubble.style.width=w+"px"; G.qBubble.style.left=Math.max(w/2+12,Math.min(innerWidth-w/2-12,p.x))+"px"; const top=Math.min(G.qBubble.offsetHeight+66, p.y-8); G.qBubble.style.top=Math.max(G.qBubble.offsetHeight+66, top)+"px"; qBottom=parseFloat(G.qBubble.style.top)+8; } if(G.aBubble){ const p=project(player.userData.head,.75); const w=Math.min(400,innerWidth-24); G.aBubble.style.width=w+"px"; G.aBubble.style.left=Math.max(w/2+12,Math.min(innerWidth-w/2-12,p.x))+"px"; G.aBubble.style.top=Math.max(qBottom+G.aBubble.offsetHeight+10, p.y-8)+"px"; } }
     if((G.state==="doors"||G.state==="doorconfirm")&&G.doors){ G.doors.forEach(d=>{ d.rotation.z+=dt*.5; d.userData.disc.material.opacity=.15+Math.sin(t*2)*.08; const p=project(d,-2.3); d.userData.label.style.left=p.x+"px"; d.userData.label.style.top=(p.y+6)+"px"; if(G.state==="doors" && Math.hypot(d.position.x-P.x,d.position.z-P.z)<2.2){ enterDoor(d); } }); }
     if(G.state==="proof"&&G.doc){ G.doc.rotation.y+=dt*2; G.doc.position.y=1.3+Math.sin(t*3)*.15; const p=project(G.doc,1); G.doc.userData.label.style.left=p.x+"px"; G.doc.userData.label.style.top=p.y+"px"; if(Math.hypot(G.doc.position.x-P.x,G.doc.position.z-P.z)<1.3) pickProof(); }
     // camera follows from behind, slightly elevated
-    const cx=P.x*.7, cz=P.z+8.5; camera.position.lerp(new THREE.Vector3(cx,5.2,cz),Math.min(1,dt*4)); camera.lookAt(P.x*.7,1.4,P.z-3);
+    const cx=P.x*.7, cz=P.z+8.5; const camT=new THREE.Vector3(cx,5.2,cz); if(camera.position.distanceTo(camT)>7) camera.position.copy(camT); else camera.position.lerp(camT,Math.min(1,dt*4)); camera.lookAt(P.x*.7,1.4,P.z-3);
   } else if(G.state==="dome"||G.state==="title"){
     animFigure(player,dt,"idle"); Object.values(cast).forEach(f=>animFigure(f,dt,"idle"));
+    if(G_bookLabel && cast.saren && cast.saren.userData.book){ const pb=project(cast.saren.userData.book,.5); G_bookLabel.style.left=pb.x+"px"; G_bookLabel.style.top=pb.y+"px"; G_bookLabel.style.display=(G.state==="dome")?"":"none"; }
     camera.position.lerp(new THREE.Vector3(Math.sin(t*.15)*1.5,4.2,10),dt); camera.lookAt(0,1.6,-1);
   }
   // speaking hop
@@ -723,16 +1085,16 @@ document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ last=pe
 const carnet=document.getElementById("carnet");
 document.getElementById("carnetBtn").onclick=()=>{ document.getElementById("carnetDot").classList.add("hidden"); openCarnet("missions"); };
 function openCarnet(tab, mid){
-  const tabs=[["missions","Missions"],["preuves","Preuves"],["principes","Principes"],["jauges","Jauges"]]; let body="";
+  const tabs=T.tabs; let body="";
   if(tab==="missions"){ const M=MISSIONS.find(m=>m.id===(mid||S.current))||M1; const m=mstate(M.id); const k=m.choice;
-    body=`<div class="mnavs">${MISSIONS.map(x=>`<button class="mnav ${x.id===M.id?"on":""}" data-m="${x.id}" ${S.missions[x.id]?"":"disabled"}>Mission ${x.id}</button>`).join("")}</div><h3>Mission ${M.id} · ${M.principe}</h3><div class="small" style="color:#8B6A3E">${M.quartier} · ${k?"Choix : option "+k:"En cours"} · fragments ✦ ${m.frags||S.frags}</div>`
-      + M.questions.map((q,i)=>`<div class="ql">${["Qui est concerné ?","Quelles conséquences ?","Quelles valeurs en tension ?","Quelle autre voie ?"][i]}</div><div class="ans">${m.answers[i]||"<span style='opacity:.5'>Pas encore.</span>"}</div>`).join("")
-      + `<div class="ql">Parce que...</div><div class="ans">${m.why||"<span style='opacity:.5'>Pas encore choisi.</span>"}</div>` + (m.note?`<div class="ql">Note</div><div class="ans">${m.note}</div>`:"");
-  } else if(tab==="preuves"){ const got=MISSIONS.filter(m=>mstate(m.id).choice); body=got.length?got.map(M=>{ const k=mstate(M.id).choice; return `<h3>Preuve ${M.id} · ${M.preuve.titre}</h3><pre style="font-family:var(--mono);background:#fff;border:1px solid #E6D6B8;border-radius:8px;padding:12px;white-space:pre-wrap;color:#2B4F7A">${M.preuve.doc}</pre>${k==="B"?`<div style="font-style:italic;color:#2E5E2B">${M.preuve.commentB}</div>`:`<div class="small" style="color:#8B6A3E">${M.preuve.maskedA}</div>`}<div style="height:14px"></div>`; }).join(""):`<h3>Preuves</h3><p>Aucune preuve pour l'instant.</p>`; }
-  else if(tab==="principes"){ body=`<h3>Les dix principes de la Recommandation</h3><table>${PRINCIPES.map((p,i)=>{ const ok=MISSIONS[i]&&mstate(MISSIONS[i].id).done; return `<tr><td style="width:34px"><span class="tick ${ok?"on":""}">${ok?"✓":""}</span></td><td>${i+1}. ${p}</td><td class="small" style="color:#8B6A3E;text-align:right">${QUARTIERS[i]}</td></tr>`; }).join("")}</table>`; }
-  else { body=`<h3>Jauges</h3><div class="ql" style="color:#2F6FC4">Confiance de FriendLoop · ${S.fl}</div><div class="gp"><i style="width:${S.fl}%;background:#5EA8FF"></i></div><div class="ql" style="color:#2E5E2B">Confiance des citoyens · ${S.cit}</div><div class="gp"><i style="width:${S.cit}%;background:#3E7D3A"></i></div><div class="ql">Fragments ✦ ${S.frags}</div><p class="small" style="color:#8B6A3E">Les deux jauges modifient les dialogues et la fin. Aucune ne fait perdre.</p>`; }
+    body=`<div class="mnavs">${MISSIONS.map(x=>`<button class="mnav ${x.id===M.id?"on":""}" data-m="${x.id}" ${S.missions[x.id]?"":"disabled"}>${T.mission(x.id)}</button>`).join("")}</div><h3>${T.mission(M.id)} · ${M.principe}</h3><div class="small" style="color:#8B6A3E">${M.quartier} · ${k?T.choice(k):T.inProgress} · ${T.fragments} ✦ ${m.frags||S.frags}</div>`
+      + M.questions.map((q,i)=>`<div class="ql">${T.qLabels[i]}</div><div class="ans">${m.answers[i]||"<span style='opacity:.5'>"+T.notYet+"</span>"}</div>`).join("")
+      + `<div class="ql">${T.because}</div><div class="ans">${m.why||"<span style='opacity:.5'>"+T.notChosen+"</span>"}</div>` + (m.note?`<div class="ql">${T.note}</div><div class="ans">${m.note}</div>`:"");
+  } else if(tab==="preuves"){ const got=MISSIONS.filter(m=>mstate(m.id).choice); body=got.length?got.map(M=>{ const k=mstate(M.id).choice; return `<h3>${T.proof(M.id)} · ${M.preuve.titre}</h3><pre style="font-family:var(--mono);background:#fff;border:1px solid #E6D6B8;border-radius:8px;padding:12px;white-space:pre-wrap;color:#2B4F7A">${M.preuve.doc}</pre>${k==="B"?`<div style="font-style:italic;color:#2E5E2B">${M.preuve.commentB}</div>`:`<div class="small" style="color:#8B6A3E">${M.preuve.maskedA}</div>`}<div style="height:14px"></div>`; }).join(""):`<h3>${T.proofs}</h3><p>${T.noProof}</p>`; }
+  else if(tab==="principes"){ body=`<h3>${T.principles}</h3><table>${PRINCIPES.map((p,i)=>{ const ok=MISSIONS[i]&&mstate(MISSIONS[i].id).done; return `<tr><td style="width:34px"><span class="tick ${ok?"on":""}">${ok?"✓":""}</span></td><td>${i+1}. ${p}</td><td class="small" style="color:#8B6A3E;text-align:right">${QUARTIERS[i]}</td></tr>`; }).join("")}</table>`; }
+  else { body=`<h3>${T.gauges}</h3><div class="ql" style="color:#2F6FC4">${T.gFL} · ${S.fl}</div><div class="gp"><i style="width:${S.fl}%;background:#5EA8FF"></i></div><div class="ql" style="color:#2E5E2B">${T.gCit} · ${S.cit}</div><div class="gp"><i style="width:${S.cit}%;background:#3E7D3A"></i></div><div class="ql">${T.fragments} ✦ ${S.frags}</div><p class="small" style="color:#8B6A3E">${T.gaugesNote}</p>`; }
   carnet.classList.remove("hidden");
-  carnet.innerHTML=`<div class="book" role="dialog"><nav>${tabs.map(t=>`<button class="${t[0]===tab?"on":""}" data-t="${t[0]}">${t[1]}</button>`).join("")}</nav><main>${body}</main><button class="close" id="cl">Fermer ✕</button></div>`;
+  carnet.innerHTML=`<div class="book" role="dialog"><nav>${tabs.map(t=>`<button class="${t[0]===tab?"on":""}" data-t="${t[0]}">${t[1]}</button>`).join("")}</nav><main>${body}</main><button class="close" id="cl">${T.closeX}</button></div>`;
   carnet.querySelectorAll("nav button").forEach(b=>b.onclick=()=>openCarnet(b.dataset.t)); carnet.querySelectorAll(".mnav").forEach(b=>b.onclick=()=>openCarnet("missions",+b.dataset.m));
   carnet.querySelector("#cl").onclick=()=>carnet.classList.add("hidden"); carnet.onclick=e=>{ if(e.target===carnet) carnet.classList.add("hidden"); };
 }
