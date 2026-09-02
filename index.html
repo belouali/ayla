@@ -1007,7 +1007,8 @@ function enterDoor(frame){
 }
 function startCons(){
   const M=cur(), st=mstate(M.id); setPhases(5); G.state="cons"; const k=st.choice; Music.set(k==="A"?"bad":"good"); help("");
-  const first=Object.keys(G.npcObjs)[0]; const npc=G.npcObjs[first]; player.position.set(npc.position.x-2.5,0,npc.position.z+2.5); P.x=player.position.x; P.z=player.position.z; player.rotation.y=Math.PI*.7;
+  const pz=level.plazaZ; Object.values(G.npcObjs).forEach(f=>{ const h=f.userData.npc.pos; f.userData.slideTo={x:h[0]*.6, z:pz+h[2]+1}; }); G.doors.forEach(d=>{ d.visible=false; d.userData.disc.visible=false; });
+  P.x=0; P.z=pz+3; P.tx=null; P.tz=null; player.position.set(0,0,pz+3); player.rotation.y=Math.PI; camera.position.set(0,5.2,pz+11.5);
   runDialogue(M.cons[k], ()=>{
     const d=M.delta[k]; const fl0=S.fl, c0=S.cit; S.fl=Math.max(0,Math.min(100,S.fl+d.fl)); S.cit=Math.max(0,Math.min(100,S.cit+d.cit)); save();
     app.innerHTML=`<div class="overlay"><div class="box"><h3>${T.consTitle}</h3><div class="gauges">
