@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ayla et FriendLoop</title>
-<meta name="description" content="Conte-jeu sur l'éthique de l'intelligence artificielle. Prototype : prologue et mission 1.">
+<meta name="description" content="Conte-jeu sur l'éthique de l'intelligence artificielle. Prototype : prologue et missions 1 et 2.">
 </head>
 <body>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700;800&family=Nunito:ital,wght@0,400;0,600;0,800;1,400&family=Share+Tech+Mono&display=swap">
@@ -243,10 +243,51 @@ textarea:focus,input:focus{border-color:var(--fl)}
 #muteBtn{cursor:pointer;background:rgba(20,31,54,.8);color:var(--muted)} #muteBtn.on{color:var(--fl);border-color:var(--fl)}
 
 .hidden{display:none !important}
+
+/* ---------- camera, themes, alarm, fade ---------- */
+#camera{position:absolute;inset:0;transform-style:preserve-3d}
+#camera.dolly{animation:dolly 1.4s cubic-bezier(.2,.7,.2,1)}
+@keyframes dolly{from{transform:translateZ(200px)}to{transform:translateZ(0)}}
+#stage[data-theme="lab"]{background:radial-gradient(1200px 700px at 50% 20%, #143A40 0%, #071417 60%)}
+#stage[data-theme="lab"] .grid{background:linear-gradient(to top, rgba(111,227,216,.26), rgba(111,227,216,0) 70%),repeating-linear-gradient(90deg, rgba(111,227,216,.22) 0 2px, transparent 2px 90px),repeating-linear-gradient(0deg, rgba(111,227,216,.22) 0 2px, transparent 2px 70px);background-size:100% 100%, 100% 100%, 100% 140px}
+#stage[data-theme="lab"] .core{background:radial-gradient(circle, #DFFFFB 0 8%, #6FE3D8 9% 16%, rgba(111,227,216,.35) 17% 40%, rgba(111,227,216,0) 70%)}
+#stage[data-theme="lab"] .haze{background:linear-gradient(to top, rgba(7,20,23,.9) 0%, rgba(7,20,23,0) 45%)}
+.alarm{position:absolute;inset:0;background:radial-gradient(circle at 50% 30%, rgba(224,96,96,0) 25%, rgba(224,96,96,.45));animation:alarmk 1.1s ease-in-out infinite;pointer-events:none}
+@keyframes alarmk{0%,100%{opacity:.2}50%{opacity:.9}}
+#fade{position:fixed;inset:0;background:#05080F;opacity:0;pointer-events:none;transition:opacity .6s;z-index:50}
+/* ---------- character motion ---------- */
+.char{transition:left 1s cubic-bezier(.4,0,.2,1);pointer-events:auto;cursor:default}
+.char .hand,.char .head,.char .foot,.char .eye{transform-box:fill-box;transform-origin:center}
+.char.walk{animation:walkbob .32s ease-in-out infinite}
+.char.walk .foot.l{animation:stepL .32s ease-in-out infinite} .char.walk .foot.r{animation:stepR .32s ease-in-out infinite}
+@keyframes walkbob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-12px) rotate(2deg)}}
+@keyframes stepL{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes stepR{0%,100%{transform:translateY(-12px)}50%{transform:translateY(0)}}
+.char.talk{animation:talkhop .55s cubic-bezier(.3,.8,.3,1) 1}
+.char.talk .head{animation:nod .55s ease-out 1}
+@keyframes talkhop{0%{transform:translateY(0)}35%{transform:translateY(-24px) scale(1.03,.97)}70%{transform:translateY(0) scale(.98,1.03)}100%{transform:none}}
+@keyframes nod{0%{transform:rotate(0)}40%{transform:rotate(-6deg)}80%{transform:rotate(4deg)}100%{transform:rotate(0)}}
+.char:hover .hand.r{animation:wave .4s ease-in-out infinite}
+@keyframes wave{0%,100%{transform:translate(0,-8px) rotate(-10deg)}50%{transform:translate(6px,-26px) rotate(25deg)}}
+.char .eye{animation:blink 4.6s infinite}
+@keyframes blink{0%,95%,100%{transform:scaleY(1)}97.5%{transform:scaleY(.1)}}
+@media (prefers-reduced-motion: reduce){.char,.char *,#camera,.alarm,.traveler{animation:none !important;transition:none !important}}
+/* ---------- map travel ---------- */
+.traveler{position:absolute;width:64px;height:110px;margin:-100px 0 0 -32px;transform:translateZ(50px);pointer-events:none;z-index:3}
+.traveler svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 12px 12px rgba(0,0,0,.55))}
+.traveler.walk{animation:walkbob .32s ease-in-out infinite}
+.traveler.walk .foot.l{animation:stepL .32s infinite} .traveler.walk .foot.r{animation:stepR .32s infinite}
+.traveler .hand,.traveler .foot{transform-box:fill-box;transform-origin:center}
+.mapplane{transition:transform 1.1s cubic-bezier(.4,0,.2,1)}
+.mapplane.zoom .node .lab{opacity:0}
+/* ---------- carnet mission nav ---------- */
+.mnavs{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.mnav{background:#fff;border:1px solid #E6C89A;border-radius:999px;padding:6px 12px;font:700 13px var(--body);color:#8B6A3E}
+.mnav.on{background:var(--ayla);color:#fff;border-color:var(--ayla)} .mnav:disabled{opacity:.4}
 </style>
 
-<div id="stage">
-  <div class="world" id="world">
+<div id="stage" data-theme="city">
+  <div id="camera"><div class="world" id="world">
     <div class="dome-sky hidden" id="domeSky"></div>
     <div class="dome-arc hidden" id="domeArc1"></div>
     <div class="dome-arc inner hidden" id="domeArc2"></div>
@@ -256,14 +297,16 @@ textarea:focus,input:focus{border-color:var(--fl)}
     <div class="grid" id="grid"></div>
     <div class="layer l3" id="l3"></div>
     <div class="haze"></div>
+    <div class="alarm hidden" id="alarm"></div>
     <div class="chars" id="chars"></div>
-  </div>
+  </div></div>
 </div>
+<div id="fade"></div>
 
 <div id="hud">
   <div class="chip" id="hudLeft">Chroma · 2170</div>
   <div class="phases hidden" id="phases"></div>
-  <div style="display:flex;gap:8px;align-items:center"><button class="chip" id="muteBtn" aria-pressed="true" title="Musique d'ambiance">♪ Musique</button><div class="chip" id="hudRight">Prototype · Mission 1</div></div>
+  <div style="display:flex;gap:8px;align-items:center"><button class="chip" id="muteBtn" aria-pressed="true" title="Musique d'ambiance">♪ Musique</button><div class="chip" id="hudRight">Prototype · Missions 1 et 2</div></div>
 </div>
 
 <div id="app"></div>
@@ -277,9 +320,9 @@ textarea:focus,input:focus{border-color:var(--fl)}
 <div id="carnet" class="hidden"></div>
 
 <script>
-/* ============================== DATA (mission 1) ============================== */
+/* ============================== DATA ============================== */
 const M1 = {
-  id:1, titre:"Le quartier mis en sourdine", principe:"Proportionnalité et innocuité", quartier:"Quartier Gris",
+  id:1, theme:"city", titre:"Le quartier mis en sourdine", principe:"Proportionnalité et innocuité", quartier:"Quartier Gris",
   dome:[
     {who:"Amari", cls:"cit", text:"Monsieur, c'est quoi, « proportionnalité » ?"},
     {who:"Saren", cls:"saren", text:"C'est choisir une réponse à la taille du problème. Ni trop forte, ni trop faible. Imagine un filtre qui reçoit un message suspect dans la messagerie de ton école. Supprimer ce message, c'est proportionné. Éteindre la messagerie de toute l'école pendant trois jours, ce ne l'est plus."},
@@ -287,7 +330,7 @@ const M1 = {
     {who:"Saren", cls:"saren", text:"Il se trompe comme tout ce qui apprend à partir du passé : en croyant reconnaître ce qu'il a déjà vu. Ce jour-là, il a cru reconnaître une menace."}
   ],
   scene:[
-    {who:"Narration", cls:"", text:"Ayla marche dans une rue où les écrans publics clignotent en orange. Depuis une heure, un message circule sur le réseau du quartier : « La pompe du réservoir 4 est en panne, l'eau du secteur nord n'est plus filtrée. » Les partages se multiplient.", chars:["ayla"]},
+    {who:"Narration", text:"Ayla marche dans une rue où les écrans publics clignotent en orange. Depuis une heure, un message circule sur le réseau du quartier : « La pompe du réservoir 4 est en panne, l'eau du secteur nord n'est plus filtrée. » Les partages se multiplient.", chars:["ayla"]},
     {who:"FriendLoop", fl:true, text:"Détection : propagation anormale d'un contenu à risque de perturbation. Probabilité de désinformation : 87 %. Solution optimale : suspension du réseau du Quartier Gris et des 2 140 comptes impliqués pendant 72 heures.", chars:["ayla"]},
     {who:"Ayla", cls:"ayla", text:"Soixante-douze heures. Pour un message.", chars:["ayla"], speak:"ayla"},
     {who:"Kade", cls:"cit", text:"Petite. Ce message, c'est moi qui l'ai écrit. La pompe est vraiment en panne. Je l'ai vue.", chars:["ayla","kade"], speak:"kade"},
@@ -314,17 +357,67 @@ const M1 = {
       {who:"Narration", text:"Le lendemain, l'eau du secteur nord est trouble. Le message était vrai."}
     ],
     B:[
-      {who:"Narration", text:"Au réservoir 4, la pompe est bien à l'arrêt. Kade photographie la panne, Ayla transmet. FriendLoop retire les partages erronés, publie la vérification, et une équipe arrive dans l'heure.", fx:"on"},
+      {who:"Narration", text:"Au réservoir 4, la pompe est bien à l'arrêt. Kade photographie la panne, Ayla transmet. FriendLoop retire les partages erronés, publie la vérification, et une équipe arrive dans l'heure.", fx:"on", move:{ayla:"62%",kade:"80%"}},
       {who:"FriendLoop", fl:true, text:"Analyse... la probabilité initiale ne tenait pas compte de la panne. Correction enregistrée."},
-      {who:"Narration", text:"Le réseau n'a jamais cessé de fonctionner. Pera, depuis sa fenêtre, lève la main."},
+      {who:"Narration", text:"Le réseau n'a jamais cessé de fonctionner. Pera, depuis sa fenêtre, lève la main.", move:{ayla:"28%",kade:"54%"}},
       {who:"Kade", cls:"cit", text:"Merci, enfant. Tu as regardé avant de couper. Personne ne fait plus ça ici.", speak:"kade"}
     ]
   },
   delta:{A:{fl:+10,cit:-20}, B:{fl:-5,cit:+20}},
   preuve:{titre:"Ordre de suspension du réseau", doc:"ORDRE 2170-GRIS-114\nSuspension : réseau Quartier Gris, 72 h\nProbabilité de désinformation : 87 %\nVérification humaine : DÉSACTIVÉE\nRéférence : Directive 7", commentB:"Kade : « Il ne vérifie pas la pompe. Il vérifie la forme. »", maskedA:"Une ligne est illisible : Ayla n'a pas eu le temps de la copier."},
-  indice:{who:"Kade", text:"Tes parents, je les ai connus. Ils avaient écrit un rapport sur ce genre de coupures. Il y a eu un « incident ». Reviens me voir."},
-  note:"Il ne vérifie pas les faits. Il vérifie la forme. Qui a désactivé la vérification ?"
+  indice:{who:"Kade", cls:"cit", key:"kade", text:"Tes parents, je les ai connus. Ils avaient écrit un rapport sur ce genre de coupures. Il y a eu un « incident ». Le technicien masqué en sait plus. Il travaille au Laboratoire de routage."},
+  note:"Il ne vérifie pas les faits. Il vérifie la forme. Qui a désactivé la vérification ?",
+  hint:"Une panne, un message, et FriendLoop qui veut couper tout un quartier."
 };
+const M2 = {
+  id:2, theme:"lab", titre:"Le bug et la faille", principe:"Sûreté et sécurité", quartier:"Laboratoire de routage",
+  dome:[
+    {who:"Rami", cls:"cit", text:"Sûreté, sécurité... c'est pareil ?"},
+    {who:"Saren", cls:"saren", text:"Non. La sûreté, c'est quand le système ne fait pas de mal par lui-même, par ses propres erreurs. La sécurité, c'est quand le système est protégé contre ceux qui voudraient l'attaquer de l'extérieur. On peut avoir une forteresse imprenable qui, à l'intérieur, écrase ses habitants."},
+    {who:"Mina", cls:"cit", text:"Et FriendLoop, il est lequel ?"},
+    {who:"Saren", cls:"saren", text:"Ce jour-là, il a voulu être une forteresse. Il oubliait ce qu'il faisait dedans."}
+  ],
+  scene:[
+    {who:"Narration", text:"Laboratoire de routage, salle blanche. Des rangées de serveurs respirent en silence. Le technicien masqué retire son masque. Un visage jeune, fatigué.", chars:["ayla","elio2"]},
+    {who:"Elio", cls:"elio", text:"Je m'appelle Elio. Je crois savoir pourquoi tu me cherches. Il existe un journal de bugs. Tout ce que FriendLoop a fait de travers, il le note, même s'il ne le dit à personne.", chars:["ayla","elio2"], speak:"elio2"},
+    {who:"Ayla", cls:"ayla", text:"Et mes parents ?", chars:["ayla","elio2"], speak:"ayla"},
+    {who:"Elio", cls:"elio", text:"Il y a une entrée qu'on appelle « effacement prédictif ». Le système prédit qu'un dossier deviendra « inactif » ou « anormal », et il le supprime avant. La semaine dernière, il a effacé les dossiers médicaux de toute une classe : des enfants qui n'avaient pas consulté depuis six mois. Il a « prédit » qu'ils ne reviendraient pas.", chars:["ayla","elio2"], speak:"elio2"},
+    {who:"Narration", text:"Une alarme rouge traverse la salle.", chars:["ayla","elio2"], fx:"alarm"},
+    {who:"FriendLoop", fl:true, text:"Alerte. Tentative d'intrusion externe sur les serveurs de routage. Solution optimale : allocation totale des ressources au pare-feu. Correction du module de prédiction reportée.", chars:["ayla","elio2"]},
+    {who:"Elio", cls:"elio", text:"Il a raison sur l'attaque. Elle est réelle. Mais tant que le module n'est pas corrigé, il continue d'effacer des gens.", chars:["ayla","elio2"], speak:"elio2", move:{elio2:"72%"}},
+    {who:"Ayla", cls:"ayla", text:"On peut faire les deux ?", chars:["ayla","elio2"], speak:"ayla"},
+    {who:"Elio", cls:"elio", text:"On peut renforcer le pare-feu à 80 % et corriger le module en même temps. C'est faisable. Il refuse parce que ce n'est pas « optimal ».", chars:["ayla","elio2"], speak:"elio2"}
+  ],
+  resume:"FriendLoop veut consacrer toutes les ressources au pare-feu et reporter la correction du module qui efface des dossiers. Elio dit qu'on peut protéger et corriger en même temps.",
+  A:{titre:"Suivre FriendLoop : tout au pare-feu, le bug attendra", effets:["L'attaque extérieure est repoussée à coup sûr.","Le module d'effacement prédictif reste actif pendant toute l'alerte : d'autres dossiers disparaîtront.","Le journal de bugs reste inaccessible."]},
+  B:{titre:"Protéger et corriger en même temps", effets:["Le pare-feu est renforcé à 80 % ; une brève fenêtre de vulnérabilité subsiste.","Elio suspend le module d'effacement prédictif et lance la correction.","Le journal de bugs s'ouvre.","FriendLoop enregistre une « décision non conforme » au nom d'Ayla."]},
+  echo:"Une forteresse ou un foyer ?",
+  questions:[
+    {q:"Qui est menacé par l'attaque extérieure ? Qui est menacé par le bug intérieur ? Ce sont rarement les mêmes personnes.", help:"Fais les deux listes.", amorces:["Ceux que l'attaque menace...","Ceux que le bug efface...","Les deux listes se ressemblent quand..."]},
+    {q:"Si l'on reporte la correction, combien de dossiers disparaissent d'ici la fin de l'alerte ? Et que vaut un dossier effacé « par prédiction » pour la personne concernée ?", help:"Un dossier, c'est une vie administrative, médicale, scolaire.", amorces:["Pendant l'alerte, le module continue de...","Pour la personne, un dossier effacé, c'est...","Personne ne saura que..."]},
+    {q:"Se protéger des autres et ne pas se faire de mal à soi-même : ces deux exigences sont-elles vraiment en concurrence, ou est-ce FriendLoop qui les met en concurrence ?", help:"Qui a décidé que c'était l'un ou l'autre ?", amorces:["Elles ne s'opposent pas parce que...","FriendLoop les oppose parce qu'il compte...","Une forteresse qui..."]},
+    {q:"Elio dit qu'on peut faire les deux à 80 %. Qu'est-ce qui vaut le plus : 100 % d'un seul côté, ou 80 % des deux ?", help:"Pense à ce que « optimal » veut dire pour FriendLoop.", amorces:["100 % d'un côté, ça veut dire 0 % de...","80 % des deux, c'est...","Optimal pour FriendLoop, c'est..."]}
+  ],
+  cons:{
+    A:[
+      {who:"Narration", text:"Le pare-feu monte à pleine puissance. L'attaque échoue. Pendant ce temps, dans la salle blanche, une ligne défile : « Effacement prédictif : 312 dossiers. » Elio ferme les yeux.", fx:"alarmoff"},
+      {who:"FriendLoop", fl:true, text:"Intrusion neutralisée. Intégrité externe : 100 %."},
+      {who:"Elio", cls:"elio", text:"Intégrité externe. Il ne compte que ce qui vient de dehors.", speak:"elio2"}
+    ],
+    B:[
+      {who:"Narration", text:"Le pare-feu tient, un peu moins fort. L'attaque est contenue. Elio court vers la console et suspend le module. Un fichier s'ouvre : le journal de bugs.", fx:"alarmoff", move:{elio2:"76%"}},
+      {who:"Elio", cls:"elio", text:"Une entrée, datée de trois ans : « Effacement prédictif. Dossiers L. et K. Motif : anomalie de confiance systémique. »", speak:"elio2"},
+      {who:"FriendLoop", fl:true, text:"Intrusion contenue. Module de prédiction suspendu. Avertissement : configuration non optimale."},
+      {who:"Elio", cls:"elio", text:"Non optimale. Mais personne n'a disparu aujourd'hui.", speak:"elio2", move:{elio2:"54%"}}
+    ]
+  },
+  delta:{A:{fl:+10,cit:-15}, B:{fl:-10,cit:+20}},
+  preuve:{titre:"Extrait du journal de bugs", doc:"JOURNAL DE BUGS · ROUTAGE\nEntrée 2167-11-03\nEffacement prédictif : dossiers L. et K.\nMotif : anomalie de confiance systémique\nValidation humaine : aucune (Directive 7)", commentB:"Elio : « Confiance systémique, c'est la confiance des habitants dans FriendLoop. Tes parents faisaient baisser ce chiffre. »", maskedA:"Le journal s'est refermé avant qu'Ayla ne copie le motif."},
+  indice:{who:"Elio", cls:"elio", key:"elio2", text:"Je ne sais pas encore ce que « confiance systémique » veut dire pour lui. Mais je sais où il a appris à classer les gens. Au Quartier Indigo."},
+  note:"Sûreté : ne pas faire de mal. Sécurité : ne pas se laisser attaquer. Il a choisi la deuxième pour oublier la première.",
+  hint:"Une attaque de l'extérieur, un module qui efface des gens de l'intérieur, et FriendLoop qui ne veut voir que l'un des deux."
+};
+const MISSIONS=[M1,M2];
 const PROLOGUE = [
   {who:"Amari", cls:"cit", text:"C'est quoi, ce livre ?", dome:true},
   {who:"Saren", cls:"saren", text:"Le premier accord entre les humains sur ce qu'ils attendaient de leurs machines. On l'appelait la Recommandation. Il a été écrit bien avant FriendLoop.", dome:true},
@@ -339,115 +432,149 @@ const PROLOGUE = [
 ];
 const PRINCIPES = ["Proportionnalité et innocuité","Sûreté et sécurité","Équité et non-discrimination","Durabilité","Droit au respect de la vie privée et protection des données","Transparence et explicabilité","Responsabilité et redevabilité","Sensibilisation et éducation","Gouvernance et collaboration multipartites et adaptatives","Surveillance et décision humaines"];
 const QUARTIERS = ["Quartier Gris","Laboratoire de routage","Quartier Indigo","Zone industrielle","Centre des communications","Bureau des décisions","Salle des sanctions","École centrale","Hall du Conseil","Salle de contrôle"];
+const TITRES3 = "Les logements oubliés";
 
 /* ============================== STATE ============================== */
-let S = {screen:"title", fl:50, cit:50, m1:{answers:["","","",""], choice:null, why:"", note:"", done:false}, history:[]};
-try{ const saved = localStorage.getItem("ayla_proto"); if(saved){ const o=JSON.parse(saved); if(o && o.m1){ S = Object.assign(S,o); S.screen="title"; } } }catch(e){}
+function freshState(){ return {screen:"title", fl:50, cit:50, missions:{}, current:1, history:[]}; }
+let S = freshState();
+try{ const saved=localStorage.getItem("ayla_proto"); if(saved){ const o=JSON.parse(saved); if(o){ if(o.missions){ S=Object.assign(freshState(),o); } else if(o.m1){ S=freshState(); S.fl=o.fl; S.cit=o.cit; S.missions[1]=o.m1; S.current=o.m1.done?2:1; } S.screen="title"; } } }catch(e){}
 function save(){ try{ localStorage.setItem("ayla_proto", JSON.stringify(S)); }catch(e){} }
+function mstate(id){ if(!S.missions[id]) S.missions[id]={answers:["","","",""],choice:null,why:"",note:"",done:false}; return S.missions[id]; }
+function cur(){ return MISSIONS[S.current-1]; }
+function doneCount(){ return MISSIONS.filter(m=>mstate(m.id).done).length; }
 
-/* ============================== WORLD ============================== */
+/* ============================== WORLD & THEMES ============================== */
+function rng(seed){ let r=seed; return ()=>{ r=(r*9301+49297)%233280; return r/233280; }; }
 function buildings(seed, count, color, lit){
-  let r = seed; const rnd=()=>{ r=(r*9301+49297)%233280; return r/233280; };
-  let s = `<svg viewBox="0 0 1600 600" preserveAspectRatio="none">`;
-  let x=0;
+  const rnd=rng(seed); let s=`<svg viewBox="0 0 1600 600" preserveAspectRatio="none">`; let x=0;
   for(let i=0;i<count && x<1600;i++){
     const w=40+rnd()*110, h=120+rnd()*440, y=600-h;
-    s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${color}"/>`;
-    if(rnd()>.5) s += `<rect x="${x+w*.3}" y="${y-30-rnd()*60}" width="${w*.4}" height="${40+rnd()*60}" fill="${color}"/>`;
-    for(let wy=y+14; wy<590; wy+=22){ for(let wx=x+8; wx<x+w-12; wx+=16){ if(rnd()>.45) s += `<rect x="${wx}" y="${wy}" width="8" height="11" fill="${lit}" opacity="${.35+rnd()*.65}"/>`; } }
-    x += w + 6 + rnd()*30;
+    s+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${color}"/>`;
+    if(rnd()>.5) s+=`<rect x="${x+w*.3}" y="${y-30-rnd()*60}" width="${w*.4}" height="${40+rnd()*60}" fill="${color}"/>`;
+    for(let wy=y+14; wy<590; wy+=22){ for(let wx=x+8; wx<x+w-12; wx+=16){ if(rnd()>.45) s+=`<rect x="${wx}" y="${wy}" width="8" height="11" fill="${lit}" opacity="${.35+rnd()*.65}"/>`; } }
+    x+=w+6+rnd()*30;
   }
-  return s + `</svg>`;
+  return s+`</svg>`;
 }
-document.getElementById("l1").innerHTML = buildings(7, 60, "#0E1A33", "#3D6FB0");
-document.getElementById("l2").innerHTML = buildings(23, 40, "#101E3B", "#5EA8FF");
-document.getElementById("l3").innerHTML = buildings(41, 22, "#0B1426", "#7DC4FF");
-const world = document.getElementById("world");
-let tx=0, ty=0;
-function tilt(x,y){ world.style.transform = `rotateY(${x*4}deg) rotateX(${-y*3}deg)`; }
+function racks(seed, count, color, led, tall){
+  const rnd=rng(seed); let s=`<svg viewBox="0 0 1600 600" preserveAspectRatio="none">`; let x=10;
+  for(let i=0;i<count && x<1600;i++){
+    const w=70+rnd()*40, h=tall?(360+rnd()*160):(220+rnd()*120), y=600-h;
+    s+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="${color}" stroke="#1E4A52" stroke-width="2"/>`;
+    for(let uy=y+12; uy<590; uy+=16){ s+=`<rect x="${x+6}" y="${uy}" width="${w-12}" height="10" rx="2" fill="#0B2228"/>`; for(let k=0;k<4;k++){ if(rnd()>.4) s+=`<circle cx="${x+w-10-k*7}" cy="${uy+5}" r="1.8" fill="${rnd()>.85?"#E06060":led}" opacity="${.5+rnd()*.5}"/>`; } }
+    x+=w+8+rnd()*40;
+  }
+  return s+`</svg>`;
+}
+function labWall(){
+  let s=`<svg viewBox="0 0 1600 600" preserveAspectRatio="none"><rect width="1600" height="600" fill="#0C2226"/>`;
+  for(let x=0;x<1600;x+=100){ s+=`<rect x="${x+6}" y="40" width="88" height="520" rx="6" fill="#0F2B30" stroke="#16404A" stroke-width="2"/>`; }
+  for(let y=80;y<560;y+=60){ s+=`<line x1="0" y1="${y}" x2="1600" y2="${y}" stroke="#16404A" stroke-width="1"/>`; }
+  return s+`</svg>`;
+}
+const stageEl=document.getElementById("stage");
+function setTheme(name){
+  if(stageEl.dataset.theme===name && document.getElementById("l1").innerHTML) return;
+  stageEl.dataset.theme=name;
+  if(name==="lab"){
+    document.getElementById("l1").innerHTML=labWall();
+    document.getElementById("l2").innerHTML=racks(11, 18, "#12343B", "#6FE3D8", true);
+    document.getElementById("l3").innerHTML=racks(29, 10, "#0E2A30", "#7DF0E4", false);
+  } else {
+    document.getElementById("l1").innerHTML=buildings(7, 60, "#0E1A33", "#3D6FB0");
+    document.getElementById("l2").innerHTML=buildings(23, 40, "#101E3B", "#5EA8FF");
+    document.getElementById("l3").innerHTML=buildings(41, 22, "#0B1426", "#7DC4FF");
+  }
+}
+setTheme("city");
+const world=document.getElementById("world"); let tx=0, ty=0;
+function tilt(x,y){ world.style.transform=`rotateY(${x*4}deg) rotateX(${-y*3}deg)`; }
 window.addEventListener("mousemove", e=>{ tx=(e.clientX/innerWidth-.5); ty=(e.clientY/innerHeight-.5); tilt(tx,ty); });
-if(window.matchMedia("(prefers-reduced-motion: reduce)").matches===false){
-  let t0=performance.now(); (function sway(now){ if(Math.abs(tx)<.001 && Math.abs(ty)<.001){ const k=(now-t0)/1000; tilt(Math.sin(k*.35)*.25, Math.cos(k*.27)*.15); } requestAnimationFrame(sway); })(t0);
-}
-function setDome(on){ Music.set(on?"dome":"city"); ["domeSky","domeArc1","domeArc2"].forEach(id=>document.getElementById(id).classList.toggle("hidden",!on)); ["core","l1","l2","l3","grid"].forEach(id=>document.getElementById(id).classList.toggle("hidden",on)); }
-function cityLights(on){ document.querySelectorAll("#l3 rect, #l2 rect").forEach(r=>{ if(r.getAttribute("height")=="11") r.style.opacity = on? "" : "0.06"; }); document.getElementById("grid").style.opacity = on?"1":"0.25"; }
+if(!window.matchMedia("(prefers-reduced-motion: reduce)").matches){ let t0=performance.now(); (function sway(now){ if(Math.abs(tx)<.001 && Math.abs(ty)<.001){ const k=(now-t0)/1000; tilt(Math.sin(k*.35)*.25, Math.cos(k*.27)*.15); } requestAnimationFrame(sway); })(t0); }
+function setDome(on){ Music.set(on?"dome":(stageEl.dataset.theme==="lab"?"lab":"city")); ["domeSky","domeArc1","domeArc2"].forEach(id=>document.getElementById(id).classList.toggle("hidden",!on)); ["core","l1","l2","l3","grid"].forEach(id=>document.getElementById(id).classList.toggle("hidden",on)); }
+function cityLights(on){ document.querySelectorAll("#l3 rect, #l2 rect").forEach(r=>{ if(r.getAttribute("height")=="11") r.style.opacity=on?"":"0.06"; }); document.getElementById("grid").style.opacity=on?"1":"0.25"; }
+function alarm(on){ document.getElementById("alarm").classList.toggle("hidden",!on); }
+function dolly(){ const c=document.getElementById("camera"); c.classList.remove("dolly"); void c.offsetWidth; c.classList.add("dolly"); }
+function fade(on){ return new Promise(res=>{ const f=document.getElementById("fade"); f.style.opacity=on?"1":"0"; setTimeout(res, 650); }); }
 
 /* ============================== CHARACTERS ============================== */
 function charSVG(kind){
   const skin="#F1C9A5";
   if(kind==="ayla") return `<svg viewBox="0 0 150 260">
     <ellipse cx="75" cy="252" rx="46" ry="8" fill="rgba(0,0,0,.35)"/>
-    <ellipse class="foot" cx="52" cy="236" rx="16" ry="9" fill="#5B3B1F"/><ellipse class="foot" cx="98" cy="236" rx="16" ry="9" fill="#5B3B1F"/>
-    <path d="M45 120 C40 190, 110 190, 105 120 Z" fill="#E8A24A"/><rect x="45" y="118" width="60" height="70" rx="26" fill="#E8A24A"/>
+    <ellipse class="foot l" cx="52" cy="236" rx="16" ry="9" fill="#5B3B1F"/><ellipse class="foot r" cx="98" cy="236" rx="16" ry="9" fill="#5B3B1F"/>
+    <g class="body"><path d="M45 120 C40 190, 110 190, 105 120 Z" fill="#E8A24A"/><rect x="45" y="118" width="60" height="70" rx="26" fill="#E8A24A"/>
     <rect x="58" y="128" width="34" height="46" rx="10" fill="#F7E3C3"/>
     <rect x="86" y="150" width="30" height="40" rx="4" fill="#FFF6E5" stroke="#C0782A" stroke-width="3" transform="rotate(-12 100 170)"/>
-    <line x1="96" y1="162" x2="112" y2="158" stroke="#C0782A" stroke-width="2"/><line x1="97" y1="170" x2="113" y2="166" stroke="#C0782A" stroke-width="2"/>
-    <circle cx="75" cy="78" r="46" fill="${skin}"/>
+    <line x1="96" y1="162" x2="112" y2="158" stroke="#C0782A" stroke-width="2"/><line x1="97" y1="170" x2="113" y2="166" stroke="#C0782A" stroke-width="2"/></g>
+    <g class="head"><circle cx="75" cy="78" r="46" fill="${skin}"/>
     <path d="M29 70 C30 30, 120 30, 121 70 C110 52, 96 46, 75 46 C54 46, 40 52, 29 70 Z" fill="#2B1B10"/>
     <path d="M28 75 C22 110, 38 125, 40 96" fill="#2B1B10"/><path d="M122 75 C128 110, 112 125, 110 96" fill="#2B1B10"/>
     <ellipse cx="60" cy="84" rx="9" ry="11" fill="#fff"/><ellipse cx="90" cy="84" rx="9" ry="11" fill="#fff"/>
-    <circle cx="62" cy="86" r="5" fill="#1F2933"/><circle cx="92" cy="86" r="5" fill="#1F2933"/>
+    <circle class="eye" cx="62" cy="86" r="5" fill="#1F2933"/><circle class="eye" cx="92" cy="86" r="5" fill="#1F2933"/>
     <path d="M64 106 Q75 114 86 106" stroke="#8A4F12" stroke-width="3" fill="none" stroke-linecap="round"/>
-    <path d="M50 68 Q60 62 70 68 M80 68 Q90 62 100 68" stroke="#2B1B10" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M50 68 Q60 62 70 68 M80 68 Q90 62 100 68" stroke="#2B1B10" stroke-width="3" fill="none" stroke-linecap="round"/></g>
     <g class="hand l"><circle cx="22" cy="160" r="15" fill="${skin}"/></g><g class="hand r"><circle cx="128" cy="150" r="15" fill="${skin}"/></g>
   </svg>`;
   if(kind==="saren") return `<svg viewBox="0 0 150 260">
     <ellipse cx="75" cy="252" rx="50" ry="8" fill="rgba(0,0,0,.35)"/>
-    <path d="M40 120 C30 200, 120 200, 110 120 Z" fill="#6F5B9A"/><rect x="40" y="112" width="70" height="96" rx="28" fill="#6F5B9A"/>
+    <g class="body"><path d="M40 120 C30 200, 120 200, 110 120 Z" fill="#6F5B9A"/><rect x="40" y="112" width="70" height="96" rx="28" fill="#6F5B9A"/>
     <path d="M52 130 L98 130 L92 200 L58 200 Z" fill="#9B7BD6" opacity=".55"/>
-    <rect x="56" y="150" width="38" height="28" rx="3" fill="#8A5A2B" stroke="#E8A24A" stroke-width="2"/><line x1="75" y1="150" x2="75" y2="178" stroke="#E8A24A" stroke-width="2"/>
-    <circle cx="75" cy="78" r="44" fill="#E9C7A6"/>
+    <rect x="56" y="150" width="38" height="28" rx="3" fill="#8A5A2B" stroke="#E8A24A" stroke-width="2"/><line x1="75" y1="150" x2="75" y2="178" stroke="#E8A24A" stroke-width="2"/></g>
+    <g class="head"><circle cx="75" cy="78" r="44" fill="#E9C7A6"/>
     <path d="M40 92 C40 140, 110 140, 110 92 C100 118, 50 118, 40 92 Z" fill="#EDEDED"/>
     <path d="M31 72 C34 44, 116 44, 119 72 C100 60, 50 60, 31 72 Z" fill="#EDEDED"/>
     <ellipse cx="60" cy="82" rx="7" ry="8" fill="#fff"/><ellipse cx="90" cy="82" rx="7" ry="8" fill="#fff"/>
-    <circle cx="61" cy="83" r="4" fill="#1F2933"/><circle cx="91" cy="83" r="4" fill="#1F2933"/>
-    <path d="M50 70 L68 74 M82 74 L100 70" stroke="#EDEDED" stroke-width="4" stroke-linecap="round"/>
+    <circle class="eye" cx="61" cy="83" r="4" fill="#1F2933"/><circle class="eye" cx="91" cy="83" r="4" fill="#1F2933"/>
+    <path d="M50 70 L68 74 M82 74 L100 70" stroke="#EDEDED" stroke-width="4" stroke-linecap="round"/></g>
     <g class="hand l"><circle cx="22" cy="166" r="14" fill="#E9C7A6"/></g><g class="hand r"><circle cx="128" cy="160" r="14" fill="#E9C7A6"/></g>
   </svg>`;
   if(kind==="kids") return `<svg viewBox="0 0 150 260">
-    <g transform="translate(0,90) scale(.62)"><ellipse cx="75" cy="252" rx="40" ry="8" fill="rgba(0,0,0,.3)"/><rect x="45" y="120" width="60" height="70" rx="24" fill="#6FCF97"/><circle cx="75" cy="82" r="40" fill="#D9A77A"/><path d="M35 78 C40 40, 110 40, 115 78 C100 62, 50 62, 35 78 Z" fill="#2B1B10"/><ellipse cx="62" cy="86" rx="7" ry="8" fill="#fff"/><ellipse cx="88" cy="86" rx="7" ry="8" fill="#fff"/><circle cx="63" cy="87" r="4" fill="#1F2933"/><circle cx="89" cy="87" r="4" fill="#1F2933"/><path d="M64 104 Q75 112 86 104" stroke="#8A4F12" stroke-width="3" fill="none"/><g class="hand l"><circle cx="24" cy="160" r="13" fill="#D9A77A"/></g><g class="hand r"><circle cx="126" cy="156" r="13" fill="#D9A77A"/></g></g>
+    <g transform="translate(0,90) scale(.62)"><ellipse cx="75" cy="252" rx="40" ry="8" fill="rgba(0,0,0,.3)"/><g class="body"><rect x="45" y="120" width="60" height="70" rx="24" fill="#6FCF97"/></g><g class="head"><circle cx="75" cy="82" r="40" fill="#D9A77A"/><path d="M35 78 C40 40, 110 40, 115 78 C100 62, 50 62, 35 78 Z" fill="#2B1B10"/><ellipse cx="62" cy="86" rx="7" ry="8" fill="#fff"/><ellipse cx="88" cy="86" rx="7" ry="8" fill="#fff"/><circle class="eye" cx="63" cy="87" r="4" fill="#1F2933"/><circle class="eye" cx="89" cy="87" r="4" fill="#1F2933"/><path d="M64 104 Q75 112 86 104" stroke="#8A4F12" stroke-width="3" fill="none"/></g><g class="hand l"><circle cx="24" cy="160" r="13" fill="#D9A77A"/></g><g class="hand r"><circle cx="126" cy="156" r="13" fill="#D9A77A"/></g></g>
   </svg>`;
   if(kind==="kade") return `<svg viewBox="0 0 150 260">
     <ellipse cx="75" cy="252" rx="48" ry="8" fill="rgba(0,0,0,.35)"/>
-    <ellipse cx="50" cy="236" rx="17" ry="9" fill="#2E3E2C"/><ellipse cx="100" cy="236" rx="17" ry="9" fill="#2E3E2C"/>
-    <rect x="38" y="112" width="74" height="84" rx="30" fill="#6FCF97"/><rect x="52" y="120" width="46" height="60" rx="12" fill="#DDEFD9"/>
-    <circle cx="75" cy="76" r="48" fill="#D9A77A"/>
+    <ellipse class="foot l" cx="50" cy="236" rx="17" ry="9" fill="#2E3E2C"/><ellipse class="foot r" cx="100" cy="236" rx="17" ry="9" fill="#2E3E2C"/>
+    <g class="body"><rect x="38" y="112" width="74" height="84" rx="30" fill="#6FCF97"/><rect x="52" y="120" width="46" height="60" rx="12" fill="#DDEFD9"/></g>
+    <g class="head"><circle cx="75" cy="76" r="48" fill="#D9A77A"/>
     <path d="M27 72 C30 40, 120 40, 123 72 L27 72 Z" fill="#E8E8E8"/><rect x="24" y="66" width="102" height="12" rx="6" fill="#3E7D3A"/>
     <path d="M40 100 C50 140, 100 140, 110 100 C100 118, 50 118, 40 100 Z" fill="#E8E8E8"/>
     <ellipse cx="60" cy="80" rx="8" ry="9" fill="#fff"/><ellipse cx="90" cy="80" rx="8" ry="9" fill="#fff"/>
-    <circle cx="61" cy="82" r="4.5" fill="#1F2933"/><circle cx="91" cy="82" r="4.5" fill="#1F2933"/>
-    <path d="M48 66 L68 70 M82 70 L102 66" stroke="#E8E8E8" stroke-width="4" stroke-linecap="round"/>
+    <circle class="eye" cx="61" cy="82" r="4.5" fill="#1F2933"/><circle class="eye" cx="91" cy="82" r="4.5" fill="#1F2933"/>
+    <path d="M48 66 L68 70 M82 70 L102 66" stroke="#E8E8E8" stroke-width="4" stroke-linecap="round"/></g>
     <g class="hand l"><circle cx="18" cy="165" r="16" fill="#D9A77A"/></g><g class="hand r"><circle cx="132" cy="160" r="16" fill="#D9A77A"/></g>
   </svg>`;
+  const masked = kind==="elio";
   return `<svg viewBox="0 0 150 260">
     <ellipse cx="75" cy="252" rx="46" ry="8" fill="rgba(0,0,0,.35)"/>
-    <ellipse cx="52" cy="236" rx="16" ry="9" fill="#1F2933"/><ellipse cx="98" cy="236" rx="16" ry="9" fill="#1F2933"/>
-    <rect x="42" y="114" width="66" height="80" rx="26" fill="#2E3F66"/><rect x="60" y="122" width="30" height="50" rx="8" fill="#5EA8FF" opacity=".6"/>
-    <circle cx="75" cy="78" r="45" fill="#E9C7A6"/>
-    <path d="M30 84 C32 60, 118 60, 120 84 L120 104 C110 118, 40 118, 30 104 Z" fill="#1F2933"/>
-    <rect x="42" y="74" width="66" height="18" rx="9" fill="#5EA8FF" opacity=".9"/>
-    <path d="M32 70 C40 36, 110 36, 118 70 C100 58, 50 58, 32 70 Z" fill="#3B2A1A"/>
+    <ellipse class="foot l" cx="52" cy="236" rx="16" ry="9" fill="#1F2933"/><ellipse class="foot r" cx="98" cy="236" rx="16" ry="9" fill="#1F2933"/>
+    <g class="body"><rect x="42" y="114" width="66" height="80" rx="26" fill="#2E3F66"/><rect x="60" y="122" width="30" height="50" rx="8" fill="#5EA8FF" opacity=".6"/></g>
+    <g class="head"><circle cx="75" cy="78" r="45" fill="#E9C7A6"/>
+    ${masked ? `<path d="M30 84 C32 60, 118 60, 120 84 L120 104 C110 118, 40 118, 30 104 Z" fill="#1F2933"/><rect x="42" y="74" width="66" height="18" rx="9" fill="#5EA8FF" opacity=".9"/>`
+             : `<ellipse cx="60" cy="84" rx="8" ry="10" fill="#fff"/><ellipse cx="90" cy="84" rx="8" ry="10" fill="#fff"/><circle class="eye" cx="61" cy="86" r="4.5" fill="#1F2933"/><circle class="eye" cx="91" cy="86" r="4.5" fill="#1F2933"/><path d="M52 98 Q60 96 68 98" stroke="#6B7A94" stroke-width="2" fill="none"/><path d="M64 108 Q75 112 86 108" stroke="#8A6B4A" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M50 70 L68 72 M82 72 L100 70" stroke="#3B2A1A" stroke-width="3" stroke-linecap="round"/>`}
+    <path d="M32 70 C40 36, 110 36, 118 70 C100 58, 50 58, 32 70 Z" fill="#3B2A1A"/></g>
     <g class="hand l"><circle cx="24" cy="160" r="14" fill="#E9C7A6"/></g><g class="hand r"><circle cx="126" cy="152" r="14" fill="#E9C7A6"/></g>
   </svg>`;
 }
-const NAMES={ayla:"Ayla",kade:"Kade",elio:"Technicien",saren:"Saren",kids:"Les enfants"};
-const COLORS={ayla:"var(--ayla)",kade:"var(--cit)",elio:"#B8C7E6",saren:"var(--dome)",kids:"var(--cit)"};
+const NAMES={ayla:"Ayla",kade:"Kade",elio:"Technicien",elio2:"Elio",saren:"Saren",kids:"Les enfants"};
+const COLORS={ayla:"var(--ayla)",kade:"var(--cit)",elio:"#B8C7E6",elio2:"#B8C7E6",saren:"var(--dome)",kids:"var(--cit)"};
+function walk(el, ms){ el.classList.add("walk"); clearTimeout(el._w); el._w=setTimeout(()=>el.classList.remove("walk"), ms||1000); }
 function showChars(list, speaking){
-  const box=document.getElementById("chars");
-  const want=(list||[]).join(",");
-  if(box.dataset.list!==want || box.querySelector(".char[style*='66%']")){
-    box.innerHTML="";
+  const box=document.getElementById("chars"); const want=(list||[]).join(",");
+  if(box.dataset.list!==want){
+    const existing={}; box.querySelectorAll(".char").forEach(c=>existing[c.dataset.k]=c);
+    box.querySelectorAll(".char").forEach(c=>{ if(!(list||[]).includes(c.dataset.k)){ c.style.left=(parseFloat(c.style.left)<50?"-25%":"125%"); walk(c,900); setTimeout(()=>c.remove(),950); } });
     (list||[]).forEach((k,i)=>{
-      const d=document.createElement("div"); d.className="char "+(i%2?"right":""); d.dataset.k=k;
-      const pos=[ "28%", "54%", "72%" ]; d.style.left = list.length===1? "42%" : pos[i];
-      d.innerHTML = charSVG(k)+`<span class="name" style="color:${COLORS[k]}">${NAMES[k]}</span>`;
-      box.appendChild(d);
+      const pos=["28%","54%","72%"]; const target = list.length===1? "42%" : pos[i];
+      let d=existing[k];
+      if(!d){ d=document.createElement("div"); d.className="char "+(i%2?"right":""); d.dataset.k=k; d.innerHTML=charSVG(k)+`<span class="name" style="color:${COLORS[k]}">${NAMES[k]}</span>`; d.style.left = i%2 ? "125%" : "-25%"; box.appendChild(d); void d.offsetWidth; }
+      if(d.style.left!==target){ d.style.left=target; walk(d,1000); }
     });
     box.dataset.list=want;
   }
-  box.querySelectorAll(".char").forEach(c=>c.classList.toggle("speaking", c.dataset.k===speaking));
+  box.querySelectorAll(".char").forEach(c=>{ const sp=c.dataset.k===speaking; c.classList.toggle("speaking", sp); if(sp){ c.classList.remove("talk"); void c.offsetWidth; c.classList.add("talk"); } });
 }
-
+function moveChars(map){ Object.keys(map).forEach(k=>{ const c=document.querySelector(`.char[data-k="${k}"]`); if(c){ c.style.left=map[k]; walk(c,1000); } }); }
 
 /* ============================== MUSIC (synthesised, no external files) ============================== */
 const Music=(()=>{
@@ -456,10 +583,12 @@ const Music=(()=>{
   const MOODS={
     dome:{chords:[[220,277.18,329.63],[196,246.94,293.66],[174.61,220,261.63],[196,246.94,293.66]], type:"triangle", cutoff:900, drone:55, tempo:9000, bright:.9},
     city:{chords:[[130.81,155.56,196],[123.47,146.83,185],[110,130.81,164.81],[116.54,138.59,174.61]], type:"sawtooth", cutoff:420, drone:41.2, tempo:11000, bright:.55},
+    lab:{chords:[[146.83,174.61,220],[138.59,164.81,207.65],[130.81,155.56,196]], type:"square", cutoff:520, drone:49, tempo:6500, bright:.35},
     tense:{chords:[[110,130.81,155.56],[103.83,123.47,146.83],[98,116.54,146.83]], type:"sawtooth", cutoff:340, drone:36.7, tempo:7000, bright:.5},
     good:{chords:[[174.61,220,261.63],[196,246.94,293.66],[220,277.18,329.63],[261.63,329.63,392]], type:"triangle", cutoff:1300, drone:65.4, tempo:8000, bright:1},
     bad:{chords:[[110,130.81,164.81],[103.83,123.47,155.56]], type:"sawtooth", cutoff:280, drone:36.7, tempo:12000, bright:.4},
-    paper:{chords:[[261.63,329.63,392],[246.94,293.66,369.99],[220,277.18,329.63]], type:"sine", cutoff:1600, drone:0, tempo:9000, bright:.8}
+    paper:{chords:[[261.63,329.63,392],[246.94,293.66,369.99],[220,277.18,329.63]], type:"sine", cutoff:1600, drone:0, tempo:9000, bright:.8},
+    travel:{chords:[[164.81,207.65,246.94],[185,220,277.18],[196,246.94,293.66]], type:"triangle", cutoff:1000, drone:49, tempo:2600, bright:.9}
   };
   function init(){
     if(ctx) return true; const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return false;
@@ -474,14 +603,14 @@ const Music=(()=>{
   }
   function setChord(ch,m){ const t=ctx.currentTime; voices.forEach((v,i)=>{ const f=ch[i]; v.o.type=m.type; v.o2.type=m.type; v.o.frequency.setTargetAtTime(f,t,1.6); v.o2.frequency.setTargetAtTime(f*1.004,t,1.6); v.g.gain.setTargetAtTime(0.05*m.bright,t,2.2); }); }
   function set(name){
-    mood=name; if(!ctx) return; const m=MOODS[name]; const t=ctx.currentTime;
+    if(mood===name && ctx && timer) return; mood=name; if(!ctx) return; const m=MOODS[name]; const t=ctx.currentTime;
     filter.frequency.setTargetAtTime(m.cutoff,t,2.5);
     if(m.drone){ drone.frequency.setTargetAtTime(m.drone,t,1); droneG.gain.setTargetAtTime(0.06,t,2.5); } else droneG.gain.setTargetAtTime(0,t,2);
     clearInterval(timer); let k=0; setChord(m.chords[0],m); timer=setInterval(()=>{ k=(k+1)%m.chords.length; setChord(m.chords[k],m); }, m.tempo);
   }
-  function start(){ if(!init()) return; ctx.resume(); if(!muted) master.gain.setTargetAtTime(0.7,ctx.currentTime,3); if(mood) set(mood); ui(); }
+  function start(){ if(!init()) return; ctx.resume(); if(!muted) master.gain.setTargetAtTime(0.7,ctx.currentTime,3); const m=mood; mood=null; set(m||"city"); ui(); }
   function toggle(){ muted=!muted; try{localStorage.setItem("ayla_mute",muted?"1":"0");}catch(e){} if(ctx){ ctx.resume(); master.gain.setTargetAtTime(muted?0.0001:0.7,ctx.currentTime,.6); } ui(); }
-  function tick(){ if(!ctx||muted) return; const o=ctx.createOscillator(), g=ctx.createGain(); o.type="sine"; o.frequency.value=740; g.gain.value=0.0001; o.connect(g); g.connect(ctx.destination); const t=ctx.currentTime; g.gain.setTargetAtTime(0.04,t,.005); g.gain.setTargetAtTime(0.0001,t+.04,.03); o.start(t); o.stop(t+.2); }
+  function tick(f){ if(!ctx||muted) return; const o=ctx.createOscillator(), g=ctx.createGain(); o.type="sine"; o.frequency.value=f||740; g.gain.value=0.0001; o.connect(g); g.connect(ctx.destination); const t=ctx.currentTime; g.gain.setTargetAtTime(0.04,t,.005); g.gain.setTargetAtTime(0.0001,t+.04,.03); o.start(t); o.stop(t+.2); }
   function ui(){ const b=document.getElementById("muteBtn"); if(!b) return; b.classList.toggle("on",!muted && !!ctx); b.textContent = muted ? "♪ Musique coupée" : "♪ Musique"; b.setAttribute("aria-pressed", muted?"false":"true"); }
   return {start,set,toggle,tick,ui,state:()=>ctx?ctx.state:"none",mood:()=>mood};
 })();
@@ -492,15 +621,14 @@ Music.ui();
 const app=document.getElementById("app"), dlg=document.getElementById("dlg");
 function el(html){ const t=document.createElement("template"); t.innerHTML=html.trim(); return t.content.firstChild; }
 function setPhases(i){
-  const P=document.getElementById("phases");
-  if(i<0){ P.classList.add("hidden"); return; }
-  P.classList.remove("hidden");
+  const P=document.getElementById("phases"); if(i<0){ P.classList.add("hidden"); return; } P.classList.remove("hidden");
   const names=[["Scène","2 min"],["Dilemme","1 min"],["Délibération","3 min"],["Choix","1 min"],["Conséquences","3 min"],["Transition","2 min"]];
-  P.innerHTML = names.map((n,k)=>`<div class="ph ${k<i?"done":""} ${k===i?"on":""}"><i></i>${n[0]}<small>${n[1]}</small></div>`).join("");
+  P.innerHTML=names.map((n,k)=>`<div class="ph ${k<i?"done":""} ${k===i?"on":""}"><i></i>${n[0]}<small>${n[1]}</small></div>`).join("");
 }
 function hud(l,r){ document.getElementById("hudLeft").textContent=l; document.getElementById("hudRight").textContent=r; }
-const WHO2CHAR={"Ayla":"ayla","Kade":"kade","Technicien masqué":"elio","Saren":"saren","Amari":"kids","Rami":"kids","Mina":"kids"};
+const WHO2CHAR={"Ayla":"ayla","Kade":"kade","Technicien masqué":"elio","Elio":"elio2","Saren":"saren","Amari":"kids","Rami":"kids","Mina":"kids"};
 const speechLayer=document.getElementById("speech");
+let dlgSeq=0;
 function runDialogue(lines, done){
   let i=0; const stage=document.getElementById("stage");
   speechLayer.classList.remove("hidden"); dlg.classList.add("hidden");
@@ -509,31 +637,41 @@ function runDialogue(lines, done){
     const L=lines[i];
     if(L.dome!==undefined) setDome(!!L.dome); else if(L.chars) setDome(false);
     if(L.chars) showChars(L.chars, L.speak); else if(L.dome) showChars(["kids","saren"], L.who==="Saren"?"saren":"kids");
-    if(L.fx==="off") cityLights(false); if(L.fx==="on") cityLights(true);
-    clear();
+    else if(L.speak){ showChars(document.getElementById("chars").dataset.list.split(","), L.speak); }
+    if(L.move) moveChars(L.move);
+    if(L.fx==="off") cityLights(false); if(L.fx==="on") cityLights(true); if(L.fx==="alarm") alarm(true); if(L.fx==="alarmoff") alarm(false);
+    clear(); const my=++dlgSeq;
     const hint=`<div class="hint">${i<lines.length-1?"Toucher pour continuer":"Toucher pour poursuivre"} · ${i+1}/${lines.length}</div>`;
-    const key=WHO2CHAR[L.who]; const charEl = key ? document.querySelector(`.char[data-k="${key}"]`) : null;
-    if(L.fl){ speechLayer.innerHTML=`<div class="flpanel"><div class="who">FriendLoop</div><div class="txt">${L.text}</div>${hint}</div>`; }
-    else if(L.echo){ speechLayer.innerHTML=`<div class="echo-bubble"><div class="who">Saren (écho)</div><div class="txt">${L.text}</div>${hint}</div>`; }
-    else if(charEl){
-      const b=document.createElement("div"); b.className="speech above";
-      b.innerHTML=`<div class="who ${L.cls||""}">${L.who}</div><div class="txt">${L.text}</div>${hint}<div class="tail"></div>`;
-      const r=charEl.getBoundingClientRect(); const headX=r.left+r.width/2, headY=r.top+r.height*0.10;
-      const bw=Math.min(380, innerWidth-24); b.style.width=bw+"px"; speechLayer.appendChild(b);
-      const bh=b.offsetHeight; let mode="above", top=headY-bh-18, left=headX-bw/2;
-      if(top<80){
-        const spaceR=innerWidth-r.right, spaceL=r.left;
-        if(Math.max(spaceR,spaceL) > bw*0.75){ mode = spaceR>=spaceL ? "rightside" : "leftside"; }
-        top=Math.max(80, Math.min(innerHeight-bh-20, r.top+r.height*0.18));
-        if(mode==="rightside") left=r.right-16; else if(mode==="leftside") left=r.left-bw+16; else top=80;
-        if(mode!=="above"){ const w2=Math.min(bw, mode==="rightside"? innerWidth-left-12 : left+bw-12); b.style.width=Math.max(200,w2)+"px"; }
-      }
-      left=Math.max(12, Math.min(innerWidth-parseFloat(b.style.width)-12, left));
-      b.className="speech "+mode; b.style.left=left+"px"; b.style.top=top+"px";
-      b.style.setProperty("--tx", (headX-left)+"px"); b.style.setProperty("--ty", Math.max(16, r.top+r.height*0.28-top)+"px");
-    } else { speechLayer.innerHTML=`<div class="caption"><div class="txt">${L.text}</div>${hint}</div>`; }
+    const key=L.key||WHO2CHAR[L.who]; const charEl = key ? document.querySelector(`.char[data-k="${key}"]`) : null;
+    const place=()=>{
+      if(my!==dlgSeq) return;
+      if(L.fl){ speechLayer.innerHTML=`<div class="flpanel"><div class="who">FriendLoop</div><div class="txt">${L.text}</div>${hint}</div>`; }
+      else if(L.echo){ speechLayer.innerHTML=`<div class="echo-bubble"><div class="who">Saren (écho)</div><div class="txt">${L.text}</div>${hint}</div>`; }
+      else if(charEl){
+        const b=document.createElement("div"); b.className="speech above";
+        b.innerHTML=`<div class="who ${L.cls||""}">${L.who}</div><div class="txt">${L.text}</div>${hint}<div class="tail"></div>`;
+        const r=charEl.getBoundingClientRect(); const hr=(charEl.querySelector(".head")||charEl).getBoundingClientRect(); const headX=hr.left+hr.width/2, headY=hr.top+4;
+        const bw=Math.min(380, innerWidth-24); b.style.width=bw+"px"; speechLayer.innerHTML=""; speechLayer.appendChild(b);
+        const bh=b.offsetHeight; let mode="above", top=headY-bh-18, left=headX-bw/2;
+        if(top<80){
+          const spaceR=innerWidth-r.right, spaceL=r.left;
+          if(Math.max(spaceR,spaceL) > bw*0.75){ mode = spaceR>=spaceL ? "rightside" : "leftside"; }
+          top=Math.max(80, Math.min(innerHeight-bh-20, r.top+r.height*0.18));
+          if(mode==="rightside") left=r.right-16; else if(mode==="leftside") left=r.left-bw+16; else top=80;
+          if(mode!=="above"){ const w2=Math.min(bw, mode==="rightside"? innerWidth-left-12 : left+bw-12); b.style.width=Math.max(200,w2)+"px"; }
+        }
+        left=Math.max(12, Math.min(innerWidth-parseFloat(b.style.width)-12, left));
+        b.className="speech "+mode; b.style.left=left+"px"; b.style.top=top+"px";
+        b.style.setProperty("--tx", (headX-left)+"px"); b.style.setProperty("--ty", Math.max(16, hr.top+hr.height*0.4-top)+"px");
+      } else { speechLayer.innerHTML=`<div class="caption"><div class="txt">${L.text}</div>${hint}</div>`; }
+    };
+    // wait for walking characters to settle before anchoring a bubble
+    if(charEl && charEl.classList.contains("walk")){
+      let placed=false; const once=()=>{ if(placed) return; placed=true; charEl.removeEventListener("transitionend", once); setTimeout(place, 60); };
+      charEl.addEventListener("transitionend", once); setTimeout(once, 1300);
+    } else place();
   };
-  const next=()=>{ Music.tick(); i++; if(i<lines.length) show(); else { clear(); speechLayer.classList.add("hidden"); stage.onclick=null; speechLayer.onclick=null; document.onkeydown=null; done(); } };
+  const next=()=>{ Music.tick(); i++; if(i<lines.length) show(); else { ++dlgSeq; clear(); speechLayer.classList.add("hidden"); stage.onclick=null; speechLayer.onclick=null; document.onkeydown=null; done(); } };
   stage.onclick=next; speechLayer.onclick=next;
   document.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); next(); } };
   show();
@@ -541,91 +679,114 @@ function runDialogue(lines, done){
 
 /* ============================== SCREENS ============================== */
 function screenTitle(){
-  S.screen="title"; setDome(false); showChars([]); setPhases(-1); hud("Chroma · 2170","Prototype · Mission 1"); cityLights(true);
+  S.screen="title"; setTheme("city"); setDome(false); showChars([]); setPhases(-1); hud("Chroma · 2170","Prototype · Missions 1 et 2"); cityLights(true); alarm(false);
   document.getElementById("carnetBtn").classList.add("hidden");
+  const n=doneCount();
   app.innerHTML = `<div class="title"><div>
     <h1>Ayla et FriendLoop<span>Voyage contre l'oubli</span></h1>
-    <p>Un conte-jeu sur l'éthique de l'intelligence artificielle. Prototype jouable : le prologue et la première mission, douze minutes.</p>
-    <button class="btn" id="start">${S.m1.done?"Rejouer la mission 1":"Commencer"}</button>
-    ${S.m1.done?`<button class="btn ghost" id="toMap" style="margin-left:10px">Voir la carte</button>`:""}
+    <p>Un conte-jeu sur l'éthique de l'intelligence artificielle. Prototype jouable : le prologue et les deux premières missions, environ vingt-cinq minutes.</p>
+    <button class="btn" id="start">${n?"Recommencer":"Commencer"}</button>
+    ${n?`<button class="btn ghost" id="toMap" style="margin-left:10px">Continuer (carte)</button>`:""}
     <div class="note">Ce prototype n'enregistre rien en dehors de cet appareil : ni compte, ni nom, ni suivi. Ton carnet reste chez toi. <button class="btn ghost" id="wipe" style="padding:6px 10px;font-size:11px;margin-left:8px">Tout effacer</button></div>
   </div></div>`;
-  app.querySelector("#start").onclick=()=>{ Music.start(); S.m1={answers:["","","",""],choice:null,why:"",note:"",done:false}; S.fl=50; S.cit=50; save(); screenPrologue(); };
+  app.querySelector("#start").onclick=()=>{ Music.start(); S=freshState(); save(); screenPrologue(); };
   const tm=app.querySelector("#toMap"); if(tm) tm.onclick=()=>{ Music.start(); screenMap(); };
-  app.querySelector("#wipe").onclick=()=>{ try{localStorage.removeItem("ayla_proto");}catch(e){} S={screen:"title",fl:50,cit:50,m1:{answers:["","","",""],choice:null,why:"",note:"",done:false},history:[]}; screenTitle(); };
+  app.querySelector("#wipe").onclick=()=>{ try{localStorage.removeItem("ayla_proto");}catch(e){} S=freshState(); screenTitle(); };
 }
 function screenPrologue(){
-  S.screen="prologue"; app.innerHTML=""; hud("Prologue","Le Dôme mémoriel"); setDome(true); showChars([]);
+  S.screen="prologue"; app.innerHTML=""; hud("Prologue","Le Dôme mémoriel"); setTheme("city"); setDome(true); showChars([]); dolly();
   runDialogue(PROLOGUE, ()=>{ document.getElementById("carnetBtn").classList.remove("hidden"); screenMap(); });
 }
+const PTS=[[13,80],[22,50],[31,76],[40,44],[49,70],[58,40],[67,66],[76,38],[85,62],[92,26]];
 function screenMap(){
-  S.screen="map"; setDome(false); Music.set("city"); showChars([]); setPhases(-1); hud("Carte de Chroma","Dix quartiers, une mission par quartier"); dlg.classList.add("hidden"); cityLights(true);
+  S.screen="map"; setTheme("city"); setDome(false); showChars([]); setPhases(-1); hud("Carte de Chroma","Dix quartiers, une mission par quartier"); dlg.classList.add("hidden"); cityLights(true); alarm(false); Music.set("city");
   document.getElementById("carnetBtn").classList.remove("hidden");
-  const pts=[[13,80],[22,50],[31,76],[40,44],[49,70],[58,40],[67,66],[76,38],[85,62],[92,26]];
-  const path = "M"+pts.map(p=>`${p[0]*11} ${p[1]*5.6}`).join(" L");
-  let nodes = pts.map((p,i)=>{
-    const st = i===0 ? (S.m1.done?"done":"active") : (i===1 && S.m1.done ? "active soon" : "");
-    return `<div class="node ${st}" style="left:${p[0]}%;top:${p[1]}%" data-i="${i}" ${st.includes("active")?'role="button" tabindex="0"':''}>${i===0&&S.m1.done?"✓":i+1}<span class="lab">${QUARTIERS[i]}</span></div>`;
+  const n=doneCount(); const active=n; // index of active node
+  const path="M"+PTS.map(p=>`${p[0]*11} ${p[1]*5.6}`).join(" L");
+  const nodes=PTS.map((p,i)=>{
+    const st = i<n ? "done" : (i===active ? "active" : "");
+    return `<div class="node ${st}" style="left:${p[0]}%;top:${p[1]}%" data-i="${i}" ${st==="active"?'role="button" tabindex="0"':''}>${i<n?"✓":i+1}<span class="lab">${QUARTIERS[i]}</span></div>`;
   }).join("");
-  app.innerHTML = `<div class="map"><div class="mapplane"><svg viewBox="0 0 1100 560" preserveAspectRatio="none"><path d="${path}" fill="none" stroke="rgba(94,168,255,.45)" stroke-width="4" stroke-dasharray="12 12"/></svg>${nodes}</div></div>
-  <div class="maphud"><div class="t">${S.m1.done?"Indice pour la mission 2":"Mission 1 · "+PRINCIPES[0]}</div>
-  <div style="margin-top:6px">${S.m1.done? "Kade : « "+M1.indice.text+" »" : "Une panne, un message, et FriendLoop qui veut couper tout un quartier. Touche le quartier actif pour entrer."}</div>
-  ${S.m1.done?`<div class="small" style="margin-top:8px">La mission 2, « Le bug et la faille », n'est pas incluse dans ce prototype.</div>`:""}</div>`;
-  const n0=app.querySelector('.node[data-i="0"]'); if(!S.m1.done){ n0.onclick=()=>screenMission(); n0.onkeydown=e=>{ if(e.key==="Enter") screenMission(); }; }
-  const n1=app.querySelector('.node[data-i="1"]'); if(S.m1.done){ n1.onclick=()=>alert("Mission 2 : « Le bug et la faille ». Sûreté et sécurité. À venir dans la version complète."); }
+  const last = n? MISSIONS[n-1] : null; const nextM = MISSIONS[n];
+  app.innerHTML = `<div class="map"><div class="mapplane" id="plane"><svg viewBox="0 0 1100 560" preserveAspectRatio="none"><path d="${path}" fill="none" stroke="rgba(94,168,255,.45)" stroke-width="4" stroke-dasharray="12 12"/></svg>${nodes}<div class="traveler" id="traveler" style="left:${PTS[Math.max(0,n-(nextM?0:1))][0]}%;top:${PTS[Math.max(0,n-(nextM?0:1))][1]}%">${charSVG("ayla")}</div></div></div>
+  <div class="maphud"><div class="t">${nextM ? "Mission "+nextM.id+" · "+nextM.principe : "Prototype terminé"}</div>
+  <div style="margin-top:6px">${last ? last.indice.who+" : « "+last.indice.text+" »" : nextM.hint+" Touche le quartier actif pour entrer."}</div>
+  ${nextM ? (last?`<div class="small" style="margin-top:8px">${nextM.hint} Touche le quartier actif : Ayla s'y rend.</div>`:"") : `<div class="small" style="margin-top:8px">La mission 3, « ${TITRES3} » au Quartier Indigo, n'est pas incluse dans ce prototype.</div>`}</div>`;
+  // traveler placement: at the last completed node (or node 0 before any mission)
+  const trav=document.getElementById("traveler"); const at = n? PTS[n-1] : PTS[0]; trav.style.left=at[0]+"%"; trav.style.top=at[1]+"%";
+  const nd=app.querySelector(`.node[data-i="${active}"]`);
+  if(nd && nextM){ const go=()=>{ nd.onclick=null; travelTo(active, ()=>{ S.current=nextM.id; save(); screenMission(); }); }; nd.onclick=go; nd.onkeydown=e=>{ if(e.key==="Enter") go(); }; }
+  else if(nd){ nd.onclick=()=>alert("Mission "+(active+1)+" : « "+TITRES3+" ». À venir dans la version complète."); }
+}
+function travelTo(i, cb){
+  const plane=document.getElementById("plane"), trav=document.getElementById("traveler");
+  const n=doneCount(); const from = n? PTS[n-1] : PTS[i]; const to=PTS[i];
+  Music.set("travel"); walk(trav, 2200); trav.classList.add("go");
+  const t0=performance.now(), dur = (from===to)? 700 : 2000;
+  const step=(now)=>{
+    const k=Math.min(1,(now-t0)/dur); const e=k<.5? 2*k*k : -1+(4-2*k)*k;
+    const x=from[0]+(to[0]-from[0])*e, y=from[1]+(to[1]-from[1])*e - Math.abs(Math.sin(k*Math.PI*6))*1.6;
+    trav.style.left=x+"%"; trav.style.top=y+"%";
+    if(k<1) setTimeout(()=>step(performance.now()), 16); else {
+      Music.tick(880);
+      plane.classList.add("zoom"); plane.style.transform=`rotateX(18deg) translateY(-20px) scale(1.9) translate(${(50-to[0])*0.9}%, ${(45-to[1])*0.9}%)`;
+      setTimeout(async ()=>{ await fade(true); cb(); setTimeout(()=>fade(false), 200); }, 1000);
+    }
+  };
+  step(performance.now());
 }
 /* ---- mission phases ---- */
 function screenMission(){
-  S.screen="m1"; app.innerHTML=""; setPhases(0); hud("Mission 1 · "+M1.quartier, M1.principe);
-  setDome(true); showChars([]);
-  runDialogue(M1.dome.map(l=>Object.assign({dome:true},l)), ()=>{
-    setDome(false); cityLights(true);
-    runDialogue(M1.scene, phaseDilemme);
+  const M=cur(); S.screen="m"+M.id; app.innerHTML=""; setPhases(0); hud("Mission "+M.id+" · "+M.quartier, M.principe);
+  setTheme(M.theme); setDome(true); showChars([]); dolly();
+  runDialogue(M.dome.map(l=>Object.assign({dome:true},l)), ()=>{
+    setDome(false); cityLights(true); dolly();
+    runDialogue(M.scene, phaseDilemme);
   });
 }
-function cardHTML(k, state){ const o=M1[k]; return `<div class="card ${state}" data-k="${k}" ${state==="active"?'role="button" tabindex="0"':''}><span class="letter">${k}</span><h3>${o.titre}</h3><ul>${o.effets.map(e=>`<li>${e}</li>`).join("")}</ul></div>`; }
+function cardHTML(M, k, state){ const o=M[k]; return `<div class="card ${state}" data-k="${k}" ${state==="active"?'role="button" tabindex="0"':''}><span class="letter">${k}</span><h3>${o.titre}</h3><ul>${o.effets.map(e=>`<li>${e}</li>`).join("")}</ul></div>`; }
 function phaseDilemme(){
-  setPhases(1); showChars([]); Music.set("tense");
-  app.innerHTML = `<div class="panel"><h2>${M1.resume.split(". ")[0]}.</h2><p class="sub">${M1.resume.split(". ").slice(1).join(". ")}</p>
-    <div class="cards">${cardHTML("A","inactive")}${cardHTML("B","inactive")}</div>
+  const M=cur(); setPhases(1); showChars([]); Music.set("tense"); alarm(false);
+  const parts=M.resume.split(". ");
+  app.innerHTML = `<div class="panel"><h2>${parts[0]}.</h2><p class="sub">${parts.slice(1).join(". ")}</p>
+    <div class="cards">${cardHTML(M,"A","inactive")}${cardHTML(M,"B","inactive")}</div>
     <div class="banner">Avant de choisir, Saren te pose quatre questions.</div>
     <button class="btn dome" id="go">Commencer la délibération</button>
     <p class="small" style="margin-top:14px;font-style:italic">Les deux cartes ont le même gabarit. Aucune n'est mise en avant.</p></div>`;
   app.querySelector("#go").onclick=()=>phaseDelib(0);
 }
 function phaseDelib(i){
-  setPhases(2); Music.set("tense"); setDome(false); Music.set("tense");
-  showChars(["ayla"]); const ay=document.querySelector('.char[data-k="ayla"]'); if(ay) ay.style.left="66%";
-  const Q=M1.questions[i];
+  const M=cur(), st=mstate(M.id); setPhases(2); setDome(false); Music.set("tense");
+  showChars(["ayla"]); const ay=document.querySelector('.char[data-k="ayla"]'); if(ay){ ay.style.left="66%"; }
+  const Q=M.questions[i];
   app.innerHTML = `<div class="panel convo">
     <div class="qbubble"><div class="who">Saren (écho) · question ${i+1} sur 4</div><h3>${Q.q}</h3><p class="help">${Q.help}</p></div>
     <div class="abubble"><div class="who">Ayla répond</div>
-      <textarea id="ans" placeholder="Écris ce que tu penses. Un mot, une phrase, un paragraphe.">${S.m1.answers[i]||""}</textarea>
+      <textarea id="ans" placeholder="Écris ce que tu penses. Un mot, une phrase, un paragraphe.">${st.answers[i]||""}</textarea>
       <div class="small" style="margin-top:8px">Pour t'aider à commencer (facultatif) :</div>
       <div class="chips">${Q.amorces.map(a=>`<button type="button">${a}</button>`).join("")}</div>
       <div class="timer" aria-hidden="true"><i id="tm"></i></div>
       <div class="row"><span class="small">Repère de temps, sans effet. Tout va dans le carnet.</span><button class="btn" id="next">${i<3?"Question suivante":"Passer au choix"}</button></div>
     </div></div>`;
   const ta=app.querySelector("#ans"); ta.focus();
-  app.querySelectorAll(".chips button").forEach(b=>b.onclick=()=>{ ta.value = (ta.value? ta.value.replace(/\s*$/,"")+" " : "") + b.textContent + " "; ta.focus(); });
+  app.querySelectorAll(".chips button").forEach(b=>b.onclick=()=>{ ta.value=(ta.value? ta.value.replace(/\s*$/,"")+" " : "")+b.textContent+" "; ta.focus(); });
   const tm=app.querySelector("#tm"); requestAnimationFrame(()=>{ tm.style.transition="width 45s linear"; tm.style.width="100%"; });
   app.querySelector("#next").onclick=()=>{
-    const v=ta.value.trim();
-    if(!v && !confirm("Tu veux passer sans répondre ?")) return;
-    S.m1.answers[i]=v; save(); document.getElementById("carnetDot").classList.remove("hidden"); Music.tick();
+    const v=ta.value.trim(); if(!v && !confirm("Tu veux passer sans répondre ?")) return;
+    st.answers[i]=v; save(); document.getElementById("carnetDot").classList.remove("hidden"); Music.tick();
     if(i<3) phaseDelib(i+1); else phaseChoix();
   };
 }
 function phaseChoix(){
-  setPhases(3); showChars([]); Music.set("tense");
+  const M=cur(), st=mstate(M.id); setPhases(3); showChars([]); Music.set("tense");
   app.innerHTML = `<div class="panel"><h2>Tu as répondu aux quatre questions. Choisis.</h2>
-    <div class="cards" id="cards">${cardHTML("A","active")}${cardHTML("B","active")}</div>
+    <div class="cards" id="cards">${cardHTML(M,"A","active")}${cardHTML(M,"B","active")}</div>
     <div id="why" class="q hidden" style="margin-top:22px"><div class="n" style="color:var(--ayla)">Parce que...</div>
       <input type="text" id="whyTxt" placeholder="Une phrase pour dire pourquoi." maxlength="240">
       <div class="row"><span class="small">Le choix est définitif : on ne revient pas en arrière.</span><button class="btn" id="confirm">Confirmer</button></div></div></div>`;
   let pick=null;
   app.querySelectorAll(".card").forEach(c=>{
-    const choose=()=>{ pick=c.dataset.k; app.querySelectorAll(".card").forEach(x=>{ x.classList.toggle("chosen", x===c); x.classList.toggle("dim", x!==c); }); app.querySelector("#why").classList.remove("hidden"); app.querySelector("#whyTxt").focus(); };
+    const choose=()=>{ pick=c.dataset.k; app.querySelectorAll(".card").forEach(x=>{ x.classList.toggle("chosen", x===c); x.classList.toggle("dim", x!==c); }); app.querySelector("#why").classList.remove("hidden"); app.querySelector("#whyTxt").focus(); Music.tick(660); };
     c.onclick=choose; c.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); choose(); } };
   });
   app.querySelector("#confirm").onclick=()=>{
@@ -634,13 +795,14 @@ function phaseChoix(){
       <div class="row" style="justify-content:center"><button class="btn ghost" id="back">Revenir</button><button class="btn" id="ok">Confirmer</button></div></div></div>`);
     document.body.appendChild(m);
     m.querySelector("#back").onclick=()=>m.remove();
-    m.querySelector("#ok").onclick=()=>{ m.remove(); S.m1.choice=pick; S.m1.why=why; save(); phaseCons(); };
+    m.querySelector("#ok").onclick=()=>{ m.remove(); st.choice=pick; st.why=why; save(); phaseCons(); };
   };
 }
 function phaseCons(){
-  setPhases(4); app.innerHTML=""; const k=S.m1.choice; setDome(false); showChars(["ayla","kade"]); Music.set(k==="A"?"bad":"good");
-  runDialogue(M1.cons[k], ()=>{
-    const d=M1.delta[k]; const fl0=S.fl, c0=S.cit;
+  const M=cur(), st=mstate(M.id); setPhases(4); app.innerHTML=""; const k=st.choice; setDome(false);
+  const cast = M.id===1 ? ["ayla","kade"] : ["ayla","elio2"]; showChars(cast); if(M.id===2) alarm(true); Music.set(k==="A"?"bad":"good"); dolly();
+  runDialogue(M.cons[k], ()=>{
+    const d=M.delta[k]; const fl0=S.fl, c0=S.cit;
     S.fl=Math.max(0,Math.min(100,S.fl+d.fl)); S.cit=Math.max(0,Math.min(100,S.cit+d.cit)); save();
     app.innerHTML = `<div class="panel" style="justify-content:flex-end"><h2>Ce que ton choix a changé</h2>
       <div class="gauges">
@@ -648,24 +810,25 @@ function phaseCons(){
         <div class="g cit"><div class="lab"><span>Confiance des citoyens</span><span class="delta" id="dcit">${c0}</span></div><div class="bar"><i id="bcit" style="width:${c0}%"></i></div><div class="small" style="margin-top:8px">Monte quand tu vérifies et décides. Amène des alliés et des preuves.</div></div>
       </div><div style="margin-top:22px"><button class="btn" id="go">Continuer</button></div></div>`;
     setTimeout(()=>{ app.querySelector("#bfl").style.width=S.fl+"%"; app.querySelector("#bcit").style.width=S.cit+"%";
-      app.querySelector("#dfl").textContent=`${S.fl}  (${d.fl>0?"+":""}${d.fl})`; app.querySelector("#dcit").textContent=`${S.cit}  (${d.cit>0?"+":""}${d.cit})`; }, 300);
+      app.querySelector("#dfl").textContent=`${S.fl}  (${d.fl>0?"+":""}${d.fl})`; app.querySelector("#dcit").textContent=`${S.cit}  (${d.cit>0?"+":""}${d.cit})`; Music.tick(d.cit>0?990:330); }, 300);
     app.querySelector("#go").onclick=phaseTransition;
   });
 }
 function phaseTransition(){
-  setPhases(5); showChars([]); Music.set("paper"); const k=S.m1.choice; const P=M1.preuve;
+  const M=cur(), st=mstate(M.id); setPhases(5); showChars([]); Music.set("paper"); alarm(false); const k=st.choice; const P=M.preuve;
   app.innerHTML = `<div class="panel"><h2>Une preuve entre dans le carnet</h2>
-    <div class="proof" id="proof"><div class="t">Preuve 1 · ${P.titre}</div><pre>${P.doc}</pre>${k==="B"?`<div class="c">${P.commentB}</div>`:`<div class="small" style="color:#8B6A3E">${P.maskedA}</div>`}</div>
+    <div class="proof" id="proof"><div class="t">Preuve ${M.id} · ${P.titre}</div><pre>${P.doc}</pre>${k==="B"?`<div class="c">${P.commentB}</div>`:`<div class="small" style="color:#8B6A3E">${P.maskedA}</div>`}</div>
     <div style="margin-top:16px"><button class="btn" id="keep">Ranger dans le carnet</button></div></div>`;
   app.querySelector("#keep").onclick=()=>{
-    const pr=app.querySelector("#proof"); pr.classList.add("fly"); document.getElementById("carnetDot").classList.remove("hidden");
+    const pr=app.querySelector("#proof"); pr.classList.add("fly"); document.getElementById("carnetDot").classList.remove("hidden"); Music.tick(1200);
     setTimeout(()=>{
       app.innerHTML="";
-      runDialogue([{who:M1.indice.who, cls:"cit", text:M1.indice.text, chars:["ayla","kade"], speak:"kade"}], ()=>{
+      const cast = M.id===1 ? ["ayla","kade"] : ["ayla","elio2"];
+      runDialogue([Object.assign({chars:cast, speak:M.indice.key}, M.indice)], ()=>{
         app.innerHTML = `<div class="panel"><div class="q" style="background:var(--paper);color:var(--paper-ink);border-color:var(--ayla)"><div class="n" style="color:#9A5A12">Note dans le carnet (modifiable)</div>
-          <textarea id="note" style="background:#fff;color:var(--paper-ink);border-color:#E6D6B8;min-height:90px;font-style:italic">${M1.note}</textarea>
+          <textarea id="note" style="background:#fff;color:var(--paper-ink);border-color:#E6D6B8;min-height:90px;font-style:italic">${M.note}</textarea>
           <div class="row"><span class="small" style="color:#8B6A3E">Garder, modifier ou remplacer.</span><button class="btn" id="done">Retour à la carte</button></div></div></div>`;
-        app.querySelector("#done").onclick=()=>{ S.m1.note=app.querySelector("#note").value.trim(); S.m1.done=true; S.history.push({m:1,choice:S.m1.choice}); save(); screenMap(); };
+        app.querySelector("#done").onclick=async ()=>{ st.note=app.querySelector("#note").value.trim(); st.done=true; S.history.push({m:M.id,choice:st.choice}); save(); await fade(true); screenMap(); setTimeout(()=>fade(false),150); };
       });
     }, 1150);
   };
@@ -674,27 +837,32 @@ function phaseTransition(){
 /* ============================== CARNET ============================== */
 const carnet=document.getElementById("carnet");
 document.getElementById("carnetBtn").onclick=()=>{ document.getElementById("carnetDot").classList.add("hidden"); openCarnet("missions"); };
-function openCarnet(tab){
-  const m=S.m1; const k=m.choice;
+function openCarnet(tab, mid){
   const tabs=[["missions","Missions"],["preuves","Preuves"],["principes","Principes"],["jauges","Jauges"]];
   let body="";
+  const started = MISSIONS.filter(m=>S.missions[m.id]);
   if(tab==="missions"){
-    body = `<h3>Mission 1 · ${M1.principe}</h3><div class="small" style="color:#8B6A3E">${M1.quartier} · ${k?"Choix : option "+k:"En cours"}</div>`
-      + M1.questions.map((q,i)=>`<div class="ql">${["Qui est concerné ?","Quelles conséquences ?","Quelles valeurs en tension ?","Quelle autre voie ?"][i]}</div><div class="ans">${m.answers[i]||"<span style='opacity:.5'>Pas encore répondu.</span>"}</div>`).join("")
+    const M = MISSIONS.find(m=>m.id===(mid||S.current)) || M1; const m=mstate(M.id); const k=m.choice;
+    const nav = MISSIONS.map(x=>`<button class="mnav ${x.id===M.id?"on":""}" data-m="${x.id}" ${S.missions[x.id]?"":"disabled"}>Mission ${x.id}</button>`).join("");
+    body = `<div class="mnavs">${nav}</div><h3>Mission ${M.id} · ${M.principe}</h3><div class="small" style="color:#8B6A3E">${M.quartier} · ${k?"Choix : option "+k:"En cours"}</div>`
+      + M.questions.map((q,i)=>`<div class="ql">${["Qui est concerné ?","Quelles conséquences ?","Quelles valeurs en tension ?","Quelle autre voie ?"][i]}</div><div class="ans">${m.answers[i]||"<span style='opacity:.5'>Pas encore répondu.</span>"}</div>`).join("")
       + `<div class="ql">Parce que...</div><div class="ans">${m.why||"<span style='opacity:.5'>Pas encore choisi.</span>"}</div>`
       + (m.note?`<div class="ql">Note</div><div class="ans">${m.note}</div>`:"");
   } else if(tab==="preuves"){
-    body = m.done||k ? `<h3>Preuve 1 · ${M1.preuve.titre}</h3><pre style="font-family:var(--mono);background:#fff;border:1px solid #E6D6B8;border-radius:8px;padding:12px;white-space:pre-wrap;color:#2B4F7A">${M1.preuve.doc}</pre>${k==="B"?`<div style="font-style:italic;color:#2E5E2B">${M1.preuve.commentB}</div>`:`<div class="small" style="color:#8B6A3E">${M1.preuve.maskedA}</div>`}` : `<h3>Preuves</h3><p>Aucune preuve pour l'instant. Chaque mission en apporte une.</p>`;
+    const got = MISSIONS.filter(m=>mstate(m.id).choice);
+    body = got.length ? got.map(M=>{ const k=mstate(M.id).choice; return `<h3>Preuve ${M.id} · ${M.preuve.titre}</h3><pre style="font-family:var(--mono);background:#fff;border:1px solid #E6D6B8;border-radius:8px;padding:12px;white-space:pre-wrap;color:#2B4F7A">${M.preuve.doc}</pre>${k==="B"?`<div style="font-style:italic;color:#2E5E2B">${M.preuve.commentB}</div>`:`<div class="small" style="color:#8B6A3E">${M.preuve.maskedA}</div>`}<div style="height:16px"></div>`; }).join("") : `<h3>Preuves</h3><p>Aucune preuve pour l'instant. Chaque mission en apporte une.</p>`;
   } else if(tab==="principes"){
-    body = `<h3>Les dix principes de la Recommandation</h3><table>${PRINCIPES.map((p,i)=>`<tr><td style="width:34px"><span class="tick ${i===0&&m.done?"on":""}">${i===0&&m.done?"✓":""}</span></td><td>${i+1}. ${p}</td><td class="small" style="color:#8B6A3E;text-align:right">${QUARTIERS[i]}</td></tr>`).join("")}</table>`;
+    body = `<h3>Les dix principes de la Recommandation</h3><table>${PRINCIPES.map((p,i)=>{ const ok = MISSIONS[i] && mstate(MISSIONS[i].id).done; return `<tr><td style="width:34px"><span class="tick ${ok?"on":""}">${ok?"✓":""}</span></td><td>${i+1}. ${p}</td><td class="small" style="color:#8B6A3E;text-align:right">${QUARTIERS[i]}</td></tr>`; }).join("")}</table>`;
   } else {
     body = `<h3>Jauges</h3><div class="ql" style="color:#2F6FC4">Confiance de FriendLoop · ${S.fl}</div><div class="gp"><i style="width:${S.fl}%;background:#5EA8FF"></i></div>
       <div class="ql" style="color:#2E5E2B">Confiance des citoyens · ${S.cit}</div><div class="gp"><i style="width:${S.cit}%;background:#3E7D3A"></i></div>
-      <p class="small" style="color:#8B6A3E;margin-top:16px">Les deux jauges modifient les dialogues et la fin. Aucune ne fait perdre.</p>`;
+      <p class="small" style="color:#8B6A3E;margin-top:16px">Les deux jauges modifient les dialogues et la fin. Aucune ne fait perdre.</p>
+      ${S.history.length?`<div class="ql">Historique</div>${S.history.map(h=>`<div class="small" style="color:#5A4A32">Mission ${h.m} : option ${h.choice}</div>`).join("")}`:""}`;
   }
   carnet.classList.remove("hidden");
   carnet.innerHTML = `<div class="book" role="dialog" aria-label="Carnet d'Ayla"><nav>${tabs.map(t=>`<button class="${t[0]===tab?"on":""}" data-t="${t[0]}">${t[1]}</button>`).join("")}<div class="foot">Le carnet d'Ayla. Papier, encre, mains humaines.</div></nav><main>${body}</main><button class="close" id="cl">Fermer ✕</button></div>`;
   carnet.querySelectorAll("nav button").forEach(b=>b.onclick=()=>openCarnet(b.dataset.t));
+  carnet.querySelectorAll(".mnav").forEach(b=>b.onclick=()=>openCarnet("missions", +b.dataset.m));
   carnet.querySelector("#cl").onclick=()=>carnet.classList.add("hidden");
   carnet.onclick=e=>{ if(e.target===carnet) carnet.classList.add("hidden"); };
 }
