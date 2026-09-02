@@ -667,8 +667,9 @@ function runDialogue(lines, done){
     };
     // wait for walking characters to settle before anchoring a bubble
     if(charEl && charEl.classList.contains("walk")){
-      let placed=false; const once=()=>{ if(placed) return; placed=true; charEl.removeEventListener("transitionend", once); setTimeout(place, 60); };
-      charEl.addEventListener("transitionend", once); setTimeout(once, 1300);
+      let placed=false; const once=()=>{ if(placed) return; placed=true; setTimeout(place, 60); };
+      charEl.addEventListener("transitionend", once, {once:true}); setTimeout(once, 1300);
+      charEl.addEventListener("transitionend", ()=>{ if(my===dlgSeq) setTimeout(place, 30); }, {once:true});
     } else place();
   };
   const next=()=>{ Music.tick(); i++; if(i<lines.length) show(); else { ++dlgSeq; clear(); speechLayer.classList.add("hidden"); stage.onclick=null; speechLayer.onclick=null; document.onkeydown=null; done(); } };
