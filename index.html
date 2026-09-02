@@ -969,7 +969,7 @@ function startDilemme(){
 /* ---- deliberation in the arena ---- */
 function startDelib(){
   const M=cur(); setPhases(3); Music.set("tense"); G.state="delib"; P.frozen=false; G.q=0;
-  const pz=level.plazaZ; const s=figure("saren"); const sx=Math.max(-6,Math.min(6,P.x*.4)), sz=Math.max(pz-11,P.z-6); s.position.set(sx,0,sz); s.rotation.y=Math.atan2(P.x-sx,P.z-sz); G.sarenSpot=[sx,sz]; s.traverse(o=>{ if(o.material){ o.material=o.material.clone(); o.material.transparent=true; o.material.opacity=.6; o.material.emissive=new THREE.Color(0x9B7BD6); o.material.emissiveIntensity=.12; } }); world.add(s); cast.saren=s; G.sarenHolo=s;
+  const pz=level.plazaZ; const s=figure("saren"); const sx=Math.max(-6,Math.min(6,P.x*.4)), sz=Math.max(pz-11,P.z-6); s.position.set(sx,0,sz); s.rotation.y=Math.atan2(P.x-sx,P.z-sz); G.sarenSpot=[sx,sz]; s.traverse(o=>{ if(o.material && o.material.isMeshStandardMaterial){ o.material=o.material.clone(); o.material.transparent=true; o.material.opacity=.6; o.material.emissive=new THREE.Color(0x9B7BD6); o.material.emissiveIntensity=.12; } else if(o.material){ o.visible=false; } }); world.add(s); cast.saren=s; G.sarenHolo=s;
   P.tx=null; P.tz=null; player.rotation.y=Math.atan2(sx-P.x,sz-P.z);
   runDialogue([{who:T.sarenEcho, key:"saren", cls:"saren", text:M.echo+" "+T.sarenIntro}], ()=>askQuestion());
 }
@@ -1048,7 +1048,12 @@ function setLights(on){ world.traverse(o=>{ if(o.material&&o.material.emissiveMa
 
 /* ============================== LOOP ============================== */
 let last=performance.now();
+let loopErrors=0;
 function loop(now, noRender){
+  try{ loopBody(now, noRender); }catch(e){ loopErrors++; if(loopErrors<5) console.error("loop error", e); }
+  if(!noRender) requestAnimationFrame(loop);
+}
+function loopBody(now, noRender){
   const dt=Math.min(.05,(now-last)/1000); last=now; const t=now/1000;
   if(G.state==="run"){
     P.speed=Math.min(16, P.speed+dt*8); P.z-=P.speed*dt;
@@ -1085,7 +1090,7 @@ function loop(now, noRender){
   [player,...Object.values(cast),...(G.npcObjs?Object.values(G.npcObjs):[])].forEach(f=>{ if(!f) return; const u=f.userData; if(u.hop>0){ const base=(f===player?P.y:(u.seated?-0.62*(f.scale.x||1):0)); u.hop-=dt*2.2; f.position.y=Math.max(0,Math.sin(u.hop*Math.PI))*(u.seated?.25:.5)+base; if(u.hop<=0){ u.hop=0; f.position.y=base; } } });
   if(alarmOn){ alarmLight.intensity=1.5+Math.sin(t*6)*1.4; alarmLight.position.set(P.x,4,P.z-3); } else alarmLight.intensity=Math.max(0,alarmLight.intensity-dt*3);
   if(dlgActive) positionBubble();
-  if(noRender) return; renderer.render(scene,camera); requestAnimationFrame(loop);
+  if(noRender) return; renderer.render(scene,camera);
 }
 requestAnimationFrame(loop);
 setInterval(()=>{ if(document.hidden) loop(performance.now(), true); }, 33);
