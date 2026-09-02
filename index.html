@@ -23,7 +23,7 @@ button:focus-visible,[contenteditable]:focus-visible{outline:3px solid var(--ayl
 #gl{position:fixed;inset:0;display:block}
 .hidden{display:none !important}
 /* HUD */
-#hud{position:fixed;left:0;right:0;top:0;display:flex;align-items:center;justify-content:space-between;padding:12px 18px;pointer-events:none;z-index:20;gap:8px}
+#hud{position:fixed;left:0;right:0;top:0;display:flex;align-items:center;justify-content:space-between;padding:12px 18px;pointer-events:none;z-index:32;gap:8px}
 .chip{pointer-events:auto;background:rgba(20,31,54,.82);border:1px solid var(--line);border-radius:999px;padding:8px 14px;font:700 12px var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);backdrop-filter:blur(6px);white-space:nowrap}
 .chip.gold{color:var(--ayla);border-color:rgba(232,162,74,.5)}
 #muteBtn{cursor:pointer} #muteBtn.on{color:var(--fl);border-color:var(--fl)}
@@ -119,8 +119,8 @@ body.rtl,body.rtl button,body.rtl [contenteditable]{font-family:"Tajawal","Nunit
 body.rtl .title h1,body.rtl h2,body.rtl h3,body.rtl .btn,body.rtl .chip,body.rtl .speech .who,body.rtl .book h3,body.rtl .book .ql{font-family:"Tajawal",sans-serif;letter-spacing:0}
 body.rtl .speech .hint,body.rtl .flpanel .hint,body.rtl .caption .hint{text-align:left}
 body.rtl .ph{font-family:"Tajawal",sans-serif}
-.langsw{pointer-events:auto;display:flex;background:rgba(20,31,54,.82);border:1px solid var(--line);border-radius:999px;padding:3px;backdrop-filter:blur(6px)}
-.langsw button{background:transparent;border:0;color:var(--muted);border-radius:999px;padding:5px 10px;font:700 12px var(--display);letter-spacing:.08em}
+.langsw{pointer-events:auto;display:flex;background:rgba(20,31,54,.92);border:1px solid #4A5F8F;border-radius:999px;padding:3px;backdrop-filter:blur(6px);box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.langsw button{background:transparent;border:0;color:#DDE6F5;border-radius:999px;padding:7px 13px;font:800 13px var(--display);letter-spacing:.08em;cursor:pointer}
 .langsw button.on{background:var(--ayla);color:#0A1020}
 .langsw button:hover{color:var(--ink)}
 .label.reco{background:rgba(58,42,100,.9);color:#EADFFB;border:1px solid #9B7BD6;white-space:normal;max-width:240px;text-align:center;font-size:11px;transform:translate(-50%,6px)}
