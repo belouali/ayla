@@ -256,9 +256,14 @@ function save(){ try{ localStorage.setItem("ayla_game", JSON.stringify(S)); }cat
 function mstate(id){ if(!S.missions[id]) S.missions[id]={ideas:[[],[],[],[]],answers:["","","",""],choice:null,why:"",note:"",done:false,frags:0}; return S.missions[id]; }
 function doneCount(){ return MISSIONS.filter(m=>mstate(m.id).done).length; }
 
-/* ============================== MUSIC ============================== */
+/* ============================== MUSIC : real tracks (CC BY) with synthesised fallback ============================== */
+const AUDIO_BASE = (/github\.io$/.test(location.hostname)||/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) ? "audio/" : "https://belouali.github.io/ayla/audio/";
+const CAN_STREAM = !/claude\.ai$/.test(location.hostname);
+const TRACKS={snowfall:{file:"snowfall.mp3",vol:.5,title:"Snowfall",by:"Scott Buckley"}, neon:{file:"neon-laser-horizon.mp3",vol:.42,title:"Neon Laser Horizon",by:"Kevin MacLeod"}, cipher:{file:"cipher.mp3",vol:.38,title:"Cipher",by:"Kevin MacLeod"}, darkfog:{file:"dark-fog.mp3",vol:.45,title:"Dark Fog",by:"Kevin MacLeod"}};
+const MOOD2TRACK={dome:"snowfall",paper:"snowfall",good:"snowfall",city:"cipher",tense:"cipher",run:"neon",lab:"darkfog",bad:"darkfog"};
 const Music=(()=>{
-  let ctx, master, filter, lfo, lfoGain, drone, droneG, voices=[], mood=null, timer=null, muted=false;
+  let ctx, master, filter, lfo, lfoGain, drone, droneG, voices=[], mood=null, timer=null, muted=false, pulseT=null, started=false;
+  const els={}, failed={}; let curTrack=null; let synthOn=false;
   try{ muted=localStorage.getItem("ayla_mute")==="1"; }catch(e){}
   const MOODS={
     dome:{chords:[[220,277.18,329.63],[196,246.94,293.66],[174.61,220,261.63],[196,246.94,293.66]], type:"triangle", cutoff:900, drone:55, tempo:9000, bright:.9},
@@ -270,7 +275,6 @@ const Music=(()=>{
     bad:{chords:[[110,130.81,164.81],[103.83,123.47,155.56]], type:"sawtooth", cutoff:280, drone:36.7, tempo:12000, bright:.4},
     paper:{chords:[[261.63,329.63,392],[246.94,293.66,369.99],[220,277.18,329.63]], type:"sine", cutoff:1600, drone:0, tempo:9000, bright:.8}
   };
-  let pulseT=null;
   function init(){ if(ctx) return true; const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return false;
     ctx=new AC(); master=ctx.createGain(); master.gain.value=0.0001;
     const delay=ctx.createDelay(2); delay.delayTime.value=.46; const fb=ctx.createGain(); fb.gain.value=.4; const wet=ctx.createGain(); wet.gain.value=.4;
@@ -280,18 +284,36 @@ const Music=(()=>{
     for(let v=0;v<3;v++){ const o=ctx.createOscillator(), o2=ctx.createOscillator(), g=ctx.createGain(); g.gain.value=0; o.connect(g); o2.connect(g); g.connect(filter); o.start(); o2.start(); voices.push({o,o2,g}); }
     drone=ctx.createOscillator(); drone.type="sine"; droneG=ctx.createGain(); droneG.gain.value=0; drone.connect(droneG); droneG.connect(master); drone.start(); return true; }
   function setChord(ch,m){ const t=ctx.currentTime; voices.forEach((v,i)=>{ const f=ch[i]; v.o.type=m.type; v.o2.type=m.type; v.o.frequency.setTargetAtTime(f,t,m.pulse?.3:1.6); v.o2.frequency.setTargetAtTime(f*1.004,t,m.pulse?.3:1.6); v.g.gain.setTargetAtTime(0.05*m.bright,t,m.pulse?.4:2.2); }); }
-  function set(name){ if(mood===name && ctx && timer) return; mood=name; if(!ctx) return; const m=MOODS[name]; const t=ctx.currentTime;
+  function synthSet(name){ if(!ctx) return; const m=MOODS[name]; const t=ctx.currentTime;
     filter.frequency.setTargetAtTime(m.cutoff,t,2); if(m.drone){ drone.frequency.setTargetAtTime(m.drone,t,1); droneG.gain.setTargetAtTime(0.06,t,2); } else droneG.gain.setTargetAtTime(0,t,2);
     clearInterval(timer); clearInterval(pulseT); let k=0; setChord(m.chords[0],m); timer=setInterval(()=>{ k=(k+1)%m.chords.length; setChord(m.chords[k],m); }, m.tempo);
-    if(m.pulse){ pulseT=setInterval(()=>{ if(!muted) blip(55,.08,"sine",.12); }, 600); } }
-  function start(){ if(!init()) return; ctx.resume(); if(!muted) master.gain.setTargetAtTime(0.7,ctx.currentTime,2); const m=mood; mood=null; set(m||"city"); ui(); }
-  function toggle(){ muted=!muted; try{localStorage.setItem("ayla_mute",muted?"1":"0");}catch(e){} if(ctx){ ctx.resume(); master.gain.setTargetAtTime(muted?0.0001:0.7,ctx.currentTime,.6); } ui(); }
+    if(m.pulse){ pulseT=setInterval(()=>{ if(!muted&&synthOn) blip(55,.08,"sine",.12); }, 600); } }
+  function synthLevel(on){ synthOn=on; if(ctx) master.gain.setTargetAtTime(on&&!muted?0.7:0.0001, ctx.currentTime, 1.2); }
+  /* --- real tracks --- */
+  function fadeEl(el, target, ms, done){ clearInterval(el._fade); const v0=el.volume, t0=performance.now(); el._fade=setInterval(()=>{ const k=Math.min(1,(performance.now()-t0)/ms); el.volume=Math.max(0,Math.min(1,v0+(target-v0)*k)); if(k>=1){ clearInterval(el._fade); if(done) done(); } }, 50); }
+  function getEl(name){ if(els[name]) return els[name]; const T=TRACKS[name]; const el=new Audio(AUDIO_BASE+T.file); el.loop=true; el.preload="auto"; el.volume=0; el.crossOrigin="anonymous"; el.addEventListener("error",()=>{ failed[name]=true; if(curTrack===name){ curTrack=null; synthLevel(true); if(mood) synthSet(mood); } }); els[name]=el; return el; }
+  function playTrack(name){ if(curTrack===name) return; const prev=curTrack; curTrack=name; const T=TRACKS[name]; const el=getEl(name);
+    if(prev && els[prev]){ const pe=els[prev]; fadeEl(pe,0,1400,()=>{ if(curTrack!==prev) pe.pause(); }); }
+    if(muted) return; el.volume=0; const pr=el.play(); if(pr&&pr.catch) pr.catch(()=>{ failed[name]=true; if(curTrack===name){ curTrack=null; synthLevel(true); if(mood) synthSet(mood); } }); fadeEl(el,T.vol,1800); }
+  function stopTracks(){ Object.keys(els).forEach(n=>{ const el=els[n]; fadeEl(el,0,900,()=>el.pause()); }); curTrack=null; }
+  function set(name){ mood=name; if(!ctx||!started) return; const tr=CAN_STREAM && MOOD2TRACK[name];
+    if(tr && !failed[tr]){ synthSet(name); synthLevel(false); playTrack(tr); } else { stopTracks(); synthLevel(true); synthSet(name); } }
+  function start(){ if(!init()) return; ctx.resume(); started=true; const m=mood; mood=null; set(m||"city"); ui(); if(CAN_STREAM) Object.keys(TRACKS).forEach(n=>getEl(n)); }
+  function toggle(){ muted=!muted; try{localStorage.setItem("ayla_mute",muted?"1":"0");}catch(e){} if(ctx){ ctx.resume(); if(muted){ Object.values(els).forEach(el=>{ clearInterval(el._fade); el.volume=0; el.pause(); }); master.gain.setTargetAtTime(0.0001,ctx.currentTime,.4); } else { const m=mood; curTrack=null; mood=null; set(m||"city"); } } ui(); }
   function blip(f,dur,type,vol){ if(!ctx||muted) return; const o=ctx.createOscillator(), g=ctx.createGain(); o.type=type||"sine"; o.frequency.value=f; g.gain.value=0.0001; o.connect(g); g.connect(ctx.destination); const t=ctx.currentTime; g.gain.setTargetAtTime(vol||0.05,t,.005); g.gain.setTargetAtTime(0.0001,t+(dur||.05),.03); o.start(t); o.stop(t+(dur||.05)+.2); }
   function sfx(kind){ if(kind==="collect"){ blip(880,.05,"sine",.05); setTimeout(()=>blip(1320,.08,"sine",.04),60); } else if(kind==="hit"){ blip(90,.18,"sawtooth",.08); } else if(kind==="jump"){ blip(300,.06,"triangle",.04); setTimeout(()=>blip(520,.06,"triangle",.03),50); } else if(kind==="tick"){ blip(740,.04,"sine",.035); } else if(kind==="door"){ blip(440,.2,"triangle",.06); setTimeout(()=>blip(660,.3,"triangle",.05),150); } }
   function ui(){ const b=document.getElementById("muteBtn"); if(!b) return; b.classList.toggle("on",!muted&&!!ctx); b.textContent=muted?"♪ Musique coupée":"♪ Musique"; }
-  return {start,set,toggle,sfx,ui,state:()=>ctx?ctx.state:"none",mood:()=>mood};
+  return {start,set,toggle,sfx,ui,state:()=>ctx?ctx.state:"none",mood:()=>mood,track:()=>curTrack,streaming:()=>CAN_STREAM};
 })();
 document.getElementById("muteBtn").addEventListener("click",e=>{ e.stopPropagation(); Music.start(); Music.toggle(); }); Music.ui();
+function showCredits(){
+  const o=el(`<div class="overlay" id="credits"><div class="box"><h3>Crédits musique</h3>
+    <p>« Snowfall » de Scott Buckley, publié sous licence CC BY 4.0. www.scottbuckley.com.au</p>
+    <p>« Neon Laser Horizon », « Cipher » et « Dark Fog » de Kevin MacLeod (incompetech.com), sous licence Creative Commons : By Attribution 4.0. creativecommons.org/licenses/by/4.0</p>
+    <p class="small">Effets sonores synthétisés dans le navigateur. Moteur 3D : three.js (licence MIT).</p>
+    <div style="margin-top:14px;text-align:right"><button class="btn sm" id="credClose">Fermer</button></div></div></div>`);
+  document.body.appendChild(o); o.querySelector("#credClose").onclick=()=>o.remove(); o.onclick=e=>{ if(e.target===o) o.remove(); };
+}
 
 /* ============================== THREE SETUP ============================== */
 const canvas=document.getElementById("gl");
@@ -316,55 +338,70 @@ function buildingMat(theme,seed){ const key=theme+seed; if(mats[key]) return mat
 const world=new THREE.Group(); scene.add(world);
 function clearWorld(){ while(world.children.length){ const c=world.children.pop(); c.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); } }
 
-/* ---- figures (rayman-like) ---- */
-function figure(kind){
-  const g=new THREE.Group(); const m=(c,e,ei)=>new THREE.MeshStandardMaterial({color:c, emissive:e||0x000000, emissiveIntensity:ei||0, roughness:.75});
-  if(kind==="ayla") return figureAyla();
-  const P={ayla:{body:0xE8A24A,skin:0xF1C9A5,hair:0x2B1B10,acc:"carnet"}, kade:{body:0x6FCF97,skin:0xD9A77A,hair:0xE8E8E8,acc:"cap"}, elio:{body:0x2E3F66,skin:0xE9C7A6,hair:0x3B2A1A,acc:"visor"}, elio2:{body:0x2E3F66,skin:0xE9C7A6,hair:0x3B2A1A}, saren:{body:0x6F5B9A,skin:0xE9C7A6,hair:0xEDEDED,acc:"book",beard:true}, kid1:{body:0x6FCF97,skin:0xD9A77A,hair:0x2B1B10,scale:.68}, kid2:{body:0xE8A24A,skin:0xC98A5A,hair:0x1A1A1A,scale:.68}}[kind];
-  const body=new THREE.Mesh(new THREE.SphereGeometry(.55,20,16), m(P.body)); body.scale.set(1,1.25,.85); body.position.y=1.05; g.add(body);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(.55,24,18), m(P.skin)); head.position.y=2.1; g.add(head);
-  const hair=new THREE.Mesh(new THREE.SphereGeometry(.58,24,12,0,Math.PI*2,0,Math.PI/2.1), m(P.hair)); hair.position.y=2.15; head.add(hair); hair.position.set(0,.05,0);
-  const eyeW=m(0xFFFFFF), eyeB=m(0x1F2933);
-  [-.2,.2].forEach(x=>{ const e=new THREE.Mesh(new THREE.SphereGeometry(.1,12,10), eyeW); e.position.set(x,.05,.47); head.add(e); const p=new THREE.Mesh(new THREE.SphereGeometry(.05,10,8), eyeB); p.position.set(x,.05,.55); head.add(p); });
-  if(P.beard){ const b=new THREE.Mesh(new THREE.SphereGeometry(.42,16,12), m(0xEDEDED)); b.scale.set(1,.8,.7); b.position.set(0,-.3,.25); head.add(b); }
-  const hands=[-1,1].map(s=>{ const h=new THREE.Mesh(new THREE.SphereGeometry(.19,14,12), m(P.skin)); h.position.set(s*.85,1.25,.1); g.add(h); return h; });
-  const feet=[-1,1].map(s=>{ const f=new THREE.Mesh(new THREE.SphereGeometry(.24,14,10), m(0x2A2A2A)); f.scale.set(1,.5,1.4); f.position.set(s*.32,.12,0); g.add(f); return f; });
-  if(P.acc==="carnet"){ const c=new THREE.Mesh(new THREE.BoxGeometry(.32,.42,.06), m(0xFFF6E5,0xE8A24A,.15)); c.position.set(.28,-.05,.15); hands[1].add(c); }
-  if(P.acc==="cap"){ const c=new THREE.Mesh(new THREE.CylinderGeometry(.6,.6,.12,20), m(0x3E7D3A)); c.position.set(0,.42,0); head.add(c); const v=new THREE.Mesh(new THREE.BoxGeometry(.7,.06,.4), m(0x3E7D3A)); v.position.set(0,.4,.45); head.add(v); }
-  if(P.acc==="visor"){ const v=new THREE.Mesh(new THREE.BoxGeometry(.9,.26,.3), m(0x1F2933,0x5EA8FF,.9)); v.position.set(0,.06,.38); head.add(v); }
-  if(P.acc==="book"){ const b=new THREE.Mesh(new THREE.BoxGeometry(.5,.36,.1), m(0x8A5A2B,0xE8A24A,.1)); b.position.set(0,1.25,.55); g.add(b); }
-  if(P.scale) g.scale.setScalar(P.scale);
-  g.userData={head,body,hands,feet,t:Math.random()*10,kind};
+/* ---- figures (stylised humans with faces and limbs) ---- */
+function human(o){
+  const g=new THREE.Group(); const m=(c,e,ei)=>new THREE.MeshStandardMaterial({color:c, emissive:e||0x000000, emissiveIntensity:ei||0, roughness:.72});
+  const S=o.skin, H=o.hair;
+  const legs=[-1,1].map(sx=>{ const hip=new THREE.Group(); hip.position.set(sx*.17,1.02,0); g.add(hip);
+    const thigh=new THREE.Mesh(new THREE.CylinderGeometry(.13,.11,.5,12), m(o.legs)); thigh.position.y=-.25; hip.add(thigh);
+    const shin=new THREE.Mesh(new THREE.CylinderGeometry(.11,.1,.45,12), m(o.shin||S)); shin.position.y=-.72; hip.add(shin);
+    if(o.sock){ const sk=new THREE.Mesh(new THREE.CylinderGeometry(.115,.115,.12,12), m(o.sock)); sk.position.y=-.88; hip.add(sk); }
+    const shoe=new THREE.Mesh(new THREE.BoxGeometry(.24,.13,.4), m(o.shoe||0x2A2A2A)); shoe.position.set(0,-.98,.06); hip.add(shoe);
+    return hip; });
+  const torso=new THREE.Mesh(new THREE.CylinderGeometry(.36,.3,.85,18), m(o.top)); torso.position.y=1.47; g.add(torso);
+  const shoulders=new THREE.Mesh(new THREE.SphereGeometry(.37,18,12,0,Math.PI*2,0,Math.PI/2), m(o.top)); shoulders.position.y=1.89; g.add(shoulders);
+  const hips=new THREE.Mesh(new THREE.SphereGeometry(.31,18,12,0,Math.PI*2,Math.PI/2,Math.PI/2), m(o.legs)); hips.position.y=1.05; g.add(hips);
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.11,.12,.18,12), m(S)); neck.position.y=2.0; g.add(neck);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.42,28,22), m(S)); head.position.y=2.48; g.add(head);
+  const eyeW=m(0xFFFFFF), iris=m(o.iris||0x5A3A1E), pup=m(0x111111);
+  [-1,1].forEach(sx=>{ const x=sx*.155;
+    const e=new THREE.Mesh(new THREE.SphereGeometry(.08,14,12), eyeW); e.position.set(x,.04,.36); head.add(e);
+    const i=new THREE.Mesh(new THREE.SphereGeometry(.048,12,10), iris); i.position.set(x,.04,.41); head.add(i);
+    const pp=new THREE.Mesh(new THREE.SphereGeometry(.026,10,8), pup); pp.position.set(x,.04,.445); head.add(pp);
+    const hl=new THREE.Mesh(new THREE.SphereGeometry(.012,8,6), eyeW); hl.position.set(x+.02,.065,.465); head.add(hl);
+    const brow=new THREE.Mesh(new THREE.BoxGeometry(.15,.028,.04), m(H)); brow.position.set(x,.17,.38); brow.rotation.z=sx*-.18; head.add(brow);
+    const ear=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8), m(S)); ear.scale.set(.5,1,.8); ear.position.set(sx*.42,-.02,0); head.add(ear);
+  });
+  const nose=new THREE.Mesh(new THREE.SphereGeometry(.05,10,8), m(S)); nose.scale.set(.8,1,1.1); nose.position.set(0,-.06,.42); head.add(nose);
+  const mouth=new THREE.Mesh(new THREE.TorusGeometry(.085,.02,8,14,Math.PI), m(o.lips||0x9A4A3A)); mouth.position.set(0,-.17,.37); mouth.rotation.z=Math.PI; head.add(mouth);
+  if(o.cheeks){ [-1,1].forEach(sx=>{ const c=new THREE.Mesh(new THREE.SphereGeometry(.05,8,6), m(o.cheeks)); c.scale.set(1,.7,.5); c.position.set(sx*.25,-.1,.33); head.add(c); }); }
+  const hm=m(H);
+  if(o.style==="bob"){ const cap=new THREE.Mesh(new THREE.SphereGeometry(.46,26,18,0,Math.PI*2,0,1.15), hm); cap.position.y=.04; head.add(cap);
+    const back=new THREE.Mesh(new THREE.SphereGeometry(.46,26,18,Math.PI*.9,Math.PI*1.2,0,Math.PI*.68), hm); head.add(back);
+    [-1,1].forEach(sx=>{ const lock=new THREE.Mesh(new THREE.SphereGeometry(.12,12,10), hm); lock.scale.set(1,2.1,.9); lock.position.set(sx*.4,-.2,.08); head.add(lock); }); }
+  else if(o.style==="short"){ const cap=new THREE.Mesh(new THREE.SphereGeometry(.45,26,18,0,Math.PI*2,0,1.35), hm); cap.position.y=.03; head.add(cap); }
+  else if(o.style==="white"){ const cap=new THREE.Mesh(new THREE.SphereGeometry(.45,26,18,Math.PI*.85,Math.PI*1.3,0,Math.PI*.6), hm); head.add(cap); const beard=new THREE.Mesh(new THREE.SphereGeometry(.3,18,12), hm); beard.scale.set(1,1.6,.7); beard.position.set(0,-.42,.22); head.add(beard); }
+  else if(o.style==="kid"){ const cap=new THREE.Mesh(new THREE.SphereGeometry(.45,26,18,0,Math.PI*2,0,1.25), hm); cap.position.y=.04; head.add(cap); }
+  if(o.cap){ const c=new THREE.Mesh(new THREE.CylinderGeometry(.46,.46,.14,20), m(o.cap)); c.position.y=.33; head.add(c); const top=new THREE.Mesh(new THREE.SphereGeometry(.46,20,12,0,Math.PI*2,0,.9), m(o.cap)); top.position.y=.16; head.add(top); const v=new THREE.Mesh(new THREE.BoxGeometry(.5,.05,.3), m(o.cap)); v.position.set(0,.3,.5); head.add(v); }
+  if(o.visor){ const v=new THREE.Mesh(new THREE.BoxGeometry(.7,.2,.22), m(0x1F2933,0x5EA8FF,.9)); v.position.set(0,.04,.36); head.add(v); }
+  const arms=[-1,1].map(sx=>{ const sh=new THREE.Group(); sh.position.set(sx*.42,1.85,0); g.add(sh);
+    const upper=new THREE.Mesh(new THREE.CylinderGeometry(.09,.08,.42,12), m(o.sleeve||o.top)); upper.position.y=-.21; sh.add(upper);
+    const fore=new THREE.Mesh(new THREE.CylinderGeometry(.08,.07,.4,12), m(S)); fore.position.y=-.6; sh.add(fore);
+    const hand=new THREE.Mesh(new THREE.SphereGeometry(.09,12,10), m(S)); hand.position.y=-.84; sh.add(hand); sh.userData.hand=hand; return sh; });
+  if(o.robe){ const robe=new THREE.Mesh(new THREE.CylinderGeometry(.34,.5,1.15,18), m(o.robe)); robe.position.y=.62; g.add(robe); legs.forEach(l=>l.visible=false); }
+  if(o.backpack){ const bp=new THREE.Mesh(new THREE.BoxGeometry(.5,.6,.26), m(o.backpack)); bp.position.set(0,1.5,-.42); g.add(bp); const flap=new THREE.Mesh(new THREE.BoxGeometry(.44,.26,.06), m(0x5E35B1)); flap.position.set(0,1.7,-.57); g.add(flap); [-1,1].forEach(sx=>{ const st=new THREE.Mesh(new THREE.BoxGeometry(.07,.55,.05), m(o.backpack)); st.position.set(sx*.22,1.55,.1); st.rotation.x=.2; g.add(st); }); }
+  if(o.carnet){ const c=new THREE.Mesh(new THREE.BoxGeometry(.26,.34,.05), m(0xFFF6E5,0xE8A24A,.15)); c.position.set(.12,-.02,.14); arms[1].userData.hand.add(c); }
+  if(o.bracelet){ const b=new THREE.Mesh(new THREE.TorusGeometry(.1,.025,8,16), m(0xFFD54F)); b.rotation.x=Math.PI/2; b.position.y=-.72; arms[1].add(b); }
+  if(o.book){ const b=new THREE.Mesh(new THREE.BoxGeometry(.4,.3,.08), m(0x8A5A2B,0xE8A24A,.1)); b.position.set(0,1.35,.42); g.add(b); arms.forEach(a=>a.rotation.x=-1.1); }
+  if(o.scale) g.scale.setScalar(o.scale);
+  g.userData={head,body:torso,hands:arms.map(a=>a.userData.hand),feet:[],legs,arms,t:Math.random()*10,kind:o.kind,hasBook:!!o.book};
   return g;
 }
-
-function figureAyla(){
-  const g=new THREE.Group(); const m=(c,e,ei)=>new THREE.MeshStandardMaterial({color:c, emissive:e||0x000000, emissiveIntensity:ei||0, roughness:.7});
-  const skin=0xC68642, hairC=0x3B2314, shirt=0xF06292, shorts=0xF57C00, pack=0x7E57C2;
-  const body=new THREE.Mesh(new THREE.SphereGeometry(.52,20,16), m(shirt)); body.scale.set(1,1.2,.85); body.position.y=1.12; g.add(body);
-  const short=new THREE.Mesh(new THREE.SphereGeometry(.5,20,12), m(shorts)); short.scale.set(1,.55,.85); short.position.y=.62; g.add(short);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(.55,24,18), m(skin)); head.position.y=2.1; g.add(head);
-  const cap=new THREE.Mesh(new THREE.SphereGeometry(.6,24,16,0,Math.PI*2,0,1.2), m(hairC)); cap.position.set(0,.07,0); head.add(cap);
-  const back=new THREE.Mesh(new THREE.SphereGeometry(.6,24,16,Math.PI*0.92,Math.PI*1.16,0,Math.PI*0.66), m(hairC)); back.position.set(0,.02,-.02); head.add(back);
-  [-1,1].forEach(sx=>{ const lock=new THREE.Mesh(new THREE.SphereGeometry(.16,12,10), m(hairC)); lock.scale.set(1,1.9,.9); lock.position.set(sx*.5,-.22,.12); head.add(lock); });
-  const eyeW=m(0xFFFFFF), eyeB=m(0x2B1B10);
-  [-.2,.2].forEach(x=>{ const e=new THREE.Mesh(new THREE.SphereGeometry(.13,14,12), eyeW); e.position.set(x,.02,.46); head.add(e); const p=new THREE.Mesh(new THREE.SphereGeometry(.07,12,10), eyeB); p.position.set(x,.02,.56); head.add(p); const sh=new THREE.Mesh(new THREE.SphereGeometry(.025,8,6), m(0xFFFFFF)); sh.position.set(x+.03,.06,.62); head.add(sh); const brow=new THREE.Mesh(new THREE.BoxGeometry(.18,.03,.04), m(hairC)); brow.position.set(x,.2,.5); brow.rotation.z=x<0?.25:-.25; head.add(brow); });
-  const mouth=new THREE.Mesh(new THREE.TorusGeometry(.12,.025,8,14,Math.PI), m(0x8A3B2A)); mouth.position.set(0,-.2,.5); mouth.rotation.z=Math.PI; head.add(mouth);
-  const cheeks=m(0xE0876B); [-1,1].forEach(sx=>{ const c=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8), cheeks); c.position.set(sx*.34,-.1,.42); head.add(c); });
-  const bp=new THREE.Mesh(new THREE.BoxGeometry(.62,.7,.32), m(pack)); bp.position.set(0,1.2,-.5); g.add(bp);
-  const flap=new THREE.Mesh(new THREE.BoxGeometry(.56,.3,.08), m(0x5E35B1)); flap.position.set(0,1.42,-.66); g.add(flap);
-  [-1,1].forEach(sx=>{ const st=new THREE.Mesh(new THREE.BoxGeometry(.08,.7,.06), m(pack)); st.position.set(sx*.28,1.25,-.02); st.rotation.x=.25; g.add(st); });
-  const hands=[-1,1].map(sx=>{ const h=new THREE.Mesh(new THREE.SphereGeometry(.18,14,12), m(skin)); h.position.set(sx*.82,1.25,.12); g.add(h); return h; });
-  const brac=new THREE.Mesh(new THREE.TorusGeometry(.2,.035,8,16), m(0xFFD54F)); brac.rotation.x=Math.PI/2; hands[1].add(brac);
-  const c=new THREE.Mesh(new THREE.BoxGeometry(.32,.42,.06), m(0xFFF6E5,0xE8A24A,.15)); c.position.set(.26,-.05,.16); hands[1].add(c);
-  const feet=[-1,1].map(sx=>{ const f=new THREE.Mesh(new THREE.SphereGeometry(.24,14,10), m(0xF5F5F5)); f.scale.set(1,.5,1.4); f.position.set(sx*.32,.12,0); g.add(f); const sock=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,.12,12), m(0xFFD54F)); sock.position.set(sx*.32,.28,0); g.add(sock); return f; });
-  g.userData={head,body,hands,feet,t:Math.random()*10,kind:"ayla"};
-  return g;
-}
+const CHARS={
+  ayla:{kind:"ayla",skin:0xC68642,hair:0x3B2314,style:"bob",top:0xF06292,legs:0xF57C00,shin:0xC68642,sock:0xFFD54F,shoe:0xF5F5F5,backpack:0x7E57C2,carnet:true,bracelet:true,cheeks:0xE0876B,iris:0x4A2C15},
+  kade:{kind:"kade",skin:0xB8865B,hair:0xE8E8E8,style:"white",top:0x6FCF97,legs:0x3E4A3C,shin:0x3E4A3C,shoe:0x2E2E2E,cap:0x3E7D3A,iris:0x3B2A1A},
+  elio:{kind:"elio",skin:0xE9C7A6,hair:0x3B2A1A,style:"short",top:0x2E3F66,legs:0x2E3F66,shin:0x2E3F66,shoe:0x1F2933,visor:true,iris:0x2F5F8F},
+  elio2:{kind:"elio2",skin:0xE9C7A6,hair:0x3B2A1A,style:"short",top:0x2E3F66,legs:0x2E3F66,shin:0x2E3F66,shoe:0x1F2933,iris:0x2F5F8F},
+  saren:{kind:"saren",skin:0xD9B48F,hair:0xEDEDED,style:"white",top:0x6F5B9A,legs:0x6F5B9A,robe:0x6F5B9A,book:true,iris:0x5A3A1E},
+  kid1:{kind:"kid1",skin:0xD9A77A,hair:0x2B1B10,style:"kid",top:0x6FCF97,legs:0x3E5A8F,shin:0xD9A77A,shoe:0xF5F5F5,scale:.68,cheeks:0xE0876B,iris:0x3B2A1A},
+  kid2:{kind:"kid2",skin:0x8D5A3A,hair:0x1A1A1A,style:"bob",top:0xE8A24A,legs:0x8E4A2A,shin:0x8D5A3A,shoe:0xF5F5F5,scale:.68,cheeks:0xC0684A,iris:0x2A1A0A}
+};
+function figure(kind){ return human(CHARS[kind]); }
 function animFigure(f, dt, mode){ const u=f.userData; u.t+=dt; const t=u.t;
-  if(mode==="run"){ u.hands[0].position.z=Math.sin(t*14)*.5; u.hands[1].position.z=-Math.sin(t*14)*.5; u.feet[0].position.y=.12+Math.max(0,Math.sin(t*14))*.35; u.feet[1].position.y=.12+Math.max(0,-Math.sin(t*14))*.35; u.body.rotation.x=.12; u.head.position.y=2.1+Math.abs(Math.sin(t*14))*.06; }
-  else if(mode==="walk"){ u.hands[0].position.z=Math.sin(t*9)*.3; u.hands[1].position.z=-Math.sin(t*9)*.3; u.feet[0].position.y=.12+Math.max(0,Math.sin(t*9))*.25; u.feet[1].position.y=.12+Math.max(0,-Math.sin(t*9))*.25; u.body.rotation.x=.05; }
-  else { u.hands[0].position.z=0; u.hands[1].position.z=0; u.hands[0].position.y=1.25+Math.sin(t*2)*.05; u.hands[1].position.y=1.25+Math.sin(t*2+1)*.05; u.feet[0].position.y=.12; u.feet[1].position.y=.12; u.body.rotation.x=0; u.head.position.y=2.1+Math.sin(t*2)*.03; u.body.position.y=1.05+Math.sin(t*2)*.03; }
+  const swing=(amp,freq)=>{ const sn=Math.sin(t*freq); if(u.legs.length){ u.legs[0].rotation.x=sn*amp; u.legs[1].rotation.x=-sn*amp; } if(!u.hasBook){ u.arms[0].rotation.x=-sn*amp*.9; u.arms[1].rotation.x=sn*amp*.9; u.arms[0].rotation.z=.06; u.arms[1].rotation.z=-.06; } };
+  if(mode==="run"){ swing(.8,13); u.body.rotation.x=.12; u.head.position.y=2.48+Math.abs(Math.sin(t*13))*.05; u.head.rotation.y=0; }
+  else if(mode==="walk"){ swing(.45,8); u.body.rotation.x=.04; u.head.rotation.y=0; }
+  else { if(u.legs.length){ u.legs[0].rotation.x*=.85; u.legs[1].rotation.x*=.85; } if(!u.hasBook){ u.arms[0].rotation.x=Math.sin(t*1.6)*.06; u.arms[1].rotation.x=-Math.sin(t*1.6)*.06; u.arms[0].rotation.z=.08; u.arms[1].rotation.z=-.08; } u.body.rotation.x=0; u.head.position.y=2.48+Math.sin(t*1.6)*.02; u.head.rotation.y=Math.sin(t*.7)*.08; }
 }
 
 /* ---- level building ---- */
@@ -439,10 +476,11 @@ function screenTitle(){
   app.innerHTML=`<div class="overlay"><div class="title"><h1>Ayla et FriendLoop<span>Voyage contre l'oubli</span></h1>
     <p>Cours dans les rues de Chroma, parle aux habitants, réfléchis avec Saren, choisis ta porte. Prototype : prologue et deux missions.</p>
     <button class="btn" id="start">${n?"Recommencer":"Commencer"}</button>${n&&n<MISSIONS.length?`<button class="btn ghost" id="cont" style="margin-left:10px">Continuer (mission ${n+1})</button>`:""}
-    <div class="note"><b>Clavier</b> : flèches ou A/D pour changer de voie, espace pour sauter, E ou Entrée pour parler et avancer. <b>Écran tactile</b> : boutons en bas, toucher le sol pour marcher.<br>Ce prototype n'enregistre rien en dehors de cet appareil. <button class="btn ghost sm" id="wipe" style="margin-left:6px">Tout effacer</button></div></div></div>`;
+    <div class="note"><b>Clavier</b> : flèches ou A/D pour changer de voie, espace pour sauter, E ou Entrée pour parler et avancer. <b>Écran tactile</b> : boutons en bas, toucher le sol pour marcher.<br>Ce prototype n'enregistre rien en dehors de cet appareil. <button class="btn ghost sm" id="wipe" style="margin-left:6px">Tout effacer</button> <button class="btn ghost sm" id="cred" style="margin-left:6px">Crédits musique</button></div></div></div>`;
   app.querySelector("#start").onclick=()=>{ Music.start(); S=freshState(); save(); app.innerHTML=""; playPrologue(); };
   const c=app.querySelector("#cont"); if(c) c.onclick=()=>{ Music.start(); app.innerHTML=""; S.current=n+1; startMission(); };
   app.querySelector("#wipe").onclick=()=>{ try{localStorage.removeItem("ayla_game");}catch(e){} S=freshState(); screenTitle(); };
+  app.querySelector("#cred").onclick=showCredits;
 }
 /* ---- dome (prologue and each mission opening) ---- */
 let cast={};
@@ -583,9 +621,10 @@ function screenEnd(){
   app.innerHTML=`<div class="overlay"><div class="box"><h3>Fin du prototype</h3><p>Deux missions accomplies. Ayla connaît maintenant deux des dix principes de la Recommandation, et deux maillons de la chaîne qui a effacé ses parents.</p>
     <p class="small">Prochain quartier : Quartier Indigo, « Les logements oubliés ». Non inclus dans ce prototype.</p>
     <div class="gauges"><div class="g fl"><div class="lab"><span>Confiance de FriendLoop</span><span>${S.fl}</span></div><div class="bar"><i style="width:${S.fl}%"></i></div></div><div class="g cit"><div class="lab"><span>Confiance des citoyens</span><span>${S.cit}</span></div><div class="bar"><i style="width:${S.cit}%"></i></div></div></div>
-    <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end"><button class="btn ghost" id="carnetOpen">Ouvrir le carnet</button><button class="btn" id="again">Recommencer</button></div></div></div>`;
+    <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><button class="btn ghost sm" id="cred2">Crédits musique</button><button class="btn ghost" id="carnetOpen">Ouvrir le carnet</button><button class="btn" id="again">Recommencer</button></div></div></div>`;
   app.querySelector("#again").onclick=()=>{ S=freshState(); save(); screenTitle(); };
   app.querySelector("#carnetOpen").onclick=()=>openCarnet("missions");
+  app.querySelector("#cred2").onclick=showCredits;
 }
 /* ---- effects ---- */
 let alarmOn=false; function setAlarm(on){ alarmOn=on; }
