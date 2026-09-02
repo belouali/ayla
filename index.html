@@ -148,6 +148,8 @@ body.rtl .ph{font-family:"Tajawal",sans-serif}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
+const BUILD="20260902161627";
+(function(){ try{ if(!/github\.io$/.test(location.hostname)) return; fetch("version.json?ts="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{ if(j && j.build && j.build!==BUILD){ const u=new URL(location.href); if(u.searchParams.get("v")!==j.build){ u.searchParams.set("v", j.build); location.replace(u.toString()); } } }).catch(()=>{}); }catch(e){} })();
 /* ============================== I18N : fr / en / ar ============================== */
 const I18N = {
 fr: {
@@ -937,7 +939,7 @@ function positionBubble(){ if(!dlgActive) return; const {el:b,obj}=dlgActive; co
 /* ---- mission flow ---- */
 function cur(){ return MISSIONS[S.current-1]; }
 async function startMission(){
-  const M=cur(); await fade(true); buildDome(); hud(T.missionDome(M.id), M.principe); setPhases(-1); help(T.helpContinue); G.state="dome"; await fade(false);
+  const M=cur(); document.getElementById("langsw").classList.add("hidden"); await fade(true); buildDome(); hud(T.missionDome(M.id), M.principe); setPhases(-1); help(T.helpContinue); G.state="dome"; await fade(false);
   runDialogue(M.dome, ()=>startRun());
 }
 async function startRun(){
