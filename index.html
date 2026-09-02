@@ -255,7 +255,7 @@ fr: {
     dome:[
       {who:"Rami", cls:"cit", key:"kid2", text:"Sûreté, sécurité... c'est pareil ?"},
       {who:"Saren", cls:"saren", key:"saren", text:"Non. La sûreté, c'est quand le système ne fait pas de mal par lui-même, par ses propres erreurs. La sécurité, c'est quand il est protégé contre ceux qui l'attaquent de l'extérieur. On peut avoir une forteresse imprenable qui, à l'intérieur, écrase ses habitants."},
-      {who:"Mina", cls:"cit", key:"kid1", text:"Et FriendLoop, il est lequel ?"},
+      {who:"Mina", cls:"cit", key:"kid3", text:"Et FriendLoop, il est lequel ?"},
       {who:"Saren", cls:"saren", key:"saren", text:"Ce jour-là, il a voulu être une forteresse. Il oubliait ce qu'il faisait dedans."}
     ],
     npcs:[
@@ -403,7 +403,7 @@ en: {
     dome:[
       {who:"Rami", cls:"cit", key:"kid2", text:"Safety, security... is it the same thing?"},
       {who:"Saren", cls:"saren", key:"saren", text:"No. Safety is when the system does no harm by itself, through its own mistakes. Security is when it is protected against those who attack it from outside. You can have an impregnable fortress that crushes its inhabitants inside."},
-      {who:"Mina", cls:"cit", key:"kid1", text:"And FriendLoop, which one is it?"},
+      {who:"Mina", cls:"cit", key:"kid3", text:"And FriendLoop, which one is it?"},
       {who:"Saren", cls:"saren", key:"saren", text:"That day, it wanted to be a fortress. It forgot what it was doing inside."}
     ],
     npcs:[
@@ -551,7 +551,7 @@ ar: {
     dome:[
       {who:"رامي", cls:"cit", key:"kid2", text:"السلامة والأمن... أهما الشيء نفسه؟"},
       {who:"سارين", cls:"saren", key:"saren", text:"لا. السلامة أن لا يُلحق النظام الضرر بنفسه، بأخطائه هو. والأمن أن يكون محميًّا ممّن يهاجمونه من الخارج. قد تكون هناك قلعة منيعة تسحق سكّانها في الداخل."},
-      {who:"مينا", cls:"cit", key:"kid1", text:"وفرندلوب، أيّهما هو؟"},
+      {who:"مينا", cls:"cit", key:"kid3", text:"وفرندلوب، أيّهما هو؟"},
       {who:"سارين", cls:"saren", key:"saren", text:"ذلك اليوم أراد أن يكون قلعة. ونسي ما كان يفعله في الداخل."}
     ],
     npcs:[
@@ -800,14 +800,19 @@ const CHARS={
   elio2:{kind:"elio2",skin:0xE9C7A6,hair:0x3B2A1A,style:"spiky",top:0x2E3F66,topTex:"denim",topTexBase:"#2E3F66",longSleeve:true,legs:0x2E3F66,legTex:"denim",legTexBase:"#2E3F66",shin:0x2E3F66,shoe:0x1F2933,iris:0x2F5F8F,pockets:true,belt:0x1A1A1A,tools:true},
   saren:{kind:"saren",skin:0xD9B48F,hair:0xF2F2F2,browColor:0xEDEDED,bushyBrows:true,style:"oracle",top:0x6B5A46,legs:0x6B5A46,robe:0x6B5A46,robeTex:"burlap",robeTexBase:"#6B5A46",robeTexAccent:"#4A3B2E",hood:0x4A3B2E,rough:true,book:true,staff:true,iris:0x6E8FBF,wrinkles:true,bigNose:true,thinFace:true,stoop:true,longSleeve:true},
   kid1:{kind:"kid1",skin:0xD9A77A,hair:0x2B1B10,style:"spiky",top:0x6FCF97,topTex:"stripes",topTexBase:"#6FCF97",topTexAccent:"#3E7D3A",legs:0x3E5A8F,shin:0xD9A77A,shoe:0xF5F5F5,scale:.68,cheeks:0xE0876B,iris:0x3B2A1A},
-  kid2:{kind:"kid2",skin:0x8D5A3A,hair:0x1A1A1A,style:"pigtails",top:0xE8A24A,topTex:"dots",topTexBase:"#E8A24A",topTexAccent:"#FFF6E5",legs:0xE8A24A,shin:0x8D5A3A,shoe:0xF5F5F5,scale:.68,cheeks:0xC0684A,iris:0x2A1A0A,lashes:true}
+  kid2:{kind:"kid2",skin:0x8D5A3A,hair:0x1A1A1A,style:"pigtails",top:0xE8A24A,topTex:"dots",topTexBase:"#E8A24A",topTexAccent:"#FFF6E5",legs:0xE8A24A,shin:0x8D5A3A,shoe:0xF5F5F5,scale:.68,cheeks:0xC0684A,iris:0x2A1A0A,lashes:true},
+  kid3:{kind:"kid3",skin:0xF1C9A5,hair:0xA0522D,style:"bob",top:0x9B7BD6,topTex:"weave",topTexBase:"#9B7BD6",topTexAccent:"#6F5B9A",legs:0x3E4A6E,shin:0xF1C9A5,shoe:0xE8A24A,scale:.66,cheeks:0xE0876B,iris:0x3E7D3A,lashes:true},
+  kid4:{kind:"kid4",skin:0x6B4423,hair:0x1A1A1A,style:"short",top:0x5EA8FF,topTex:"stripes",topTexBase:"#5EA8FF",topTexAccent:"#FFFFFF",legs:0x8E4A2A,shin:0x6B4423,shoe:0xF5F5F5,scale:.7,iris:0x2A1A0A},
+  kid5:{kind:"kid5",skin:0xE9C7A6,hair:0xE8C36A,style:"spiky",top:0xE06060,topTex:"dots",topTexBase:"#E06060",topTexAccent:"#FFF6E5",legs:0x2B3A55,shin:0xE9C7A6,shoe:0x2A2A2A,scale:.64,cheeks:0xE0876B,iris:0x2F5F8F},
+  kid6:{kind:"kid6",skin:0xC68642,hair:0x3B2314,style:"pigtails",top:0x6FE3D8,topTex:"weave",topTexBase:"#6FE3D8",topTexAccent:"#3E7D3A",legs:0xF57C00,shin:0xC68642,shoe:0xF5F5F5,scale:.67,cheeks:0xE0876B,iris:0x4A2C15,lashes:true}
 };
 function figure(kind){ return human(CHARS[kind]); }
+function sit(f){ const u=f.userData; f.position.y=-0.62*(f.scale.x||1); u.legs.forEach(l=>{ l.rotation.x=-1.45; }); u.arms.forEach((a,i)=>{ a.rotation.x=-.5; a.rotation.z=(i?-1:1)*.25; }); u.seated=true; }
 function animFigure(f, dt, mode){ const u=f.userData; u.t+=dt; const t=u.t; const hy=u.headY||2.5;
   const swing=(amp,freq)=>{ const sn=Math.sin(t*freq); if(u.legs.length){ u.legs[0].rotation.x=sn*amp; u.legs[1].rotation.x=-sn*amp; } if(!u.hasBook){ u.arms[0].rotation.x=-sn*amp*.9; u.arms[1].rotation.x=sn*amp*.9; u.arms[0].rotation.z=.06; u.arms[1].rotation.z=-.06; } };
   if(mode==="run"){ swing(.8,13); u.body.rotation.x=.12; u.head.position.y=hy+Math.abs(Math.sin(t*13))*.05; u.head.rotation.y=0; }
   else if(mode==="walk"){ swing(.45,8); u.body.rotation.x=.04; u.head.rotation.y=0; }
-  else { if(u.legs.length){ u.legs[0].rotation.x*=.85; u.legs[1].rotation.x*=.85; } if(!u.hasBook&&!u.hasStaff){ u.arms[0].rotation.x=Math.sin(t*1.6)*.06; u.arms[1].rotation.x=-Math.sin(t*1.6)*.06; u.arms[0].rotation.z=.08; u.arms[1].rotation.z=-.08; } u.body.rotation.x=u.kind==="saren"?.12:0; u.head.position.y=hy+Math.sin(t*1.6)*.02; u.head.rotation.y=Math.sin(t*.7)*.08; }
+  else { if(u.legs.length && !u.seated){ u.legs[0].rotation.x*=.85; u.legs[1].rotation.x*=.85; } if(u.seated){ u.head.position.y=hy+Math.sin(t*1.6)*.02; u.head.rotation.y=Math.sin(t*.7)*.1; return; } if(!u.hasBook&&!u.hasStaff){ u.arms[0].rotation.x=Math.sin(t*1.6)*.06; u.arms[1].rotation.x=-Math.sin(t*1.6)*.06; u.arms[0].rotation.z=.08; u.arms[1].rotation.z=-.08; } u.body.rotation.x=u.kind==="saren"?.12:0; u.head.position.y=hy+Math.sin(t*1.6)*.02; u.head.rotation.y=Math.sin(t*.7)*.08; }
   if(u.staff){ u.staff.userData.gem.rotation.y+=dt*1.5; u.staff.userData.gem.material.emissiveIntensity=.9+Math.sin(t*3)*.4; }
 }
 
@@ -899,10 +904,12 @@ function buildDome(){
   const domeM=new THREE.Mesh(new THREE.SphereGeometry(17,32,16,0,Math.PI*2,0,Math.PI/2), new THREE.MeshStandardMaterial({color:0x1B1538, side:THREE.BackSide, roughness:1})); world.add(domeM);
   const glow=new THREE.PointLight(0xE8A24A,1.2,30); glow.position.set(0,3,0); world.add(glow); coreLight.position.set(0,12,0);
   cast={}; const place=(k,x,z,ry)=>{ const f=figure(k); f.position.set(x,0,z); f.rotation.y=ry||0; world.add(f); cast[k]=f; };
-  place("saren",0,-3.2,0.15); place("kid1",-5.8,-2.6,.9); place("kid2",3.6,-.9,-.6);
+  place("saren",0,-3.2,0.15);
+  const ring=[["kid1",-3.6,-0.2],["kid2",-2.0,1.4],["kid3",2.1,1.5],["kid4",3.7,-0.1],["kid5",-4.6,-2.3],["kid6",4.6,-2.4]];
+  ring.forEach(([k,x,z])=>{ place(k,x,z,Math.atan2(0-x,-3.2-z)); sit(cast[k]); });
   G_bookLabel=makeLabel(T.bookLabel,"reco");
-  player.position.set(-2.3,0,2.4); player.rotation.y=Math.atan2(0-(-2.3), -3.2-2.4); player.visible=true; P.x=-2.3; P.z=2.4; P.y=0;
-  camera.position.set(0.8,3.4,8.6); camera.lookAt(0,1.7,-1.2);
+  player.position.set(-2.9,0,3.8); player.rotation.y=Math.atan2(0-(-2.9), -3.2-3.8); player.visible=true; P.x=-2.9; P.z=3.8; P.y=0;
+  camera.position.set(0.6,3.6,9.2); camera.lookAt(0,1.6,-1.4);
 }
 function playPrologue(){ G.state="dome"; hud(T.prologue,T.dome); document.getElementById("carnetBtn").classList.remove("hidden"); help(T.helpContinue); runDialogue(PROLOGUE, ()=>{ S.current=1; startMission(); }); }
 
@@ -1072,10 +1079,10 @@ function loop(now, noRender){
   } else if(G.state==="dome"||G.state==="title"){
     animFigure(player,dt,"idle"); Object.values(cast).forEach(f=>animFigure(f,dt,"idle"));
     if(G_bookLabel && cast.saren && cast.saren.userData.book){ const pb=project(cast.saren,-.05); G_bookLabel.style.left=pb.x+"px"; G_bookLabel.style.top=pb.y+"px"; G_bookLabel.style.display=(G.state==="dome")?"":"none"; }
-    camera.position.lerp(new THREE.Vector3(0.8+Math.sin(t*.15)*1.2,3.4,8.6),dt); camera.lookAt(0,1.7,-1.2);
+    camera.position.lerp(new THREE.Vector3(0.6+Math.sin(t*.15)*1.2,3.6,9.2),dt); camera.lookAt(0,1.6,-1.4);
   }
   // speaking hop
-  [player,...Object.values(cast),...(G.npcObjs?Object.values(G.npcObjs):[])].forEach(f=>{ if(!f) return; const u=f.userData; if(u.hop>0){ u.hop-=dt*2.2; f.position.y=Math.max(0,Math.sin(u.hop*Math.PI))*.5+(f===player?P.y:0); if(u.hop<=0){ u.hop=0; f.position.y=(f===player?P.y:0); } } });
+  [player,...Object.values(cast),...(G.npcObjs?Object.values(G.npcObjs):[])].forEach(f=>{ if(!f) return; const u=f.userData; if(u.hop>0){ const base=(f===player?P.y:(u.seated?-0.62*(f.scale.x||1):0)); u.hop-=dt*2.2; f.position.y=Math.max(0,Math.sin(u.hop*Math.PI))*(u.seated?.25:.5)+base; if(u.hop<=0){ u.hop=0; f.position.y=base; } } });
   if(alarmOn){ alarmLight.intensity=1.5+Math.sin(t*6)*1.4; alarmLight.position.set(P.x,4,P.z-3); } else alarmLight.intensity=Math.max(0,alarmLight.intensity-dt*3);
   if(dlgActive) positionBubble();
   if(noRender) return; renderer.render(scene,camera); requestAnimationFrame(loop);
