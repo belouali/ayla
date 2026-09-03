@@ -166,7 +166,7 @@ body.rtl .ph{font-family:"Tajawal",sans-serif}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-const BUILD="20260904005134";
+const BUILD="20260904005852";
 (function(){ try{ if(!/github\.io$/.test(location.hostname)) return; fetch("version.json?ts="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{ if(j && j.build && j.build!==BUILD){ const u=new URL(location.href); if(u.searchParams.get("v")!==j.build){ u.searchParams.set("v", j.build); location.replace(u.toString()); } } }).catch(()=>{}); }catch(e){} })();
 /* ============================== I18N : fr / en / ar ============================== */
 const I18N = {
@@ -271,7 +271,7 @@ fr: {
     note:"Il ne vérifie pas les faits. Il vérifie la forme. Qui a désactivé la vérification ?"
   },
   { id:2, theme:"lab", titre:"Le bug et la faille", principe:"Sûreté et sécurité", quartier:"Laboratoire de routage",
-    runTitle:"Vers le Laboratoire de routage", runSub:"Traverse les couloirs de serveurs. Saute par-dessus les barrières, évite les drones.",
+    runTitle:"Vers le Laboratoire de routage", runSub:"Traverse les pare-feu par leur brèche, évite les intrusions rouges qui changent de voie, ramasse les paquets de données ✦.",
     dome:[
       {who:"Rami", cls:"cit", key:"kid2", text:"Sûreté, sécurité... c'est pareil ?"},
       {who:"Saren", cls:"saren", key:"saren", text:"Non. La sûreté, c'est quand le système ne fait pas de mal par lui-même, par ses propres erreurs. La sécurité, c'est quand il est protégé contre ceux qui l'attaquent de l'extérieur. On peut avoir une forteresse imprenable qui, à l'intérieur, écrase ses habitants."},
@@ -419,7 +419,7 @@ en: {
     note:"It doesn't check the facts. It checks the shape. Who disabled the verification?"
   },
   { id:2, theme:"lab", titre:"The bug and the breach", principe:"Safety and security", quartier:"Routing Laboratory",
-    runTitle:"To the Routing Laboratory", runSub:"Cross the server corridors. Jump over the barriers, dodge the drones.",
+    runTitle:"To the Routing Laboratory", runSub:"Slip through the gap in each firewall, dodge the red intrusions that switch lanes, collect the data packets ✦.",
     dome:[
       {who:"Rami", cls:"cit", key:"kid2", text:"Safety, security... is it the same thing?"},
       {who:"Saren", cls:"saren", key:"saren", text:"No. Safety is when the system does no harm by itself, through its own mistakes. Security is when it is protected against those who attack it from outside. You can have an impregnable fortress that crushes its inhabitants inside."},
@@ -567,7 +567,7 @@ ar: {
     note:"هو لا يتحقّق من الوقائع. يتحقّق من الشكل. من عطّل التحقّق؟"
   },
   { id:2, theme:"lab", titre:"الخلل والثغرة", principe:"السلامة والأمن", quartier:"مختبر التوجيه",
-    runTitle:"نحو مختبر التوجيه", runSub:"اعبري ممرّات الخوادم. اقفزي فوق الحواجز، وتفادي الطائرات.",
+    runTitle:"نحو مختبر التوجيه", runSub:"اعبري كلّ جدار حماية من ثغرته، تفادي الاختراقات الحمراء التي تغيّر مسارها، والتقطي حزم البيانات ✦.",
     dome:[
       {who:"رامي", cls:"cit", key:"kid2", text:"السلامة والأمن... أهما الشيء نفسه؟"},
       {who:"سارين", cls:"saren", key:"saren", text:"لا. السلامة أن لا يُلحق النظام الضرر بنفسه، بأخطائه هو. والأمن أن يكون محميًّا ممّن يهاجمونه من الخارج. قد تكون هناك قلعة منيعة تسحق سكّانها في الداخل."},
@@ -928,11 +928,18 @@ function buildRun(theme, length){
   // obstacles & fragments
   const obs=[], frags=[]; const droneGeo=new THREE.SphereGeometry(.5,16,12), ringGeo=new THREE.TorusGeometry(.85,.07,8,24), fragGeo=new THREE.OctahedronGeometry(.45), barGeo=new THREE.BoxGeometry(2.6,.9,.5);
   const droneMat=new THREE.MeshStandardMaterial({color:0x1B2846, emissive:T.core, emissiveIntensity:.8}); const fragMat=new THREE.MeshStandardMaterial({color:0xE8A24A, emissive:0xE8A24A, emissiveIntensity:.9}); const barMat=new THREE.MeshStandardMaterial({color:0x2A3550, emissive:0xE06060, emissiveIntensity:.5});
-  for(let z=-30; z>-length+20; z-=9+rnd()*7){
+  const gateGeo=new THREE.BoxGeometry(2.7,2.8,.25), gateMat=new THREE.MeshStandardMaterial({color:lin(0x0E3A40), emissive:lin(0x2FB8A8), emissiveIntensity:.5, transparent:true, opacity:.55, roughness:.4}); const gapMat=new THREE.MeshBasicMaterial({color:lin(0x6FCF97), transparent:true, opacity:.5}); const intrMat=new THREE.MeshStandardMaterial({color:lin(0x3A0F12), emissive:lin(0xD83030), emissiveIntensity:1.2});
+  if(theme==="lab"){ fragMat.color.copy(lin(0x3FBF77)); fragMat.emissive.copy(lin(0x3FBF77)); }
+  for(let z=-30; z>-length+20; z-=(theme==="lab"?11:9)+rnd()*7){
     const lane=Math.floor(rnd()*3); const kind=rnd();
-    if(kind<.5){ const d=new THREE.Group(); d.add(new THREE.Mesh(droneGeo,droneMat)); const r=new THREE.Mesh(ringGeo,droneMat); r.rotation.x=Math.PI/2; d.add(r); d.position.set(LANES[lane],1.1,z); d.userData={type:"drone",lane,z,base:1.1,t:rnd()*6}; world.add(d); obs.push(d); }
-    else if(kind<.75){ const b=new THREE.Mesh(barGeo,barMat); b.position.set(LANES[lane],.45,z); b.userData={type:"bar",lane,z}; world.add(b); obs.push(b); }
-    const fl=Math.floor(rnd()*3); if(fl!==lane || kind>=.75){ const high=rnd()>.6; const f=new THREE.Mesh(fragGeo,fragMat); f.position.set(LANES[fl], high?2.6:1.1, z-3); f.userData={type:"frag",lane:fl,z:z-3,high,got:false}; world.add(f); frags.push(f); }
+    if(theme==="lab"){
+      if(kind<.5){ const gate=new THREE.Group(); [0,1,2].forEach(l=>{ if(l===lane) return; const pn=new THREE.Mesh(gateGeo,gateMat); pn.position.set(LANES[l],1.4,0); gate.add(pn); }); const top=new THREE.Mesh(new THREE.BoxGeometry(9.6,.22,.3), darkMat()); top.position.y=2.9; gate.add(top); [-1,1].forEach(sd=>{ const post=new THREE.Mesh(new THREE.BoxGeometry(.22,2.9,.3), darkMat()); post.position.set(sd*4.7,1.45,0); gate.add(post); }); const gap=new THREE.Mesh(new THREE.PlaneGeometry(2.4,1.2), gapMat); gap.rotation.x=-Math.PI/2; gap.position.set(LANES[lane],.05,.2); gate.add(gap); gate.position.z=z; gate.userData={type:"gate",open:lane,z}; world.add(gate); obs.push(gate); }
+      else if(kind<.85){ const d=new THREE.Group(); d.add(new THREE.Mesh(new THREE.OctahedronGeometry(.55),intrMat)); const r=new THREE.Mesh(ringGeo,intrMat); r.rotation.x=Math.PI/2; d.add(r); const to=(lane+1+Math.floor(rnd()*2))%3; d.position.set(LANES[lane],1.1,z); d.userData={type:"intrusion",lane,z,base:1.1,t:rnd()*6,from:lane,to,phase:rnd()*6}; world.add(d); obs.push(d); }
+    } else {
+      if(kind<.5){ const d=new THREE.Group(); d.add(new THREE.Mesh(droneGeo,droneMat)); const r=new THREE.Mesh(ringGeo,droneMat); r.rotation.x=Math.PI/2; d.add(r); d.position.set(LANES[lane],1.1,z); d.userData={type:"drone",lane,z,base:1.1,t:rnd()*6}; world.add(d); obs.push(d); }
+      else if(kind<.75){ const b=new THREE.Mesh(barGeo,barMat); b.position.set(LANES[lane],.45,z); b.userData={type:"bar",lane,z}; world.add(b); obs.push(b); }
+    }
+    const fl=Math.floor(rnd()*3); if(fl!==lane || kind>=.75){ const high=rnd()>.6; const f=new THREE.Mesh(fragGeo,fragMat); f.position.set(LANES[fl], high?2.6:1.1, z-4); f.userData={type:"frag",lane:fl,z:z-4,high,got:false}; world.add(f); frags.push(f); }
   }
   // arena at the end
   const plazaZ=-length-12; const plaza=new THREE.Mesh(new THREE.CircleGeometry(14,40), new THREE.MeshStandardMaterial({color:lin(T.road), emissive:T.core, emissiveIntensity:.05, roughness:1})); plaza.rotation.x=-Math.PI/2; plaza.position.set(0,.02,plazaZ); world.add(plaza);
@@ -1186,8 +1193,12 @@ function loopBody(now, noRender){
     player.position.set(P.x,P.y,P.z); player.rotation.y=Math.PI+(targetX-P.x)*.15; animFigure(player,dt,P.jumping?"idle":"run");
     if(P.jumping){ player.scale.set(.95,1.08,.95); } else player.scale.set(1,1,1);
     // obstacles
-    level.obs.forEach(o=>{ if(o.userData.type==="drone"){ o.position.y=o.userData.base+Math.sin(t*3+o.userData.t)*.15; o.rotation.y+=dt*2; }
-      if(!o.userData.hit && Math.abs(o.userData.z-P.z)<1.0 && Math.abs(LANES[o.userData.lane]-P.x)<1.4 && P.y<1.3){ o.userData.hit=true; P.speed*=.35; Music.sfx("hit"); const h=document.getElementById("hit"); h.style.opacity=1; setTimeout(()=>h.style.opacity=0,220); if(S.frags>0){ S.frags--; updateFrag(); } } });
+    level.obs.forEach(o=>{ const u=o.userData;
+      if(u.type==="drone"){ o.position.y=u.base+Math.sin(t*3+u.t)*.15; o.rotation.y+=dt*2; }
+      if(u.type==="intrusion"){ const k=(Math.sin(t*1.6+u.phase)+1)/2; o.position.x=LANES[u.from]+(LANES[u.to]-LANES[u.from])*k; o.position.y=u.base+Math.sin(t*4+u.t)*.1; o.rotation.y+=dt*4; }
+      if(u.hit || Math.abs(u.z-P.z)>=1.0) return;
+      let hit=false; if(u.type==="gate") hit=Math.abs(LANES[u.open]-P.x)>1.4; else if(u.type==="bar") hit=Math.abs(LANES[u.lane]-P.x)<1.4 && P.y<1.3; else hit=Math.abs(o.position.x-P.x)<1.4 && P.y<1.3;
+      if(hit){ u.hit=true; P.speed*=.35; Music.sfx("hit"); const h=document.getElementById("hit"); h.style.opacity=1; setTimeout(()=>h.style.opacity=0,220); if(S.frags>0){ S.frags--; updateFrag(); } } });
     level.frags.forEach(f=>{ if(f.userData.got) return; f.rotation.y+=dt*3; f.position.y=(f.userData.high?2.6:1.1)+Math.sin(t*4+f.userData.z)*.1; if(Math.abs(f.userData.z-P.z)<1.1 && Math.abs(LANES[f.userData.lane]-P.x)<1.3 && Math.abs(f.position.y-(P.y+1.2))<1.2){ f.userData.got=true; f.visible=false; S.frags++; updateFrag(); Music.sfx("collect"); } });
     camera.position.lerp(new THREE.Vector3(P.x*.6, 4.6+P.y*.3, P.z+9.5), Math.min(1,dt*6)); camera.lookAt(P.x*.6, 1.6, P.z-8);
     if(P.z<-level.length+2){ endRun(); }
