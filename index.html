@@ -72,6 +72,24 @@ button:focus-visible,[contenteditable]:focus-visible{outline:3px solid var(--ayl
 .label.door{background:rgba(20,31,54,.92);color:#fff;border:1px solid var(--line);white-space:normal;max-width:300px;text-align:left;padding:10px 14px;border-radius:14px;transform:translate(-50%,0)}
 .label.door b{display:block;font:800 13px var(--display);margin-bottom:4px} .label.door small{display:block;color:#C9D3E6;font-size:12px;line-height:1.35}
 /* overlays */
+.map{position:fixed;inset:70px 0 0 0;z-index:26;perspective:1400px;display:grid;place-items:center;background:linear-gradient(180deg,rgba(5,8,16,.3),rgba(5,8,16,.72))}
+.mapplane{position:relative;width:min(1100px,92vw);height:min(560px,60vh);transform:rotateX(38deg) translateY(-30px);transform-style:preserve-3d;background:linear-gradient(180deg,rgba(94,168,255,.06),rgba(94,168,255,.14));border:1px solid rgba(94,168,255,.35);border-radius:24px;box-shadow:0 60px 120px rgba(0,0,0,.6),0 0 80px rgba(94,168,255,.12) inset;transition:transform 1.1s cubic-bezier(.4,0,.2,1)}
+.mapplane svg{position:absolute;inset:0;width:100%;height:100%}
+.mapplane.zoom .node .lab{opacity:0}
+.node{position:absolute;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;border:2px solid var(--line);background:var(--panel2);color:var(--muted);font:800 18px var(--display);display:grid;place-items:center;transform:translateZ(30px);box-shadow:0 14px 30px rgba(0,0,0,.5)}
+.node .lab{position:absolute;top:60px;left:50%;transform:translateX(-50%);white-space:nowrap;font:700 12px var(--body);color:var(--muted)}
+.node.active{border-color:var(--ayla);color:var(--ayla);background:#2A1F0F;cursor:pointer;animation:beacon 2s infinite}
+.node.active .lab{color:var(--ayla)}
+.node.done{border-color:var(--cit);color:var(--cit);background:#0F2A1B}
+@keyframes beacon{0%,100%{box-shadow:0 0 0 6px rgba(232,162,74,.25),0 14px 30px rgba(0,0,0,.5)}50%{box-shadow:0 0 0 14px rgba(232,162,74,.08),0 0 50px rgba(232,162,74,.3),0 14px 30px rgba(0,0,0,.5)}}
+.traveler{position:absolute;width:56px;height:96px;margin:-88px 0 0 -28px;transform:translateZ(50px);pointer-events:none;z-index:3}
+.traveler svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 12px 12px rgba(0,0,0,.55))}
+.traveler.walk{animation:walkbob .32s ease-in-out infinite}
+@keyframes walkbob{0%,100%{transform:translateZ(50px) translateY(0)}50%{transform:translateZ(50px) translateY(-6px)}}
+.maphud{position:fixed;left:18px;right:18px;bottom:22px;z-index:27;max-width:560px;background:rgba(20,31,54,.92);border:1px solid var(--line);border-radius:16px;padding:14px 18px;font-size:14px;line-height:1.45}
+.maphud .t{font:800 12px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--ayla)}
+body.rtl .maphud{left:auto;right:18px}
+@media (max-width:760px){ .mapplane{transform:rotateX(30deg) translateY(-10px);height:min(380px,42vh)} .node{width:44px;height:44px;margin:-22px 0 0 -22px;font-size:15px} .node .lab{display:none} .map{inset:60px 0 0 0;align-items:start;padding-top:16px} .maphud{font-size:13px;padding:12px 14px} }
 .overlay{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:20px;background:rgba(5,8,16,.55);backdrop-filter:blur(4px)}
 .title{text-align:center;max-width:720px}
 .title h1{font:800 clamp(40px,7vw,86px) var(--display);margin:0;line-height:1;text-shadow:0 0 40px var(--fl-glow)}
@@ -148,7 +166,7 @@ body.rtl .ph{font-family:"Tajawal",sans-serif}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-const BUILD="20260903235736";
+const BUILD="20260904003635";
 (function(){ try{ if(!/github\.io$/.test(location.hostname)) return; fetch("version.json?ts="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{ if(j && j.build && j.build!==BUILD){ const u=new URL(location.href); if(u.searchParams.get("v")!==j.build){ u.searchParams.set("v", j.build); location.replace(u.toString()); } } }).catch(()=>{}); }catch(e){} })();
 /* ============================== I18N : fr / en / ar ============================== */
 const I18N = {
@@ -160,7 +178,7 @@ fr: {
     start:"Commencer", restart:"Recommencer", cont:n=>`Continuer (mission ${n})`,
     controls:"<b>Clavier</b> : flèches ou A/D pour changer de voie, espace pour sauter, E ou Entrée pour parler et avancer. <b>Écran tactile</b> : boutons en bas, toucher le sol pour marcher.",
     privacy:"Ce prototype n'enregistre rien en dehors de cet appareil.", wipe:"Tout effacer", credits:"Crédits musique", language:"Langue",
-    hudCity:"Chroma · 2170", hudProto:"Prototype · Missions 1 et 2", prologue:"Prologue", dome:"Le Dôme mémoriel", missionDome:n=>`Mission ${n} · Dôme mémoriel`, mission:n=>`Mission ${n}`,
+    mapTitle:"Carte de Chroma", mapSub:"Dix quartiers, une mission par quartier", mapGo:"Touche le quartier actif : Ayla s'y rend.", mapEnter:"Entrer dans le quartier", mapDoneTitle:"Prototype terminé", mapNotIncl:t=>`La mission 3, « ${t} » au Quartier Indigo, n'est pas incluse dans ce prototype.`, mapReport:"Voir le bilan", mapMission:(n,p)=>`Mission ${n} · ${p}`, mapSoon:(n,t)=>`Mission ${n} : « ${t} ». À venir dans la version complète.`, hudCity:"Chroma · 2170", hudProto:"Prototype · Missions 1 et 2", prologue:"Prologue", dome:"Le Dôme mémoriel", missionDome:n=>`Mission ${n} · Dôme mémoriel`, mission:n=>`Mission ${n}`,
     phases:[["Course",""],["Scène","2 min"],["Dilemme","1 min"],["Délibération","3 min"],["Choix","1 min"],["Conséquences","3 min"],["Transition","2 min"]],
     helpContinue:"Toucher l'écran, <b>Espace</b>, <b>Entrée</b> ou <b>●</b> : continuer",
     helpRun:"<b>◀ ▶</b> changer de voie · <b>Espace</b> sauter",
@@ -308,7 +326,7 @@ en: {
     start:"Start", restart:"Start over", cont:n=>`Continue (mission ${n})`,
     controls:"<b>Keyboard</b>: arrows or A/D to change lane, space to jump, E or Enter to talk and move on. <b>Touch screen</b>: buttons at the bottom, tap the ground to walk.",
     privacy:"This prototype stores nothing outside this device.", wipe:"Erase everything", credits:"Music credits", language:"Language",
-    hudCity:"Chroma · 2170", hudProto:"Prototype · Missions 1 and 2", prologue:"Prologue", dome:"The Memorial Dome", missionDome:n=>`Mission ${n} · Memorial Dome`, mission:n=>`Mission ${n}`,
+    mapTitle:"Map of Chroma", mapSub:"Ten districts, one mission per district", mapGo:"Tap the active district: Ayla goes there.", mapEnter:"Enter the district", mapDoneTitle:"Prototype complete", mapNotIncl:t=>`Mission 3, "${t}" in the Indigo District, is not included in this prototype.`, mapReport:"See the summary", mapMission:(n,p)=>`Mission ${n} · ${p}`, mapSoon:(n,t)=>`Mission ${n}: "${t}". Coming in the full version.`, hudCity:"Chroma · 2170", hudProto:"Prototype · Missions 1 and 2", prologue:"Prologue", dome:"The Memorial Dome", missionDome:n=>`Mission ${n} · Memorial Dome`, mission:n=>`Mission ${n}`,
     phases:[["Run",""],["Scene","2 min"],["Dilemma","1 min"],["Deliberation","3 min"],["Choice","1 min"],["Consequences","3 min"],["Transition","2 min"]],
     helpContinue:"Tap the screen, <b>Space</b>, <b>Enter</b> or <b>●</b>: continue",
     helpRun:"<b>◀ ▶</b> change lane · <b>Space</b> jump",
@@ -456,7 +474,7 @@ ar: {
     start:"ابدأ", restart:"ابدأ من جديد", cont:n=>`متابعة (المهمّة ${n})`,
     controls:"<b>لوحة المفاتيح</b>: الأسهم أو A/D لتغيير المسار، المسافة للقفز، E أو Enter للحديث والمتابعة. <b>الشاشة اللمسية</b>: الأزرار في الأسفل، والمس الأرض للمشي.",
     privacy:"هذا النموذج لا يحفظ أي شيء خارج هذا الجهاز.", wipe:"مسح الكل", credits:"شكر للموسيقى", language:"اللغة",
-    hudCity:"كروما · 2170", hudProto:"نموذج أولي · المهمّتان 1 و2", prologue:"المقدّمة", dome:"قبّة الذاكرة", missionDome:n=>`المهمّة ${n} · قبّة الذاكرة`, mission:n=>`المهمّة ${n}`,
+    mapTitle:"خريطة كروما", mapSub:"عشرة أحياء، مهمّة في كلّ حيّ", mapGo:"المس الحيّ النشط: تذهب آيلا إليه.", mapEnter:"ادخل الحيّ", mapDoneTitle:"اكتمل النموذج الأولي", mapNotIncl:t=>`المهمّة 3، «${t}» في حيّ إنديغو، غير مُدرجة في هذا النموذج الأولي.`, mapReport:"عرض الحصيلة", mapMission:(n,p)=>`المهمّة ${n} · ${p}`, mapSoon:(n,t)=>`المهمّة ${n}: «${t}». قريبًا في النسخة الكاملة.`, hudCity:"كروما · 2170", hudProto:"نموذج أولي · المهمّتان 1 و2", prologue:"المقدّمة", dome:"قبّة الذاكرة", missionDome:n=>`المهمّة ${n} · قبّة الذاكرة`, mission:n=>`المهمّة ${n}`,
     phases:[["الركض",""],["المشهد","2 د"],["المعضلة","1 د"],["التداول","3 د"],["الاختيار","1 د"],["العواقب","3 د"],["الانتقال","2 د"]],
     helpContinue:"المس الشاشة، أو <b>المسافة</b>، أو <b>Enter</b>، أو <b>●</b>: متابعة",
     helpRun:"<b>◀ ▶</b> تغيير المسار · <b>المسافة</b> للقفز",
@@ -957,10 +975,37 @@ function screenTitle(){
     <div class="noteBtns"><button class="btn" id="start">${n?T.restart:T.start}</button>${n&&n<MISSIONS.length?`<button class="btn ghost" id="cont">${T.cont(n+1)}</button>`:""}</div>
     <div class="note"><p>${T.controls}</p><p>${T.privacy}</p><div class="noteBtns"><button class="btn ghost sm" id="wipe">${T.wipe}</button><button class="btn ghost sm" id="cred">${T.credits}</button></div></div></div></div>`;
   app.querySelector("#start").onclick=()=>{ Music.start(); S=freshState(); save(); app.innerHTML=""; document.getElementById("langsw").classList.add("hidden"); playPrologue(); };
-  const c=app.querySelector("#cont"); if(c) c.onclick=()=>{ Music.start(); app.innerHTML=""; document.getElementById("langsw").classList.add("hidden"); S.current=n+1; startMission(); };
+  const c=app.querySelector("#cont"); if(c) c.onclick=()=>{ Music.start(); app.innerHTML=""; document.getElementById("langsw").classList.add("hidden"); screenMap(); };
   app.querySelector("#wipe").onclick=()=>{ try{localStorage.removeItem("ayla_game");}catch(e){} S=freshState(); screenTitle(); };
   app.querySelector("#cred").onclick=showCredits;
   const sw=document.getElementById("langsw"); sw.classList.remove("hidden"); sw.querySelectorAll("button").forEach(b=>{ b.classList.toggle("on", b.dataset.l===LANG); b.onclick=()=>{ setLang(b.dataset.l); screenTitle(); }; });
+}
+/* ---- map of Chroma: progress between missions ---- */
+const PTS=[[13,80],[22,50],[31,76],[40,44],[49,70],[58,40],[67,66],[76,38],[85,62],[92,26]];
+function aylaMarkSVG(){ return `<svg viewBox="0 0 64 110"><ellipse cx="32" cy="104" rx="18" ry="5" fill="rgba(0,0,0,.45)"/><rect x="20" y="62" width="10" height="34" rx="4" fill="#7FA3D6"/><rect x="34" y="62" width="10" height="34" rx="4" fill="#7FA3D6"/><rect x="14" y="36" width="36" height="34" rx="10" fill="#E8B84A"/><circle cx="32" cy="22" r="17" fill="#E7B58F"/><path d="M15 20 Q32 -4 49 20 L49 28 Q44 14 32 14 Q20 14 15 28 Z" fill="#5A3A1E"/><circle cx="26" cy="23" r="2.2" fill="#2B1B0E"/><circle cx="38" cy="23" r="2.2" fill="#2B1B0E"/><path d="M27 30 Q32 34 37 30" stroke="#8A4A2E" stroke-width="1.8" fill="none"/></svg>`; }
+function screenMap(){
+  G.state="map"; G.action=()=>{}; P.frozen=true; setPhases(-1); help(""); speech.innerHTML=""; dlgActive=null; G.npcObjs=null;
+  buildRun("city", 200); player.visible=false; camera.position.set(0,34,30); camera.lookAt(0,8,-70); Music.set("city");
+  hud(T.mapTitle, T.mapSub); document.getElementById("carnetBtn").classList.remove("hidden"); document.getElementById("frag").classList.add("hidden");
+  const n=doneCount(), active=n, last=n?MISSIONS[n-1]:null, nextM=MISSIONS[n];
+  const path="M"+PTS.map(p=>`${p[0]*11} ${p[1]*5.6}`).join(" L");
+  const nodes=PTS.map((p,i)=>{ const st=i<n?"done":(i===active?"active":""); return `<div class="node ${st}" style="left:${p[0]}%;top:${p[1]}%" data-i="${i}" ${st==="active"?'role="button" tabindex="0"':''}>${i<n?"✓":i+1}<span class="lab">${QUARTIERS[i]}</span></div>`; }).join("");
+  const at=n?PTS[n-1]:PTS[0];
+  app.innerHTML=`<div class="map"><div class="mapplane" id="plane"><svg viewBox="0 0 1100 560" preserveAspectRatio="none"><path d="${path}" fill="none" stroke="rgba(94,168,255,.45)" stroke-width="4" stroke-dasharray="12 12"/></svg>${nodes}<div class="traveler" id="traveler" style="left:${at[0]}%;top:${at[1]}%">${aylaMarkSVG()}</div></div></div>
+  <div class="maphud"><div class="t">${nextM?T.mapMission(nextM.id,nextM.principe):T.mapDoneTitle}</div>
+  <div style="margin-top:6px">${last?last.indice.who+" : « "+last.indice.text+" »":T.mapGo}</div>
+  ${nextM?(last?`<div class="small" style="margin-top:8px">${T.mapGo}</div>`:""):`<div class="small" style="margin-top:8px">${T.mapNotIncl(TITRES3)}</div>`}
+  <div class="noteBtns" style="justify-content:flex-end;margin-top:10px"><button class="btn sm" id="mapBtn">${nextM?T.mapEnter:T.mapReport}</button></div></div>`;
+  const nd=app.querySelector(`.node[data-i="${active}"]`), btn=app.querySelector("#mapBtn");
+  if(nextM){ let going=false; const go=()=>{ if(going) return; going=true; travelTo(active, ()=>{ S.current=nextM.id; save(); app.innerHTML=""; startMission(); }); }; if(nd){ nd.onclick=go; nd.onkeydown=e=>{ if(e.key==="Enter") go(); }; } btn.onclick=go; }
+  else { if(nd) nd.onclick=()=>banner(T.mapSoon(active+1,TITRES3),"",3000); btn.onclick=()=>{ app.innerHTML=""; screenEnd(); }; }
+}
+function travelTo(i, cb){
+  const plane=document.getElementById("plane"), trav=document.getElementById("traveler"); const n=doneCount(); const from=n?PTS[n-1]:PTS[i], to=PTS[i];
+  trav.classList.add("walk"); Music.sfx("tick"); const t0=performance.now(), dur=(from===to)?700:2200;
+  const step=now=>{ const k=Math.min(1,(now-t0)/dur); const e=k<.5?2*k*k:-1+(4-2*k)*k; trav.style.left=(from[0]+(to[0]-from[0])*e)+"%"; trav.style.top=(from[1]+(to[1]-from[1])*e-Math.abs(Math.sin(k*Math.PI*6))*1.6)+"%";
+    if(k<1) setTimeout(()=>step(performance.now()),16); else { trav.classList.remove("walk"); Music.sfx("collect"); plane.classList.add("zoom"); plane.style.transform=`rotateX(18deg) translateY(-30px) scale(1.9) translate(${(50-to[0])*.9}%, ${(45-to[1])*.9}%)`; setTimeout(cb, 1000); } };
+  step(performance.now());
 }
 /* ---- dome (prologue and each mission opening) ---- */
 let cast={};
@@ -978,7 +1023,7 @@ function buildDome(){
   player.position.set(-2.9,0,3.8); player.rotation.y=Math.atan2(0-(-2.9), -3.2-3.8); player.visible=true; P.x=-2.9; P.z=3.8; P.y=0;
   camera.position.set(0.6,3.6,9.2); camera.lookAt(0,1.6,-1.4);
 }
-function playPrologue(){ G.state="dome"; hud(T.prologue,T.dome); document.getElementById("carnetBtn").classList.remove("hidden"); help(T.helpContinue); runDialogue(PROLOGUE, ()=>{ S.current=1; startMission(); }); }
+function playPrologue(){ G.state="dome"; hud(T.prologue,T.dome); document.getElementById("carnetBtn").classList.remove("hidden"); help(T.helpContinue); runDialogue(PROLOGUE, ()=>screenMap()); }
 
 /* ---- dialogue with 3D anchors ---- */
 let dlgActive=null;
@@ -1038,6 +1083,7 @@ function startDelib(){
   const M=cur(); setPhases(3); Music.set("tense"); G.state="delib"; P.frozen=false; G.q=0;
   const pz=level.plazaZ; const s=figure("saren"); const sx=Math.max(-6,Math.min(6,P.x*.4)), sz=Math.max(pz-11,P.z-6); s.position.set(sx,0,sz); s.rotation.y=Math.atan2(P.x-sx,P.z-sz); G.sarenSpot=[sx,sz]; s.traverse(o=>{ if(o.material && o.material.isMeshStandardMaterial){ o.material=o.material.clone(); o.material.transparent=true; o.material.opacity=.6; o.material.emissive=new THREE.Color(0x9B7BD6); o.material.emissiveIntensity=.12; } else if(o.material){ o.visible=false; } }); world.add(s); cast.saren=s; G.sarenHolo=s;
   P.tx=null; P.tz=null; player.rotation.y=Math.atan2(sx-P.x,sz-P.z);
+  Object.values(G.npcObjs||{}).forEach((f,i)=>{ const side=(Object.keys(G.npcObjs).length===1)?(f.position.x>=0?1:-1):(i===0?-1:1); f.userData.slideTo={x:side*8.6, z:Math.min(pz+11, P.z+1.5)}; if(f.userData.ring) f.userData.ring.visible=false; });
   runDialogue([{who:T.sarenEcho, key:"saren", cls:"saren", text:M.echo+" "+T.sarenIntro}], ()=>askQuestion());
 }
 function askQuestion(){
@@ -1096,7 +1142,7 @@ function pickProof(){
   app.querySelector("#keep").onclick=()=>{ app.innerHTML=""; document.getElementById("carnetDot").classList.remove("hidden"); const L=Object.assign({}, M.indice); runDialogue([L], ()=>{
       speech.innerHTML=""; const b=el(`<div class="speech ayla-b"><div class="who ayla">${T.noteTitle}</div><div class="edit" id="note" contenteditable="true">${M.note}</div><div class="row"><span class="small" style="color:#8B6A3E">${T.noteHint}</span><button class="btn sm" id="done">${S.current<MISSIONS.length?T.nextDistrict:T.finish}</button></div><div class="tail"></div></div>`); speech.appendChild(b); dlgActive={el:b,obj:player}; positionBubble();
       b.querySelector("#note").addEventListener("keydown",e=>e.stopPropagation());
-      b.querySelector("#done").onclick=async ()=>{ st.note=b.querySelector("#note").textContent.trim(); st.done=true; st.frags=S.frags; S.history.push({m:M.id,choice:k}); save(); speech.innerHTML=""; dlgActive=null; Object.values(G.npcObjs).forEach(f=>f.userData.label&&f.userData.label.remove()); if(S.current<MISSIONS.length){ S.current++; save(); startMission(); } else screenEnd(); };
+      b.querySelector("#done").onclick=async ()=>{ st.note=b.querySelector("#note").textContent.trim(); st.done=true; st.frags=S.frags; S.history.push({m:M.id,choice:k}); save(); speech.innerHTML=""; dlgActive=null; Object.values(G.npcObjs).forEach(f=>f.userData.label&&f.userData.label.remove()); screenMap(); };
       G.action=()=>{};
     }); };
 }
