@@ -68,6 +68,11 @@ button:focus-visible,[contenteditable]:focus-visible{outline:3px solid var(--ayl
 @keyframes rise{from{opacity:0;transform:translate(-50%,14px)}to{opacity:1;transform:translate(-50%,0)}}
 @keyframes pulse{0%,100%{opacity:.7}50%{opacity:1}}
 .label{position:fixed;transform:translate(-50%,-100%);pointer-events:none;z-index:14;background:rgba(255,246,229,.95);color:#5A3D14;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;box-shadow:0 8px 20px rgba(0,0,0,.4);white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis}
+.label.mapn{background:rgba(20,31,54,.92);color:#fff;border:1px solid var(--line);padding:5px 10px 5px 6px;font-size:12px;transform:translate(-50%,-100%)}
+.label.mapn b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#2A3550;margin-inline-end:6px;font-size:11px}
+.label.mapn.done{border-color:var(--cit)} .label.mapn.done b{background:var(--cit);color:#0A1020}
+.label.mapn.active{border-color:var(--ayla);color:var(--ayla);box-shadow:0 0 0 4px rgba(232,162,74,.18)} .label.mapn.active b{background:var(--ayla);color:#0A1020}
+.label.mapn.dim{opacity:.55}
 .label.npc{background:rgba(20,31,54,.9);color:#fff;border:1px solid var(--line)} .label.npc.ready{border-color:var(--cit);color:var(--cit)}
 .label.door{background:rgba(20,31,54,.92);color:#fff;border:1px solid var(--line);white-space:normal;max-width:300px;text-align:left;padding:10px 14px;border-radius:14px;transform:translate(-50%,0)}
 .label.door b{display:block;font:800 13px var(--display);margin-bottom:4px} .label.door small{display:block;color:#C9D3E6;font-size:12px;line-height:1.35}
@@ -166,7 +171,7 @@ body.rtl .ph{font-family:"Tajawal",sans-serif}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-const BUILD="20260904005852";
+const BUILD="20260904010654";
 (function(){ try{ if(!/github\.io$/.test(location.hostname)) return; fetch("version.json?ts="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{ if(j && j.build && j.build!==BUILD){ const u=new URL(location.href); if(u.searchParams.get("v")!==j.build){ u.searchParams.set("v", j.build); location.replace(u.toString()); } } }).catch(()=>{}); }catch(e){} })();
 /* ============================== I18N : fr / en / ar ============================== */
 const I18N = {
@@ -178,7 +183,7 @@ fr: {
     start:"Commencer", restart:"Recommencer", cont:n=>`Continuer (mission ${n})`,
     controls:"<b>Clavier</b> : flèches ou A/D pour changer de voie, espace pour sauter, E ou Entrée pour parler et avancer. <b>Écran tactile</b> : boutons en bas, toucher le sol pour marcher.",
     privacy:"Ce prototype n'enregistre rien en dehors de cet appareil.", wipe:"Tout effacer", credits:"Crédits musique", language:"Langue",
-    mapTitle:"Carte de Chroma", mapSub:"Dix quartiers, une mission par quartier", mapGo:"Touche le quartier actif : Ayla s'y rend.", mapEnter:"Entrer dans le quartier", mapDoneTitle:"Prototype terminé", mapNotIncl:t=>`La mission 3, « ${t} » au Quartier Indigo, n'est pas incluse dans ce prototype.`, mapReport:"Voir le bilan", mapMission:(n,p)=>`Mission ${n} · ${p}`, mapSoon:(n,t)=>`Mission ${n} : « ${t} ». À venir dans la version complète.`, hudCity:"Chroma · 2170", hudProto:"Prototype · Missions 1 et 2", prologue:"Prologue", dome:"Le Dôme mémoriel", missionDome:n=>`Mission ${n} · Dôme mémoriel`, mission:n=>`Mission ${n}`,
+    mapWalking:"Ayla se rend au quartier suivant…", mapArrived:"Ayla est arrivée. Appuie sur Entrée ou touche l'écran pour entrer dans le quartier.", mapTitle:"Carte de Chroma", mapSub:"Dix quartiers, une mission par quartier", mapGo:"Touche le quartier actif : Ayla s'y rend.", mapEnter:"Entrer dans le quartier", mapDoneTitle:"Prototype terminé", mapNotIncl:t=>`La mission 3, « ${t} » au Quartier Indigo, n'est pas incluse dans ce prototype.`, mapReport:"Voir le bilan", mapMission:(n,p)=>`Mission ${n} · ${p}`, mapSoon:(n,t)=>`Mission ${n} : « ${t} ». À venir dans la version complète.`, hudCity:"Chroma · 2170", hudProto:"Prototype · Missions 1 et 2", prologue:"Prologue", dome:"Le Dôme mémoriel", missionDome:n=>`Mission ${n} · Dôme mémoriel`, mission:n=>`Mission ${n}`,
     phases:[["Course",""],["Scène","2 min"],["Dilemme","1 min"],["Délibération","3 min"],["Choix","1 min"],["Conséquences","3 min"],["Transition","2 min"]],
     helpContinue:"Toucher l'écran, <b>Espace</b>, <b>Entrée</b> ou <b>●</b> : continuer",
     helpRun:"<b>◀ ▶</b> changer de voie · <b>Espace</b> sauter",
@@ -326,7 +331,7 @@ en: {
     start:"Start", restart:"Start over", cont:n=>`Continue (mission ${n})`,
     controls:"<b>Keyboard</b>: arrows or A/D to change lane, space to jump, E or Enter to talk and move on. <b>Touch screen</b>: buttons at the bottom, tap the ground to walk.",
     privacy:"This prototype stores nothing outside this device.", wipe:"Erase everything", credits:"Music credits", language:"Language",
-    mapTitle:"Map of Chroma", mapSub:"Ten districts, one mission per district", mapGo:"Tap the active district: Ayla goes there.", mapEnter:"Enter the district", mapDoneTitle:"Prototype complete", mapNotIncl:t=>`Mission 3, "${t}" in the Indigo District, is not included in this prototype.`, mapReport:"See the summary", mapMission:(n,p)=>`Mission ${n} · ${p}`, mapSoon:(n,t)=>`Mission ${n}: "${t}". Coming in the full version.`, hudCity:"Chroma · 2170", hudProto:"Prototype · Missions 1 and 2", prologue:"Prologue", dome:"The Memorial Dome", missionDome:n=>`Mission ${n} · Memorial Dome`, mission:n=>`Mission ${n}`,
+    mapWalking:"Ayla is walking to the next district…", mapArrived:"Ayla has arrived. Press Enter or tap the screen to enter the district.", mapTitle:"Map of Chroma", mapSub:"Ten districts, one mission per district", mapGo:"Tap the active district: Ayla goes there.", mapEnter:"Enter the district", mapDoneTitle:"Prototype complete", mapNotIncl:t=>`Mission 3, "${t}" in the Indigo District, is not included in this prototype.`, mapReport:"See the summary", mapMission:(n,p)=>`Mission ${n} · ${p}`, mapSoon:(n,t)=>`Mission ${n}: "${t}". Coming in the full version.`, hudCity:"Chroma · 2170", hudProto:"Prototype · Missions 1 and 2", prologue:"Prologue", dome:"The Memorial Dome", missionDome:n=>`Mission ${n} · Memorial Dome`, mission:n=>`Mission ${n}`,
     phases:[["Run",""],["Scene","2 min"],["Dilemma","1 min"],["Deliberation","3 min"],["Choice","1 min"],["Consequences","3 min"],["Transition","2 min"]],
     helpContinue:"Tap the screen, <b>Space</b>, <b>Enter</b> or <b>●</b>: continue",
     helpRun:"<b>◀ ▶</b> change lane · <b>Space</b> jump",
@@ -474,7 +479,7 @@ ar: {
     start:"ابدأ", restart:"ابدأ من جديد", cont:n=>`متابعة (المهمّة ${n})`,
     controls:"<b>لوحة المفاتيح</b>: الأسهم أو A/D لتغيير المسار، المسافة للقفز، E أو Enter للحديث والمتابعة. <b>الشاشة اللمسية</b>: الأزرار في الأسفل، والمس الأرض للمشي.",
     privacy:"هذا النموذج لا يحفظ أي شيء خارج هذا الجهاز.", wipe:"مسح الكل", credits:"شكر للموسيقى", language:"اللغة",
-    mapTitle:"خريطة كروما", mapSub:"عشرة أحياء، مهمّة في كلّ حيّ", mapGo:"المس الحيّ النشط: تذهب آيلا إليه.", mapEnter:"ادخل الحيّ", mapDoneTitle:"اكتمل النموذج الأولي", mapNotIncl:t=>`المهمّة 3، «${t}» في حيّ إنديغو، غير مُدرجة في هذا النموذج الأولي.`, mapReport:"عرض الحصيلة", mapMission:(n,p)=>`المهمّة ${n} · ${p}`, mapSoon:(n,t)=>`المهمّة ${n}: «${t}». قريبًا في النسخة الكاملة.`, hudCity:"كروما · 2170", hudProto:"نموذج أولي · المهمّتان 1 و2", prologue:"المقدّمة", dome:"قبّة الذاكرة", missionDome:n=>`المهمّة ${n} · قبّة الذاكرة`, mission:n=>`المهمّة ${n}`,
+    mapWalking:"آيلا في طريقها إلى الحيّ التالي…", mapArrived:"وصلت آيلا. اضغط Enter أو المس الشاشة لدخول الحيّ.", mapTitle:"خريطة كروما", mapSub:"عشرة أحياء، مهمّة في كلّ حيّ", mapGo:"المس الحيّ النشط: تذهب آيلا إليه.", mapEnter:"ادخل الحيّ", mapDoneTitle:"اكتمل النموذج الأولي", mapNotIncl:t=>`المهمّة 3، «${t}» في حيّ إنديغو، غير مُدرجة في هذا النموذج الأولي.`, mapReport:"عرض الحصيلة", mapMission:(n,p)=>`المهمّة ${n} · ${p}`, mapSoon:(n,t)=>`المهمّة ${n}: «${t}». قريبًا في النسخة الكاملة.`, hudCity:"كروما · 2170", hudProto:"نموذج أولي · المهمّتان 1 و2", prologue:"المقدّمة", dome:"قبّة الذاكرة", missionDome:n=>`المهمّة ${n} · قبّة الذاكرة`, mission:n=>`المهمّة ${n}`,
     phases:[["الركض",""],["المشهد","2 د"],["المعضلة","1 د"],["التداول","3 د"],["الاختيار","1 د"],["العواقب","3 د"],["الانتقال","2 د"]],
     helpContinue:"المس الشاشة، أو <b>المسافة</b>، أو <b>Enter</b>، أو <b>●</b>: متابعة",
     helpRun:"<b>◀ ▶</b> تغيير المسار · <b>المسافة</b> للقفز",
@@ -970,7 +975,7 @@ function laneMove(d){ if(G.state!=="run") return; P.lane=Math.max(0,Math.min(2,P
 function jump(){ if(G.state!=="run"||P.jumping) return; P.jumping=true; P.vy=9.5; Music.sfx("jump"); }
 // tap to move in arena
 const ray=new THREE.Raycaster(), groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
-canvas.addEventListener("pointerdown",e=>{ if(G.state==="arena"&&!P.frozen){ const m=new THREE.Vector2((e.clientX/innerWidth)*2-1, -(e.clientY/innerHeight)*2+1); ray.setFromCamera(m,camera); const p=new THREE.Vector3(); if(ray.ray.intersectPlane(groundPlane,p)){ P.tx=p.x; P.tz=p.z; } } if(G.state==="dialogue"||G.state==="dome") G.action(); });
+canvas.addEventListener("pointerdown",e=>{ if(G.state==="arena"&&!P.frozen){ const m=new THREE.Vector2((e.clientX/innerWidth)*2-1, -(e.clientY/innerHeight)*2+1); ray.setFromCamera(m,camera); const p=new THREE.Vector3(); if(ray.ray.intersectPlane(groundPlane,p)){ P.tx=p.x; P.tz=p.z; } } if(G.state==="dialogue"||G.state==="dome"||G.state==="map") G.action(); });
 
 /* ============================== GAME FLOW ============================== */
 const app=document.getElementById("app"), speech=document.getElementById("speech"), labelsEl=document.getElementById("labels");
@@ -997,32 +1002,73 @@ function screenTitle(){
   app.querySelector("#cred").onclick=showCredits;
   const sw=document.getElementById("langsw"); sw.classList.remove("hidden"); sw.querySelectorAll("button").forEach(b=>{ b.classList.toggle("on", b.dataset.l===LANG); b.onclick=()=>{ setLang(b.dataset.l); screenTitle(); }; });
 }
-/* ---- map of Chroma: progress between missions ---- */
-const PTS=[[13,80],[22,50],[31,76],[40,44],[49,70],[58,40],[67,66],[76,38],[85,62],[92,26]];
-function aylaMarkSVG(){ return `<svg viewBox="0 0 64 110"><ellipse cx="32" cy="104" rx="18" ry="5" fill="rgba(0,0,0,.45)"/><rect x="20" y="62" width="10" height="34" rx="4" fill="#7FA3D6"/><rect x="34" y="62" width="10" height="34" rx="4" fill="#7FA3D6"/><rect x="14" y="36" width="36" height="34" rx="10" fill="#E8B84A"/><circle cx="32" cy="22" r="17" fill="#E7B58F"/><path d="M15 20 Q32 -4 49 20 L49 28 Q44 14 32 14 Q20 14 15 28 Z" fill="#5A3A1E"/><circle cx="26" cy="23" r="2.2" fill="#2B1B0E"/><circle cx="38" cy="23" r="2.2" fill="#2B1B0E"/><path d="M27 30 Q32 34 37 30" stroke="#8A4A2E" stroke-width="1.8" fill="none"/></svg>`; }
+/* ---- map of Chroma: a miniature city, Ayla walks from district to district ---- */
+const MAPD={ dome:[-48,0], pts:[[-36,12],[-24,-12],[-12,12],[0,-24],[12,0],[24,12],[24,-12],[36,0],[48,12],[48,-12]], sx:[-48,-36,-24,-12,0,12,24,36,48], sz:[-24,-12,0,12,24], parks:[[-42,-18],[18,-18],[42,-6],[-18,18]] };
+const DCOL=[0x5EA8FF,0x6FE3D8,0x7B6CF6,0xE8A24A,0xF2C94C,0x9B7BD6,0xE06060,0x6FCF97,0xC9B37E,0xFF8A65];
+let MAP=null;
+function mapBldMat(i){ const k="mapb"+i; if(_mats[k]) return _mats[k]; const tex=windowTexture("#"+new THREE.Color(DCOL[i]).getHexString(), 7+i, 5, 12); return _mats[k]=new THREE.MeshStandardMaterial({color:lin(0x101C36), emissive:0xFFFFFF, emissiveMap:tex, emissiveIntensity:.75, roughness:.9}); }
+function routeBetween(a,b){ const w=[[a[0],a[1]]]; if(a[0]!==b[0]&&a[1]!==b[1]) w.push([a[0],b[1]]); w.push([b[0],b[1]]); return w; }
+function buildMap(){
+  clearWorld(); applyTheme("city"); world.add(skyDome("city")); blinks=[]; let seed=11; const rnd=()=>{ seed=(seed*9301+49297)%233280; return seed/233280; };
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(200,140), new THREE.MeshStandardMaterial({color:lin(0x0B1220),roughness:1})); ground.rotation.x=-Math.PI/2; ground.position.y=-.03; world.add(ground);
+  const roadM=new THREE.MeshStandardMaterial({color:lin(0x1A2238),roughness:.9}), laneM=neonMat(0x2E4C7A);
+  MAPD.sx.forEach(x=>{ const r=new THREE.Mesh(new THREE.PlaneGeometry(3,60), roadM); r.rotation.x=-Math.PI/2; r.position.set(x,0,0); world.add(r); const l=new THREE.Mesh(new THREE.PlaneGeometry(.12,60), laneM); l.rotation.x=-Math.PI/2; l.position.set(x,.012,0); world.add(l); });
+  MAPD.sz.forEach(z=>{ const r=new THREE.Mesh(new THREE.PlaneGeometry(108,3), roadM); r.rotation.x=-Math.PI/2; r.position.set(0,.001,z); world.add(r); const l=new THREE.Mesh(new THREE.PlaneGeometry(108,.12), laneM); l.rotation.x=-Math.PI/2; l.position.set(0,.012,z); world.add(l); });
+  // river and bridges
+  const river=new THREE.Mesh(new THREE.PlaneGeometry(5,80), new THREE.MeshStandardMaterial({color:lin(0x0F2A4A), emissive:lin(0x1B4A80), emissiveIntensity:.35, roughness:.15})); river.rotation.x=-Math.PI/2; river.position.set(-4,.02,0); world.add(river);
+  MAPD.sz.forEach(z=>{ const b=new THREE.Mesh(new THREE.BoxGeometry(6.5,.5,3.6), darkMat()); b.position.set(-4,.28,z); world.add(b); [-1,1].forEach(sd=>{ const rail=new THREE.Mesh(new THREE.BoxGeometry(6.5,.35,.12), neonMat(0x2E4C7A)); rail.position.set(-4,.7,z+sd*1.75); world.add(rail); }); });
+  // parks
+  const parkM=new THREE.MeshStandardMaterial({color:lin(0x14361F),roughness:1}), leafM=new THREE.MeshStandardMaterial({color:lin(0x2E7D3A),roughness:.9}), trunkM=new THREE.MeshStandardMaterial({color:lin(0x4A3320),roughness:1});
+  MAPD.parks.forEach(([x,z])=>{ const pk=new THREE.Mesh(new THREE.PlaneGeometry(9,9), parkM); pk.rotation.x=-Math.PI/2; pk.position.set(x,.005,z); world.add(pk); for(let i=0;i<6;i++){ const tx=x+(rnd()-.5)*7, tz=z+(rnd()-.5)*7; const tr=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,1,6), trunkM); tr.position.set(tx,.5,tz); world.add(tr); const lf=new THREE.Mesh(new THREE.SphereGeometry(.7+rnd()*.4,8,6), leafM); lf.position.set(tx,1.3,tz); world.add(lf); } });
+  // blocks of buildings, tinted by the nearest district
+  const isPark=(cx,cz)=>MAPD.parks.some(p=>Math.abs(p[0]-cx)<1&&Math.abs(p[1]-cz)<1);
+  for(let i=0;i<MAPD.sx.length-1;i++) for(let j=0;j<MAPD.sz.length-1;j++){ const cx=(MAPD.sx[i]+MAPD.sx[i+1])/2, cz=(MAPD.sz[j]+MAPD.sz[j+1])/2; if(isPark(cx,cz)) continue;
+    let best=0,bd=1e9; MAPD.pts.forEach((p,k)=>{ const d=Math.hypot(p[0]-cx,p[1]-cz); if(d<bd){ bd=d; best=k; } });
+    const n=3+Math.floor(rnd()*3); for(let k=0;k<n;k++){ const w=1.6+rnd()*2.2, d=1.6+rnd()*2.2, h=1.5+rnd()*5+(Math.abs(cx)<20?2:0); let bx=cx+(rnd()-.5)*(9-w), bz=cz+(rnd()-.5)*(9-d); if(bx>-7.5&&bx<-.5) continue; const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mapBldMat(best)); b.position.set(bx,h/2,bz); world.add(b); }
+  }
+  // FriendLoop core tower
+  const core=new THREE.Mesh(new THREE.BoxGeometry(4,26,4), mapBldMat(0)); core.position.set(12,13,-24); world.add(core); const halo=new THREE.Mesh(new THREE.SphereGeometry(4.5,20,14), new THREE.MeshBasicMaterial({color:0x5EA8FF, transparent:true, opacity:.25})); halo.position.set(12,27,-24); world.add(halo); coreLight.position.set(12,30,-24);
+  // memorial dome (start)
+  const dm=new THREE.Mesh(new THREE.SphereGeometry(6,24,14,0,Math.PI*2,0,Math.PI/2), new THREE.MeshStandardMaterial({color:lin(0x241B45), emissive:lin(0x9B7BD6), emissiveIntensity:.25, roughness:.8})); dm.position.set(MAPD.dome[0]-1,0,MAPD.dome[1]-10); world.add(dm);
+  for(let i=0;i<10;i++){ const a=i/10*Math.PI*2; const pl=new THREE.Mesh(new THREE.CylinderGeometry(.2,.25,2.5,8), new THREE.MeshStandardMaterial({color:lin(0x3A2D66), emissive:lin(0x9B7BD6), emissiveIntensity:.3})); pl.position.set(MAPD.dome[0]-1+Math.cos(a)*6.5,1.25,MAPD.dome[1]-10+Math.sin(a)*6.5); world.add(pl); }
+  // district plazas and beacons
+  const beacons=[]; MAPD.pts.forEach((p,i)=>{ const pl=new THREE.Mesh(new THREE.CircleGeometry(4.2,32), new THREE.MeshStandardMaterial({color:lin(0x151C30), emissive:lin(DCOL[i]), emissiveIntensity:.12, roughness:1})); pl.rotation.x=-Math.PI/2; pl.position.set(p[0],.03,p[1]); world.add(pl);
+    const ring=new THREE.Mesh(new THREE.RingGeometry(3.9,4.2,40), new THREE.MeshBasicMaterial({color:DCOL[i], transparent:true, opacity:.6, side:THREE.DoubleSide})); ring.rotation.x=-Math.PI/2; ring.position.set(p[0],.04,p[1]); world.add(ring);
+    const bc=new THREE.Mesh(new THREE.CylinderGeometry(.22,.32,5,10), new THREE.MeshStandardMaterial({color:lin(0x2A3550), emissive:lin(DCOL[i]), emissiveIntensity:.5})); bc.position.set(p[0]+3.4,2.5,p[1]-2.6); bc.userData={i, state:""}; world.add(bc); beacons.push(bc);
+    const top=new THREE.Mesh(new THREE.SphereGeometry(.7,12,10), new THREE.MeshBasicMaterial({color:DCOL[i]})); top.position.set(p[0]+3.4,5.3,p[1]-2.6); world.add(top); bc.userData.top=top; });
+  // the route, drawn on the streets
+  const stops=[MAPD.dome,...MAPD.pts]; const route=[]; for(let i=0;i<stops.length-1;i++){ route.push(routeBetween(stops[i],stops[i+1])); }
+  const dashes=[]; route.forEach((wps,si)=>{ for(let k=0;k<wps.length-1;k++){ const a=wps[k], b=wps[k+1]; const L=Math.hypot(b[0]-a[0],b[1]-a[1]); const nx=(b[0]-a[0])/L, nz=(b[1]-a[1])/L; for(let d=1.2; d<L-1; d+=2.2){ const m=new THREE.Mesh(new THREE.PlaneGeometry(nx?1.2:.3, nx?.3:1.2), new THREE.MeshBasicMaterial({color:0x2E4C7A, transparent:true, opacity:.9})); m.rotation.x=-Math.PI/2; m.position.set(a[0]+nx*d,.015,a[1]+nz*d); world.add(m); dashes.push({m,si}); } } });
+  const a=figure("ayla"); a.scale.set(.9,.9,.9); world.add(a);
+  MAP={a, beacons, dashes, route, labels:[], walking:false, wps:[], wi:0, camT:new THREE.Vector3(0,62,54), look:new THREE.Vector3(0,0,-4), arrived:false};
+  player.visible=false; camera.position.copy(MAP.camT); camera.lookAt(MAP.look);
+}
+function mapSetStates(n){ MAP.beacons.forEach((b,i)=>{ const st=i<n?"done":(i===n?"active":"dim"); b.userData.state=st; b.material.emissive.copy(lin(st==="done"?0x6FCF97:(st==="active"?0xE8A24A:DCOL[i]))); b.material.emissiveIntensity=st==="dim"?.25:.8; b.userData.top.material.color.set(st==="done"?0x6FCF97:(st==="active"?0xE8A24A:0x3A4A66)); });
+  MAP.dashes.forEach(d=>{ d.m.material.color.set(d.si<n?0x6FCF97:(d.si===n?0xE8A24A:0x2E4C7A)); d.m.material.opacity=d.si<=n?.95:.5; });
+  MAP.labels.forEach(l=>l.el.remove()); MAP.labels=MAPD.pts.map((p,i)=>{ const st=i<n?"done":(i===n?"active":"dim"); const el=makeLabel(`<b>${i<n?"✓":i+1}</b>${QUARTIERS[i]}`,"mapn "+st); const obj=MAP.beacons[i].userData.top; return {el,obj}; }); }
 function screenMap(){
   G.state="map"; G.action=()=>{}; P.frozen=true; setPhases(-1); help(""); speech.innerHTML=""; dlgActive=null; G.npcObjs=null;
-  buildRun("city", 200); player.visible=false; camera.position.set(0,34,30); camera.lookAt(0,8,-70); Music.set("city");
-  hud(T.mapTitle, T.mapSub); document.getElementById("carnetBtn").classList.remove("hidden"); document.getElementById("frag").classList.add("hidden");
-  const n=doneCount(), active=n, last=n?MISSIONS[n-1]:null, nextM=MISSIONS[n];
-  const path="M"+PTS.map(p=>`${p[0]*11} ${p[1]*5.6}`).join(" L");
-  const nodes=PTS.map((p,i)=>{ const st=i<n?"done":(i===active?"active":""); return `<div class="node ${st}" style="left:${p[0]}%;top:${p[1]}%" data-i="${i}" ${st==="active"?'role="button" tabindex="0"':''}>${i<n?"✓":i+1}<span class="lab">${QUARTIERS[i]}</span></div>`; }).join("");
-  const at=n?PTS[n-1]:PTS[0];
-  app.innerHTML=`<div class="map"><div class="mapplane" id="plane"><svg viewBox="0 0 1100 560" preserveAspectRatio="none"><path d="${path}" fill="none" stroke="rgba(94,168,255,.45)" stroke-width="4" stroke-dasharray="12 12"/></svg>${nodes}<div class="traveler" id="traveler" style="left:${at[0]}%;top:${at[1]}%">${aylaMarkSVG()}</div></div></div>
-  <div class="maphud"><div class="t">${nextM?T.mapMission(nextM.id,nextM.principe):T.mapDoneTitle}</div>
-  <div style="margin-top:6px">${last?last.indice.who+" : « "+last.indice.text+" »":T.mapGo}</div>
-  ${nextM?(last?`<div class="small" style="margin-top:8px">${T.mapGo}</div>`:""):`<div class="small" style="margin-top:8px">${T.mapNotIncl(TITRES3)}</div>`}
-  <div class="noteBtns" style="justify-content:flex-end;margin-top:10px"><button class="btn sm" id="mapBtn">${nextM?T.mapEnter:T.mapReport}</button></div></div>`;
-  const nd=app.querySelector(`.node[data-i="${active}"]`), btn=app.querySelector("#mapBtn");
-  if(nextM){ let going=false; const go=()=>{ if(going) return; going=true; travelTo(active, ()=>{ S.current=nextM.id; save(); app.innerHTML=""; startMission(); }); }; if(nd){ nd.onclick=go; nd.onkeydown=e=>{ if(e.key==="Enter") go(); }; } btn.onclick=go; }
-  else { if(nd) nd.onclick=()=>banner(T.mapSoon(active+1,TITRES3),"",3000); btn.onclick=()=>{ app.innerHTML=""; screenEnd(); }; }
+  buildMap(); Music.set("city"); hud(T.mapTitle, T.mapSub); document.getElementById("carnetBtn").classList.remove("hidden"); document.getElementById("frag").classList.add("hidden");
+  const n=doneCount(), last=n?MISSIONS[n-1]:null, nextM=MISSIONS[n]; mapSetStates(n);
+  const from=n?MAPD.pts[n-1]:MAPD.dome; MAP.a.position.set(from[0],0,from[1]); MAP.a.rotation.y=Math.PI/2;
+  app.innerHTML=`<div class="maphud"><div class="t">${nextM?T.mapMission(nextM.id,nextM.principe):T.mapDoneTitle}</div>
+  <div style="margin-top:6px">${last?last.indice.who+" : « "+last.indice.text+" »":""}</div>
+  <div class="small" id="mapMsg" style="margin-top:8px">${nextM?T.mapWalking:T.mapNotIncl(TITRES3)}</div>
+  <div class="noteBtns" style="justify-content:flex-end;margin-top:10px"><button class="btn sm" id="mapBtn" ${nextM?"disabled style='opacity:.45'":""}>${nextM?T.mapEnter:T.mapReport}</button></div></div>`;
+  const btn=app.querySelector("#mapBtn");
+  if(nextM){ MAP.wps=MAP.route[n]; MAP.wi=0; setTimeout(()=>{ if(G.state==="map"&&MAP) MAP.walking=true; }, 900);
+    MAP.onArrive=()=>{ MAP.arrived=true; btn.disabled=false; btn.style.opacity=""; app.querySelector("#mapMsg").textContent=T.mapArrived; Music.sfx("collect"); const to=MAPD.pts[n]; MAP.camT.set(to[0]-2,10,to[1]+10); MAP.look.set(to[0],1.2,to[1]-1);
+      let going=false; const go=async()=>{ if(going) return; going=true; Music.sfx("tick"); S.current=nextM.id; save(); app.innerHTML=""; startMission(); }; btn.onclick=go; G.action=go; }; }
+  else { MAP.camT.set(MAPD.pts[9][0]-6,16,MAPD.pts[9][1]+14); MAP.look.set(MAPD.pts[9][0],1,MAPD.pts[9][1]); btn.onclick=()=>{ app.innerHTML=""; screenEnd(); }; G.action=btn.onclick; }
 }
-function travelTo(i, cb){
-  const plane=document.getElementById("plane"), trav=document.getElementById("traveler"); const n=doneCount(); const from=n?PTS[n-1]:PTS[i], to=PTS[i];
-  trav.classList.add("walk"); Music.sfx("tick"); const t0=performance.now(), dur=(from===to)?700:2200;
-  const step=now=>{ const k=Math.min(1,(now-t0)/dur); const e=k<.5?2*k*k:-1+(4-2*k)*k; trav.style.left=(from[0]+(to[0]-from[0])*e)+"%"; trav.style.top=(from[1]+(to[1]-from[1])*e-Math.abs(Math.sin(k*Math.PI*6))*1.6)+"%";
-    if(k<1) setTimeout(()=>step(performance.now()),16); else { trav.classList.remove("walk"); Music.sfx("collect"); plane.classList.add("zoom"); plane.style.transform=`rotateX(18deg) translateY(-30px) scale(1.9) translate(${(50-to[0])*.9}%, ${(45-to[1])*.9}%)`; setTimeout(cb, 1000); } };
-  step(performance.now());
+function mapTick(dt,t){ const M=MAP; if(!M) return;
+  if(M.walking){ const wp=M.wps[M.wi]; const dx=wp[0]-M.a.position.x, dz=wp[1]-M.a.position.z, d=Math.hypot(dx,dz); const sp=9;
+    if(d<.25){ M.a.position.set(wp[0],0,wp[1]); M.wi++; if(M.wi>=M.wps.length){ M.walking=false; M.a.rotation.y=Math.PI; if(M.onArrive) M.onArrive(); } }
+    else { M.a.position.x+=dx/d*Math.min(d,sp*dt); M.a.position.z+=dz/d*Math.min(d,sp*dt); M.a.rotation.y=Math.atan2(dx,dz); }
+    animFigure(M.a,dt,"walk"); const ct=new THREE.Vector3(M.a.position.x+4,13,M.a.position.z+12); camera.position.lerp(ct,Math.min(1,dt*2.5)); camera.lookAt(M.a.position.x,1,M.a.position.z); }
+  else { animFigure(M.a,dt,"idle"); camera.position.lerp(M.camT,Math.min(1,dt*1.5)); camera.lookAt(M.look); }
+  M.beacons.forEach(b=>{ if(b.userData.state==="active"){ b.material.emissiveIntensity=.9+Math.sin(t*4)*.5; b.userData.top.scale.setScalar(1+Math.sin(t*4)*.15); } });
+  M.labels.forEach(l=>{ const p=project(l.obj,1.2); l.el.style.left=p.x+"px"; l.el.style.top=p.y+"px"; l.el.style.display=p.z<1?"":"none"; });
 }
 /* ---- dome (prologue and each mission opening) ---- */
 let cast={};
@@ -1216,6 +1262,7 @@ function loopBody(now, noRender){
     if(G.state==="proof"&&G.doc){ G.doc.rotation.y+=dt*2; G.doc.position.y=1.3+Math.sin(t*3)*.15; const p=project(G.doc,1); G.doc.userData.label.style.left=p.x+"px"; G.doc.userData.label.style.top=p.y+"px"; if(Math.hypot(G.doc.position.x-P.x,G.doc.position.z-P.z)<1.3) pickProof(); }
     // camera follows from behind, slightly elevated
     const cx=P.x*.7, cz=P.z+8.5; const camT=new THREE.Vector3(cx,5.2,cz); if(camera.position.distanceTo(camT)>7) camera.position.copy(camT); else camera.position.lerp(camT,Math.min(1,dt*4)); camera.lookAt(P.x*.7,1.4,P.z-3);
+  } else if(G.state==="map"){ mapTick(dt,t);
   } else if(G.state==="dome"||G.state==="title"){
     animFigure(player,dt,"idle"); Object.values(cast).forEach(f=>animFigure(f,dt,"idle"));
     if(G_bookLabel && cast.saren && cast.saren.userData.book){ const pb=project(cast.saren,-.05); G_bookLabel.style.left=pb.x+"px"; G_bookLabel.style.top=pb.y+"px"; G_bookLabel.style.display=(G.state==="dome")?"":"none"; }
