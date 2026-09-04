@@ -171,7 +171,7 @@ body.rtl .ph{font-family:"Tajawal",sans-serif}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-const BUILD="20260904012223";
+const BUILD="20260904013650";
 (function(){ try{ if(!/github\.io$/.test(location.hostname)) return; fetch("version.json?ts="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{ if(j && j.build && j.build!==BUILD){ const u=new URL(location.href); if(u.searchParams.get("v")!==j.build){ u.searchParams.set("v", j.build); location.replace(u.toString()); } } }).catch(()=>{}); }catch(e){} })();
 /* ============================== I18N : fr / en / ar ============================== */
 const I18N = {
@@ -812,8 +812,8 @@ function plazaCity(pz, rnd){
   const puddle=new THREE.MeshStandardMaterial({color:lin(0x0E1A33), roughness:.08, metalness:.1, transparent:true, opacity:.85}); [[-6,pz+9,1.4],[7.5,pz-2,1.1],[-9.5,pz-1,.9]].forEach(([x,z,r])=>{ const pd=add(new THREE.Mesh(new THREE.CircleGeometry(r,20), puddle), x,.035,z); pd.rotation.x=-Math.PI/2; pd.scale.x=1.5; });
   const mh=add(new THREE.Mesh(new THREE.CircleGeometry(.6,16), metal), 3,.036,pz+9); mh.rotation.x=-Math.PI/2;
   // strings of warm bulbs across the front of the plaza
-  const strand=(a,b,n)=>{ for(let i=0;i<=n;i++){ const k=i/n; const x=a[0]+(b[0]-a[0])*k, z=a[1]+(b[1]-a[1])*k, y=5.2-Math.sin(k*Math.PI)*.9; if(i<n){ const nx=a[0]+(b[0]-a[0])*(i+1)/n, nz=a[1]+(b[1]-a[1])*(i+1)/n, ny=5.2-Math.sin((i+1)/n*Math.PI)*.9; const L=Math.hypot(nx-x,ny-y,nz-z); const seg=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,L,4), darkMat()); seg.position.set((x+nx)/2,(y+ny)/2,(z+nz)/2); seg.lookAt(nx,ny,nz); seg.rotateX(Math.PI/2); world.add(seg); } if(i%2===1) add(new THREE.Mesh(new THREE.SphereGeometry(.09,8,6), neonMat(0xFFE2B8)), x,y-.12,z); } };
-  strand([-12.2,pz+8],[12.4,pz+9.5],16); strand([-10.6,pz-6.7],[10.6,pz-6.7],14);
+  const strand=(a,b,n,y0)=>{ for(let i=0;i<=n;i++){ const k=i/n; const x=a[0]+(b[0]-a[0])*k, z=a[1]+(b[1]-a[1])*k, y=y0-Math.sin(k*Math.PI)*.5; if(i<n){ const nx=a[0]+(b[0]-a[0])*(i+1)/n, nz=a[1]+(b[1]-a[1])*(i+1)/n, ny=y0-Math.sin((i+1)/n*Math.PI)*.5; const L=Math.hypot(nx-x,ny-y,nz-z); const seg=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,L,4), darkMat()); seg.position.set((x+nx)/2,(y+ny)/2,(z+nz)/2); seg.lookAt(nx,ny,nz); seg.rotateX(Math.PI/2); world.add(seg); } if(i%2===1) add(new THREE.Mesh(new THREE.SphereGeometry(.09,8,6), neonMat(0xFFE2B8)), x,y-.12,z); } };
+  strand([-7.2,pz-12.6],[7.2,pz-12.6],12,6.4);
 }
 function cityStreet(length, rnd){ const T=THEMES.city; const z0=20, z1=-length-80, plazaZ=-length-12;
   for(let z=z0; z>z1; z-=7+rnd()*9){ [-1,1].forEach(side=>{ const h=10+rnd()*34, w=6+rnd()*7, d=6+rnd()*6; const b=makeBuilding("city",rnd,w,h,d,side); b.position.set(side*(9.4+w/2+rnd()*2.5),0,z); world.add(b); }); }
