@@ -171,7 +171,7 @@ body.rtl .ph{font-family:"Tajawal",sans-serif}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-const BUILD="20260904010654";
+const BUILD="20260904011704";
 (function(){ try{ if(!/github\.io$/.test(location.hostname)) return; fetch("version.json?ts="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{ if(j && j.build && j.build!==BUILD){ const u=new URL(location.href); if(u.searchParams.get("v")!==j.build){ u.searchParams.set("v", j.build); location.replace(u.toString()); } } }).catch(()=>{}); }catch(e){} })();
 /* ============================== I18N : fr / en / ar ============================== */
 const I18N = {
@@ -720,6 +720,29 @@ function windowTexture(color, seed, cols=8, rows=26){ const c=document.createEle
 const mats={};
 function buildingMat(theme,seed){ const key=theme+seed; if(mats[key]) return mats[key]; const T=THEMES[theme]; const tex=windowTexture(T.win, seed); const side=new THREE.MeshStandardMaterial({color:lin(T.build), emissive:new THREE.Color(0xFFFFFF), emissiveMap:tex, emissiveIntensity:.9, roughness:.9}); const top=new THREE.MeshStandardMaterial({color:lin(T.build), roughness:1}); mats[key]=[side,side,top,top,side,side]; return mats[key]; }
 const world=new THREE.Group(); scene.add(world); let G_bookLabel=null;
+/* ---- dome dressing: mosaic floor, starry vault, banners, memory portraits ---- */
+function domeFloorTex(){ if(texCache.domeFloor) return texCache.domeFloor; const c=document.createElement("canvas"); c.width=c.height=1024; const g=c.getContext("2d"); const cx=512,cy=512; g.fillStyle="#5B4F8E"; g.fillRect(0,0,1024,1024);
+  for(let i=0;i<9000;i++){ g.fillStyle=Math.random()>.5?"rgba(255,255,255,.04)":"rgba(0,0,0,.07)"; g.fillRect(Math.random()*1024,Math.random()*1024,3,3); }
+  g.fillStyle="#3E3470"; g.beginPath(); g.arc(cx,cy,340,0,Math.PI*2); g.arc(cx,cy,235,0,Math.PI*2,true); g.fill();
+  g.strokeStyle="#E8C36A"; [90,160,235,340,430,500].forEach((r,i)=>{ g.lineWidth=i%2?2:5; g.globalAlpha=.85; g.beginPath(); g.arc(cx,cy,r,0,Math.PI*2); g.stroke(); });
+  g.lineWidth=2; g.globalAlpha=.55; for(let i=0;i<24;i++){ const a=i/24*Math.PI*2; g.beginPath(); g.moveTo(cx+Math.cos(a)*160,cy+Math.sin(a)*160); g.lineTo(cx+Math.cos(a)*500,cy+Math.sin(a)*500); g.stroke(); }
+  g.globalAlpha=1; for(let i=0;i<10;i++){ const a=i/10*Math.PI*2-Math.PI/2; const x=cx+Math.cos(a)*288, y=cy+Math.sin(a)*288; g.fillStyle="#E8C36A"; g.beginPath(); g.arc(x,y,28,0,Math.PI*2); g.fill(); g.fillStyle="#3E3470"; g.beginPath(); g.arc(x,y,22,0,Math.PI*2); g.fill(); g.fillStyle="#E8C36A"; g.font="bold 26px sans-serif"; g.textAlign="center"; g.textBaseline="middle"; g.fillText(String(i+1),x,y+1); }
+  g.fillStyle="#E8C36A"; g.beginPath(); g.arc(cx,cy,44,0,Math.PI*2); g.fill(); g.fillStyle="#5B4F8E"; g.beginPath(); g.arc(cx,cy,32,0,Math.PI*2); g.fill(); g.strokeStyle="#E8C36A"; g.lineWidth=3; for(let i=0;i<12;i++){ const a=i/12*Math.PI*2; g.beginPath(); g.moveTo(cx+Math.cos(a)*48,cy+Math.sin(a)*48); g.lineTo(cx+Math.cos(a)*70,cy+Math.sin(a)*70); g.stroke(); }
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.anisotropy=8; texCache.domeFloor=t; return t; }
+function domeSkyTex(){ if(texCache.domeSky) return texCache.domeSky; const c=document.createElement("canvas"); c.width=1024; c.height=512; const g=c.getContext("2d"); const grd=g.createLinearGradient(0,0,0,512); grd.addColorStop(0,"#1A1440"); grd.addColorStop(1,"#0C0A22"); g.fillStyle=grd; g.fillRect(0,0,1024,512);
+  const pts=[]; for(let i=0;i<420;i++){ const x=Math.random()*1024, y=Math.random()*512; pts.push([x,y]); g.globalAlpha=.35+Math.random()*.65; g.fillStyle="#EDE6FF"; const sz=Math.random()>.9?3:1.5; g.fillRect(x,y,sz,sz); }
+  g.globalAlpha=.35; g.strokeStyle="#CDB7E8"; g.lineWidth=1; for(let i=0;i<40;i++){ const a=pts[Math.floor(Math.random()*pts.length)]; let best=null,bd=1e9; pts.forEach(b=>{ const d=Math.hypot(a[0]-b[0],a[1]-b[1]); if(d>4&&d<bd){ bd=d; best=b; } }); if(best&&bd<90){ g.beginPath(); g.moveTo(a[0],a[1]); g.lineTo(best[0],best[1]); g.stroke(); } }
+  g.globalAlpha=1; const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; texCache.domeSky=t; return t; }
+function bannerTex(i){ const k="ban"+i; if(texCache[k]) return texCache[k]; const c=document.createElement("canvas"); c.width=128; c.height=320; const g=c.getContext("2d"); g.fillStyle="#3E2A6B"; g.fillRect(0,0,128,320); g.fillStyle="#E8C36A"; g.fillRect(0,0,128,10); g.fillRect(0,300,128,6); g.beginPath(); g.moveTo(0,320); g.lineTo(64,290); g.lineTo(128,320); g.closePath(); g.fillStyle="#2A1C4E"; g.fill();
+  g.strokeStyle="#E8C36A"; g.lineWidth=4; g.beginPath(); g.arc(64,140,40,0,Math.PI*2); g.stroke(); g.lineWidth=3; const sides=3+i; g.beginPath(); for(let j=0;j<=sides;j++){ const a=j/sides*Math.PI*2-Math.PI/2; const x=64+Math.cos(a)*26, y=140+Math.sin(a)*26; if(j) g.lineTo(x,y); else g.moveTo(x,y); } g.stroke(); g.fillStyle="#E8C36A"; g.beginPath(); g.arc(64,140,6,0,Math.PI*2); g.fill();
+  for(let y=210;y<280;y+=16){ g.fillStyle="rgba(232,195,106,.45)"; g.fillRect(28,y,72,4); }
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; texCache[k]=t; return t; }
+function memTex(i){ const k="mem"+i; if(texCache[k]) return texCache[k]; const c=document.createElement("canvas"); c.width=160; c.height=200; const g=c.getContext("2d"); g.clearRect(0,0,160,200);
+  const grd=g.createRadialGradient(80,100,10,80,100,110); grd.addColorStop(0,"rgba(205,183,232,.55)"); grd.addColorStop(1,"rgba(155,123,214,0)"); g.fillStyle=grd; g.fillRect(0,0,160,200);
+  g.strokeStyle="rgba(232,195,106,.9)"; g.lineWidth=4; g.strokeRect(8,8,144,184); g.lineWidth=1; g.strokeRect(16,16,128,168);
+  g.fillStyle="rgba(240,232,255,.85)"; g.beginPath(); g.arc(80,78,26+(i%3)*3,0,Math.PI*2); g.fill(); g.beginPath(); g.moveTo(30,190); g.quadraticCurveTo(80,96,130,190); g.closePath(); g.fill();
+  g.fillStyle="rgba(255,255,255,.35)"; for(let y=20;y<190;y+=8){ g.fillRect(16,y,128,1); }
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; texCache[k]=t; return t; }
 /* ---- city dressing: sky, road, screens, lamps, bridges, racks ---- */
 const _mats={}; let blinks=[]; const lin=c=>new THREE.Color(c).convertSRGBToLinear();
 function darkMat(){ return _mats.dark||(_mats.dark=new THREE.MeshStandardMaterial({color:lin(0x121A2E), roughness:.8, metalness:.2})); }
@@ -1062,7 +1085,7 @@ function screenMap(){
   else { MAP.camT.set(MAPD.pts[9][0]-6,16,MAPD.pts[9][1]+14); MAP.look.set(MAPD.pts[9][0],1,MAPD.pts[9][1]); btn.onclick=()=>{ app.innerHTML=""; screenEnd(); }; G.action=btn.onclick; }
 }
 function mapTick(dt,t){ const M=MAP; if(!M) return;
-  if(M.walking){ const wp=M.wps[M.wi]; const dx=wp[0]-M.a.position.x, dz=wp[1]-M.a.position.z, d=Math.hypot(dx,dz); const sp=9;
+  if(M.walking){ const wp=M.wps&&M.wps[M.wi]; if(!wp){ M.walking=false; return; } const dx=wp[0]-M.a.position.x, dz=wp[1]-M.a.position.z, d=Math.hypot(dx,dz); const sp=9;
     if(d<.25){ M.a.position.set(wp[0],0,wp[1]); M.wi++; if(M.wi>=M.wps.length){ M.walking=false; M.a.rotation.y=Math.PI; if(M.onArrive) M.onArrive(); } }
     else { M.a.position.x+=dx/d*Math.min(d,sp*dt); M.a.position.z+=dz/d*Math.min(d,sp*dt); M.a.rotation.y=Math.atan2(dx,dz); }
     animFigure(M.a,dt,"walk"); const ct=new THREE.Vector3(M.a.position.x+4,13,M.a.position.z+12); camera.position.lerp(ct,Math.min(1,dt*2.5)); camera.lookAt(M.a.position.x,1,M.a.position.z); }
@@ -1074,14 +1097,40 @@ function mapTick(dt,t){ const M=MAP; if(!M) return;
 let cast={};
 function buildDome(){
   clearWorld(); applyTheme("dome"); Music.set("dome");
-  const floor=new THREE.Mesh(new THREE.CircleGeometry(16,48), new THREE.MeshStandardMaterial({color:0x1A1433, roughness:1})); floor.rotation.x=-Math.PI/2; world.add(floor);
-  for(let i=0;i<14;i++){ const a=i/14*Math.PI*2; const p=new THREE.Mesh(new THREE.CylinderGeometry(.5,.6,9,12), new THREE.MeshStandardMaterial({color:0x2A2050, emissive:0x9B7BD6, emissiveIntensity:.15})); p.position.set(Math.cos(a)*15,4.5,Math.sin(a)*15); world.add(p); }
-  const domeM=new THREE.Mesh(new THREE.SphereGeometry(17,32,16,0,Math.PI*2,0,Math.PI/2), new THREE.MeshStandardMaterial({color:0x1B1538, side:THREE.BackSide, roughness:1})); world.add(domeM);
-  const glow=new THREE.PointLight(0xE8A24A,1.2,30); glow.position.set(0,3,0); world.add(glow); coreLight.position.set(0,12,0);
+  const floor=new THREE.Mesh(new THREE.CircleGeometry(16,64), new THREE.MeshStandardMaterial({color:0xFFFFFF, map:domeFloorTex(), roughness:.85})); floor.rotation.x=-Math.PI/2; world.add(floor);
+  const stoneM=new THREE.MeshStandardMaterial({color:0x2A2050, emissive:0x9B7BD6, emissiveIntensity:.12, roughness:.9}); const goldM=new THREE.MeshStandardMaterial({color:0x8C6D3F, emissive:0xE8C36A, emissiveIntensity:.35, metalness:.6, roughness:.35});
+  const runeM=new THREE.MeshStandardMaterial({color:0x2A2050, map:clothTex("runes","#2A2050","#B89A5A"), emissive:0x9B7BD6, emissiveIntensity:.1, roughness:.9});
+  const N=14; const pillarPos=[];
+  for(let i=0;i<N;i++){ const a=i/N*Math.PI*2; const x=Math.cos(a)*15, z=Math.sin(a)*15; pillarPos.push([x,z]);
+    const base=new THREE.Mesh(new THREE.CylinderGeometry(.85,.95,.5,12), stoneM); base.position.set(x,.25,z); world.add(base);
+    const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.5,.6,8.2,14), runeM); shaft.position.set(x,4.6,z); world.add(shaft);
+    const cap=new THREE.Mesh(new THREE.CylinderGeometry(.8,.55,.5,12), stoneM); cap.position.set(x,8.95,z); world.add(cap);
+    const band=new THREE.Mesh(new THREE.TorusGeometry(.58,.05,8,20), goldM); band.rotation.x=Math.PI/2; band.position.set(x,8.6,z); world.add(band);
+    // arch to the next pillar
+    const am=(i+.5)/N*Math.PI*2; const arch=new THREE.Mesh(new THREE.TorusGeometry(3.3,.22,10,24,Math.PI), stoneM); arch.position.set(Math.cos(am)*15,9.1,Math.sin(am)*15); arch.rotation.y=-(am+Math.PI/2); world.add(arch);
+    const key=new THREE.Mesh(new THREE.OctahedronGeometry(.28), goldM); key.position.set(Math.cos(am)*15,12.5,Math.sin(am)*15); world.add(key);
+  }
+  // starry vault with an oculus and a shaft of light
+  const domeM=new THREE.Mesh(new THREE.SphereGeometry(21,48,24,0,Math.PI*2,0,Math.PI/2), new THREE.MeshStandardMaterial({color:0x1B1538, emissive:0xFFFFFF, emissiveMap:domeSkyTex(), emissiveIntensity:.55, side:THREE.BackSide, roughness:1})); world.add(domeM);
+  const oculus=new THREE.Mesh(new THREE.TorusGeometry(3,.18,10,40), goldM); oculus.rotation.x=Math.PI/2; oculus.position.y=20.2; world.add(oculus);
+  const shaftL=new THREE.Mesh(new THREE.CylinderGeometry(2.6,4.8,20,24,1,true), new THREE.MeshBasicMaterial({color:0xFFF1D6, transparent:true, opacity:.05, depthWrite:false, side:THREE.DoubleSide})); shaftL.position.y=10.2; world.add(shaftL);
+  // circle of the assembly around Saren
+  const dais=new THREE.Mesh(new THREE.RingGeometry(3.4,3.9,48), new THREE.MeshBasicMaterial({color:0xE8C36A, transparent:true, opacity:.55, side:THREE.DoubleSide})); dais.rotation.x=-Math.PI/2; dais.position.set(0,.02,-2.2); world.add(dais);
+  // banners hanging from the arches (far half, facing the assembly)
+  const holos=[], flames=[], lights=[];
+  for(let i=2;i<=11;i+=2){ const am=(i+.5)/N*Math.PI*2; const bn=new THREE.Mesh(new THREE.PlaneGeometry(1.5,3.6), new THREE.MeshStandardMaterial({color:0xFFFFFF, map:bannerTex(i/2), side:THREE.DoubleSide, roughness:.9})); bn.position.set(Math.cos(am)*14.4,6.9,Math.sin(am)*14.4); bn.rotation.y=-am+Math.PI/2; world.add(bn); const rod=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,1.8,6), goldM); rod.rotation.z=Math.PI/2; rod.rotation.y=-am+Math.PI/2; rod.position.set(Math.cos(am)*14.4,8.75,Math.sin(am)*14.4); world.add(rod); }
+  // memory portraits: the erased ones, floating around the assembly
+  for(let i=0;i<8;i++){ const a=Math.PI*.42+i/7*Math.PI*1.16; const r=9.5+(i%2)*1.6; const h=new THREE.Mesh(new THREE.PlaneGeometry(1.3,1.6), new THREE.MeshBasicMaterial({map:memTex(i), transparent:true, opacity:.8, side:THREE.DoubleSide, depthWrite:false})); const x=Math.sin(a)*r, z=Math.cos(a)*r; h.position.set(x,4.2+(i%3)*.7,z); h.rotation.y=a+Math.PI; h.userData={y:h.position.y, ry:h.rotation.y}; world.add(h); holos.push(h);
+    const beam=new THREE.Mesh(new THREE.CylinderGeometry(.05,.45,h.position.y-.8,10,1,true), new THREE.MeshBasicMaterial({color:0xCDB7E8, transparent:true, opacity:.08, depthWrite:false, side:THREE.DoubleSide})); beam.position.set(x,(h.position.y-.8)/2+.1,z); world.add(beam); const ped=new THREE.Mesh(new THREE.CylinderGeometry(.5,.6,.25,12), stoneM); ped.position.set(x,.12,z); world.add(ped); }
+  // braziers
+  [[-5.2,-6.4,true],[5.2,-6.4,true],[-9,1.5,false],[9,1.5,false]].forEach(([x,z,lit],i)=>{ const st=new THREE.Mesh(new THREE.CylinderGeometry(.12,.2,1.1,8), goldM); st.position.set(x,.55,z); world.add(st); const bowl=new THREE.Mesh(new THREE.SphereGeometry(.42,14,10,0,Math.PI*2,Math.PI/2,Math.PI/2), goldM); bowl.position.set(x,1.35,z); world.add(bowl); const fl=new THREE.Mesh(new THREE.ConeGeometry(.3,.9,8), new THREE.MeshStandardMaterial({color:0xFFB347, emissive:0xFF8A3C, emissiveIntensity:1.4, transparent:true, opacity:.9})); fl.position.set(x,1.7,z); world.add(fl); flames.push(fl); const ember=new THREE.Mesh(new THREE.SphereGeometry(.16,8,6), new THREE.MeshBasicMaterial({color:0xFFE8B0})); ember.position.set(x,1.4,z); world.add(ember); if(lit){ const l=new THREE.PointLight(0xFFA050,.9,16); l.position.set(x,2,z); world.add(l); lights.push(l); } });
+  G.domeFx={holos,flames,lights};
+  const glow=new THREE.PointLight(0xE8A24A,1.0,30); glow.position.set(0,3,0); world.add(glow); coreLight.position.set(0,12,0);
   cast={}; const place=(k,x,z,ry)=>{ const f=figure(k); f.position.set(x,0,z); f.rotation.y=ry||0; world.add(f); cast[k]=f; };
   place("saren",0,-3.2,0.15);
   const ring=[["kid1",-3.6,-0.2],["kid2",-2.0,1.4],["kid3",2.1,1.5],["kid4",3.7,-0.1],["kid5",-4.6,-2.3],["kid6",4.6,-2.4]];
-  ring.forEach(([k,x,z])=>{ place(k,x,z,Math.atan2(0-x,-3.2-z)); sit(cast[k]); });
+  const cushCol=[0xE06060,0x6FCF97,0x5EA8FF,0xE8A24A,0x9B7BD6,0x6FE3D8];
+  ring.forEach(([k,x,z],i)=>{ const cu=new THREE.Mesh(new THREE.CylinderGeometry(.6,.65,.18,16), new THREE.MeshStandardMaterial({color:cushCol[i], roughness:.95})); cu.position.set(x,.09,z); world.add(cu); place(k,x,z,Math.atan2(0-x,-3.2-z)); sit(cast[k]); });
   G_bookLabel=makeLabel(T.bookLabel,"reco");
   player.position.set(-2.9,0,3.8); player.rotation.y=Math.atan2(0-(-2.9), -3.2-3.8); player.visible=true; P.x=-2.9; P.z=3.8; P.y=0;
   camera.position.set(0.6,3.6,9.2); camera.lookAt(0,1.6,-1.4);
@@ -1265,6 +1314,7 @@ function loopBody(now, noRender){
   } else if(G.state==="map"){ mapTick(dt,t);
   } else if(G.state==="dome"||G.state==="title"){
     animFigure(player,dt,"idle"); Object.values(cast).forEach(f=>animFigure(f,dt,"idle"));
+    if(G.domeFx){ G.domeFx.holos.forEach((h,i)=>{ h.position.y=h.userData.y+Math.sin(t*.8+i)*.25; h.rotation.y=h.userData.ry+Math.sin(t*.5+i)*.12; }); G.domeFx.flames.forEach((f,i)=>{ f.scale.set(1+Math.sin(t*9+i)*.12,1+Math.sin(t*11+i*2)*.22,1+Math.cos(t*9+i)*.12); }); G.domeFx.lights.forEach((l,i)=>{ l.intensity=.85+Math.sin(t*7+i)*.15; }); }
     if(G_bookLabel && cast.saren && cast.saren.userData.book){ const pb=project(cast.saren,-.05); G_bookLabel.style.left=pb.x+"px"; G_bookLabel.style.top=pb.y+"px"; G_bookLabel.style.display=(G.state==="dome")?"":"none"; }
     camera.position.lerp(new THREE.Vector3(0.6+Math.sin(t*.15)*1.2,3.6,9.2),dt); camera.lookAt(0,1.6,-1.4);
   }
