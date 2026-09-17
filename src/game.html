@@ -858,17 +858,17 @@ function human(o){
     return hip; });
   // torso (organic)
   const topMat=m(o.top,{map:o.topTex?clothTex(o.topTex,o.topTexBase,o.topTexAccent):null});
-  const torso=new THREE.Mesh(new THREE.SphereGeometry(.42,22,16), topMat); torso.scale.set(.95,1.15,.72); torso.position.y=1.5; g.add(torso);
-  const belly=new THREE.Mesh(new THREE.SphereGeometry(.36,20,14), topMat); belly.scale.set(1,.9,.75); belly.position.y=1.18; g.add(belly);
-  const shoulders=new THREE.Mesh(new THREE.SphereGeometry(.4,20,14), topMat); shoulders.scale.set(1.05,.5,.7); shoulders.position.y=1.9; g.add(shoulders);
-  const hips=new THREE.Mesh(new THREE.SphereGeometry(.32,18,12), legMat); hips.scale.set(1,.6,.8); hips.position.y=1.03; g.add(hips);
+  const torso=new THREE.Mesh(new THREE.SphereGeometry(.42,22,16), topMat); torso.scale.set(.86,1.14,.62); torso.position.y=1.55; g.add(torso);
+  const belly=new THREE.Mesh(new THREE.SphereGeometry(.36,20,14), topMat); belly.scale.set(.85,.88,.6); belly.position.y=1.2; g.add(belly);
+  const shoulders=new THREE.Mesh(new THREE.SphereGeometry(.4,20,14), topMat); shoulders.scale.set(1.04,.44,.62); shoulders.position.y=1.9; g.add(shoulders);
+  const hips=new THREE.Mesh(new THREE.SphereGeometry(.32,18,12), legMat); hips.scale.set(.92,.58,.68); hips.position.y=1.05; g.add(hips);
   if(o.collar){ const col=new THREE.Mesh(new THREE.TorusGeometry(.22,.06,10,20), m(o.collar)); col.rotation.x=Math.PI/2; col.position.y=1.98; g.add(col); }
   if(o.buttons){ for(let i=0;i<3;i++){ const bt=new THREE.Mesh(new THREE.SphereGeometry(.03,8,6), m(0xF2E6C8)); bt.position.set(0,1.75-i*.2,.31); g.add(bt); } }
   if(o.pockets){ [-1,1].forEach(sx=>{ const pk=new THREE.Mesh(new THREE.BoxGeometry(.16,.16,.03), m(o.pocket||0x1F2E4E)); pk.position.set(sx*.17,1.55,.29); g.add(pk); }); const zip=new THREE.Mesh(new THREE.BoxGeometry(.03,.75,.02), m(0x9AA6B3,{mt:.6,r:.3})); zip.position.set(0,1.45,.33); g.add(zip); }
   if(o.belt){ const bl=new THREE.Mesh(new THREE.TorusGeometry(.33,.045,10,24), m(o.belt)); bl.rotation.x=Math.PI/2; bl.position.y=1.04; g.add(bl); if(o.tools){ [-.2,0,.2].forEach((x,i)=>{ const t=new THREE.Mesh(new THREE.BoxGeometry(.06,.12,.05), m(i%2?0x9AA6B3:0xE8A24A,{mt:.4,r:.4})); t.position.set(x,.94,.3); g.add(t); }); } const buckle=new THREE.Mesh(new THREE.BoxGeometry(.12,.09,.04), m(0xFFD54F,{mt:.7,r:.3,e:0xFFD54F,ei:.15})); buckle.position.set(0,1.04,.34); g.add(buckle); }
   if(o.scarf){ const sf=new THREE.Mesh(new THREE.TorusGeometry(.2,.08,10,20), m(o.scarf,{r:.9})); sf.rotation.x=Math.PI/2; sf.position.y=1.97; g.add(sf); const tail=new THREE.Mesh(new THREE.BoxGeometry(.12,.45,.06), m(o.scarf,{r:.9})); tail.position.set(.18,1.72,.3); tail.rotation.z=.15; g.add(tail); }
   // neck & head
-  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.11,.13,.2,12), m(S)); neck.position.y=2.02; g.add(neck);
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.105,.125,.24,12), m(S)); neck.position.y=2.04; g.add(neck);
   const head=new THREE.Mesh(new THREE.SphereGeometry(.42,30,24), m(S)); head.position.y=2.5; if(o.thinFace) head.scale.set(.92,1.06,.96); g.add(head);
   head.scale.set(.975, o.thinFace?1.05:1.02, .965);
   const skM=m(S), skD=m(new THREE.Color(S).multiplyScalar(.82).getHex());
@@ -900,7 +900,7 @@ function human(o){
   if(o.visor){ const v=new THREE.Mesh(new THREE.BoxGeometry(.72,.2,.22), m(0x1F2933,{e:0x5EA8FF,ei:.9,r:.3,mt:.5})); v.position.set(0,.05,.36); head.add(v); const band=new THREE.Mesh(new THREE.TorusGeometry(.43,.03,8,24), m(0x1F2933)); band.rotation.x=Math.PI/2; band.position.y=.06; head.add(band); }
   if(o.hood){ const hd=new THREE.Mesh(new THREE.SphereGeometry(.58,24,16,Math.PI*.75,Math.PI*1.5,0,Math.PI*.7), m(o.hood,{map:clothTex(o.rough?"burlap":"runes",o.rough?"#4A3B2E":"#3E2A6B",o.rough?"#6B5A46":"#E8C36A"),r:.95})); hd.position.set(0,.12,-.1); head.add(hd); }
   // arms
-  const arms=[-1,1].map(sx=>{ const sh=new THREE.Group(); sh.position.set(sx*.43,1.88,0); g.add(sh);
+  const arms=[-1,1].map(sx=>{ const sh=new THREE.Group(); sh.position.set(sx*.405,1.87,0); g.add(sh);
     const upper=limb(.108,.094,.42,o.sleeve?m(o.sleeve):topMat); upper.position.y=-.21; sh.add(upper);
     const elbow=new THREE.Mesh(new THREE.SphereGeometry(.085,10,8), o.longSleeve?(o.sleeve?m(o.sleeve):topMat):m(S)); elbow.position.y=-.42; sh.add(elbow);
     const fore=limb(.092,.082,.4,o.longSleeve?(o.sleeve?m(o.sleeve):topMat):m(S)); fore.position.y=-.6; sh.add(fore);
