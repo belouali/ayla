@@ -1,16 +1,51 @@
-# Ayla et FriendLoop : Voyage contre l'oubli
+# Ayla et FriendLoop
 
-Prototype jouable du conte-jeu sur l'éthique de l'intelligence artificielle (Recommandation de l'UNESCO, 2021).
+Conte-jeu sur l'éthique de l'intelligence artificielle, d'après la Recommandation de l'UNESCO.
+Autrice : Saida Belouali.
 
-- `index.html` : version 3D (course, place, dialogues, délibération, portes), prologue et missions 1 et 2, en français, anglais et arabe.
-- `version-2d.html` : version précédente en 2.5D.
-- `audio/` : musiques sous licence Creative Commons (voir ci-dessous).
+Jeu en ligne : https://belouali.github.io/ayla/
+Dépôt : https://github.com/belouali/ayla (branche `main` = site en ligne, `style-f` = refonte graphique)
 
-Ouvrir le fichier dans un navigateur, ou visiter la page publiée.
+## Organisation du dossier
 
-## Crédits musique
+- `jeu/` — sources du jeu
+  - `game.html` : version publiée en ligne, tout est dans ce fichier unique (3D, textes FR/EN/AR, sons)
+  - `game_styleF.html` : branche graphique, matières mates, ombres, têtes sculptées
+- `site/` — dépôt git cloné ; `index.html` est construit à partir de `jeu/game.html`
+- `teaser/`
+  - `scripts/` : moteur de rendu du teaser et chaîne de montage
+  - `voix/` : répliques enregistrées, `systeme/` pour la voix robotique
+  - `rendus/` : dernière vidéo, 1080p et 720p, plus la bande son
+- `personnages/`
+  - `references/` : planches de référence des personnages et image de style
+  - `modeles/` : modèles 3D générés
+  - `scripts/` : génération des références, des voix, et projection des couleurs
+- `documents/` : conte, scénario du teaser, logos
 
-- « Snowfall » de Scott Buckley, publié sous licence CC BY 4.0. https://www.scottbuckley.com.au
-- « Neon Laser Horizon », « Cipher » et « Dark Fog » de Kevin MacLeod (incompetech.com), sous licence Creative Commons : By Attribution 4.0. http://creativecommons.org/licenses/by/4.0/
+## Publier une nouvelle version du jeu
 
-Moteur 3D : three.js (licence MIT), chargé depuis cdnjs.
+    ./publier.sh "Message du commit"
+
+Le script reconstruit `site/index.html` depuis `jeu/game.html`, écrit un numéro de version,
+pousse sur GitHub et attend que la page en ligne soit à jour. Le jeu vérifie sa version au
+chargement et se recharge seul si une version plus récente existe.
+
+## Fabriquer le teaser
+
+Le teaser est calculé image par image à partir du moteur du jeu, en deux couches :
+la 3D d'un côté, les textes et cartons de l'autre. Une retouche de texte ne demande donc
+pas de recalculer la 3D. `teaser/scripts/compose_final.sh` assemble le tout avec la bande son.
+
+## Clés d'accès
+
+Stockées hors du dossier, lisibles par vous seul :
+- OpenRouter : `~/.config/openrouter/key` (voix et images de référence)
+- Tripo : `~/.config/tripo/key` (crédits d'interface à zéro pour l'instant)
+
+## État et suite
+
+Fait : prologue et deux missions, trois langues, carte de Chroma, Dôme mémoriel meublé,
+course propre à chaque mission, teaser de 95 secondes.
+En cours : remplacement des personnages par des modèles 3D générés depuis les planches de
+référence. Ayla est faite, sans texture fine. Il manque un jeton Hugging Face pour
+débloquer la texture, puis les trois autres personnages, puis le squelette d'animation.
