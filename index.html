@@ -57,6 +57,11 @@ button:focus-visible,[contenteditable]:focus-visible{outline:3px solid var(--ayl
 .speech .row{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:10px;flex-wrap:wrap}
 .speech .ideas{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .speech .idea{background:#FBEBD2;color:#6B4A2B;border:1px solid #E6C89A;border-radius:999px;padding:4px 10px;font-size:13px}
+.speech.hasportrait{display:grid;grid-template-columns:68px minmax(0,1fr);gap:12px;min-width:min(330px,calc(100vw - 28px));align-items:start}
+.speech .portrait{width:68px;height:76px;border-radius:18px;overflow:hidden;background:#E4E3E1;border:2px solid rgba(88,62,42,.14);box-shadow:0 7px 18px rgba(52,35,25,.16)}
+.speech .portrait img{width:100%;height:100%;display:block;object-fit:cover;object-position:50% 9%}
+.speech .copy{min-width:0}
+@media (max-width:560px){.speech.hasportrait{grid-template-columns:54px minmax(0,1fr);gap:9px}.speech .portrait{width:54px;height:62px;border-radius:15px}}
 @keyframes pop{from{opacity:0;transform:translate(-50%,-100%) scale(.85)}to{opacity:1;transform:translate(-50%,-100%) scale(1)}}
 .flpanel{position:fixed;left:50%;top:76px;transform:translateX(-50%);width:min(560px,calc(100% - 40px));background:linear-gradient(180deg, rgba(94,168,255,.22), rgba(16,26,48,.94));border:1px solid var(--fl);border-radius:6px;padding:14px 18px 10px;box-shadow:0 0 0 1px rgba(94,168,255,.25), 0 0 50px var(--fl-glow);animation:rise .3s ease-out;pointer-events:auto;z-index:16}
 .flpanel .who{font:700 12px var(--mono);color:var(--fl);letter-spacing:.14em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
@@ -171,7 +176,7 @@ body.rtl .ph{font-family:"Tajawal",sans-serif}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-const BUILD="20260917storybook";
+const BUILD="20260918canonical";
 (function(){ try{ if(!/github\.io$/.test(location.hostname)) return; fetch("version.json?ts="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{ if(j && j.build && j.build!==BUILD){ const u=new URL(location.href); if(u.searchParams.get("v")!==j.build){ u.searchParams.set("v", j.build); location.replace(u.toString()); } } }).catch(()=>{}); }catch(e){} })();
 /* ============================== I18N : fr / en / ar ============================== */
 const I18N = {
@@ -847,6 +852,46 @@ function clothTex(kind, base, accent){
   if(kind==="burlap"){ for(let y=0;y<256;y+=5){ g.fillStyle="rgba(0,0,0,.16)"; g.fillRect(0,y,256,2); } for(let x=0;x<256;x+=5){ g.fillStyle="rgba(255,255,255,.07)"; g.fillRect(x,0,2,256); } for(let i=0;i<1800;i++){ g.fillStyle=Math.random()>.5?"rgba(0,0,0,.18)":"rgba(255,240,210,.10)"; g.fillRect(Math.random()*256,Math.random()*256,3,3); } g.fillStyle=accent; g.globalAlpha=.35; for(let i=0;i<6;i++){ g.fillRect(Math.random()*220,Math.random()*220,24+Math.random()*30,18+Math.random()*24); } g.globalAlpha=1; }
   const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(2,2); texCache[key]=t; return t;
 }
+const PORTRAIT_ASSETS={
+  ayla:"assets/characters/ayla.png",
+  kade:"assets/characters/kade.png",
+  elio:"assets/characters/elio.png",
+  elio2:"assets/characters/elio.png",
+  saren:"assets/characters/saren.png"
+};
+const portraitCache={};
+function loadPortraitTexture(path,done){
+  if(portraitCache[path]?.texture){ done(portraitCache[path].texture,portraitCache[path].aspect); return; }
+  if(portraitCache[path]){ portraitCache[path].waiters.push(done); return; }
+  portraitCache[path]={waiters:[done]};
+  new THREE.TextureLoader().load(path,source=>{
+    const img=source.image, maxH=900, scale=Math.min(1,maxH/img.height), w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
+    const canvas=document.createElement("canvas"); canvas.width=w; canvas.height=h; const ctx=canvas.getContext("2d",{willReadFrequently:true}); ctx.drawImage(img,0,0,w,h);
+    try{
+      const frame=ctx.getImageData(0,0,w,h), d=frame.data, seen=new Uint8Array(w*h), queue=new Int32Array(w*h), bg=new Uint8Array(h*3); let q0=0,q1=0;
+      for(let y=0;y<h;y++){ const xs=[0,1,w-2,w-1]; for(let c=0;c<3;c++) bg[y*3+c]=Math.round(xs.reduce((sum,x)=>sum+d[(y*w+x)*4+c],0)/xs.length); }
+      const isBg=i=>{ const p=i*4,x=i%w,y=(i/w)|0,r=d[p],g=d[p+1],b=d[p+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b),delta=(Math.abs(r-bg[y*3])+Math.abs(g-bg[y*3+1])+Math.abs(b-bg[y*3+2]))/3; if(mx<105||mx-mn>32||delta>34) return false; let contrast=0; if(x>1) contrast=Math.max(contrast,Math.abs(r-d[p-8]),Math.abs(g-d[p-7]),Math.abs(b-d[p-6])); if(x<w-2) contrast=Math.max(contrast,Math.abs(r-d[p+8]),Math.abs(g-d[p+9]),Math.abs(b-d[p+10])); if(y>1) contrast=Math.max(contrast,Math.abs(r-d[p-w*8]),Math.abs(g-d[p-w*8+1]),Math.abs(b-d[p-w*8+2])); if(y<h-2) contrast=Math.max(contrast,Math.abs(r-d[p+w*8]),Math.abs(g-d[p+w*8+1]),Math.abs(b-d[p+w*8+2])); return contrast<30; };
+      const seed=i=>{ if(!seen[i]&&isBg(i)){ seen[i]=1; queue[q1++]=i; } };
+      for(let x=0;x<w;x++){ seed(x); seed((h-1)*w+x); } for(let y=1;y<h-1;y++){ seed(y*w); seed(y*w+w-1); }
+      while(q0<q1){ const i=queue[q0++],x=i%w,y=(i/w)|0; if(x>0) seed(i-1); if(x<w-1) seed(i+1); if(y>0) seed(i-w); if(y<h-1) seed(i+w); }
+      let minX=w,minY=h,maxX=0,maxY=0;
+      for(let i=0;i<w*h;i++){ const a=i*4+3; if(seen[i]) d[a]=0; else if(d[a]>12){ const x=i%w,y=(i/w)|0; if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y; } }
+      ctx.putImageData(frame,0,0); const pad=8; minX=Math.max(0,minX-pad); minY=Math.max(0,minY-pad); maxX=Math.min(w-1,maxX+pad); maxY=Math.min(h-1,maxY+pad);
+      const cw=Math.max(1,maxX-minX+1),ch=Math.max(1,maxY-minY+1),crop=document.createElement("canvas"); crop.width=cw; crop.height=ch; crop.getContext("2d").drawImage(canvas,minX,minY,cw,ch,0,0,cw,ch);
+      const texture=new THREE.CanvasTexture(crop); texture.encoding=THREE.sRGBEncoding; texture.minFilter=THREE.LinearFilter; texture.magFilter=THREE.LinearFilter; texture.needsUpdate=true; source.dispose();
+      const entry=portraitCache[path]; entry.texture=texture; entry.aspect=cw/ch; entry.waiters.splice(0).forEach(cb=>cb(texture,entry.aspect));
+    }catch(e){ source.encoding=THREE.sRGBEncoding; const entry=portraitCache[path]; entry.texture=source; entry.aspect=img.width/img.height; entry.waiters.splice(0).forEach(cb=>cb(source,entry.aspect)); }
+  },undefined,()=>{ const entry=portraitCache[path]; entry.waiters.splice(0).forEach(cb=>cb(null,.66)); });
+}
+function portraitFigure(kind){
+  const g=new THREE.Group(), shadow=new THREE.Mesh(new THREE.CircleGeometry(.55,28),new THREE.MeshBasicMaterial({color:0x241812,transparent:true,opacity:.2,depthWrite:false})); shadow.rotation.x=-Math.PI/2; shadow.position.y=.012; g.add(shadow);
+  const material=new THREE.SpriteMaterial({transparent:true,depthWrite:false,alphaTest:.025,toneMapped:false}); const sprite=new THREE.Sprite(material); sprite.center.set(.5,0); sprite.position.y=.02; g.add(sprite);
+  const heights={ayla:3.05,kade:3.08,elio:3.18,elio2:3.18,saren:3.2},height=heights[kind]||3.1;
+  const head=new THREE.Object3D(); head.position.y=height*.86; g.add(head); const body=new THREE.Object3D(); body.position.y=height*.5; g.add(body);
+  g.userData={head,body,hands:[],feet:[],legs:[],arms:[],t:Math.random()*10,kind,portrait:true,sprite,headY:head.position.y,hasBook:kind==="saren",hasStaff:kind==="saren",book:kind==="saren"?head:null};
+  loadPortraitTexture(PORTRAIT_ASSETS[kind],(texture,aspect)=>{ if(!texture) return; material.map=texture; material.needsUpdate=true; sprite.scale.set(height*aspect,height,1); g.userData.baseSpriteScale={x:height*aspect,y:height}; });
+  return g;
+}
 function human(o){
   const g=new THREE.Group();
   const m=(c,opt)=>{ opt=opt||{}; const mat=new THREE.MeshStandardMaterial({color:c, emissive:opt.e||0x000000, emissiveIntensity:opt.ei||0, roughness:opt.r!==undefined?opt.r:.82, metalness:opt.mt||0}); if(opt.map) mat.map=opt.map; return mat; };
@@ -952,9 +997,10 @@ const CHARS={
   kid5:{kind:"kid5",skin:0xE9C7A6,hair:0xE8C36A,style:"spiky",top:0xE06060,topTex:"dots",topTexBase:"#E06060",topTexAccent:"#FFF6E5",legs:0x2B3A55,shin:0xE9C7A6,shoe:0x2A2A2A,scale:.64,cheeks:0xE0876B,iris:0x2F5F8F},
   kid6:{kind:"kid6",skin:0xC68642,hair:0x3B2314,style:"pigtails",top:0x6FE3D8,topTex:"weave",topTexBase:"#6FE3D8",topTexAccent:"#3E7D3A",legs:0xF57C00,shin:0xC68642,shoe:0xF5F5F5,scale:.67,cheeks:0xE0876B,iris:0x4A2C15,lashes:true}
 };
-function figure(kind){ return human(CHARS[kind]); }
-function sit(f){ const u=f.userData; f.position.y=-0.62*(f.scale.x||1); u.legs.forEach(l=>{ l.rotation.x=-1.45; }); u.arms.forEach((a,i)=>{ a.rotation.x=-.5; a.rotation.z=(i?-1:1)*.25; }); u.seated=true; }
+function figure(kind){ return PORTRAIT_ASSETS[kind]?portraitFigure(kind):human(CHARS[kind]); }
+function sit(f){ const u=f.userData; f.position.y=(u.portrait?-.18:-.62)*(f.scale.x||1); u.legs.forEach(l=>{ l.rotation.x=-1.45; }); u.arms.forEach((a,i)=>{ a.rotation.x=-.5; a.rotation.z=(i?-1:1)*.25; }); u.seated=true; }
 function animFigure(f, dt, mode){ const u=f.userData; u.t+=dt; const t=u.t; const hy=u.headY||2.5;
+  if(u.portrait){ const base=u.baseSpriteScale; if(base){ const active=mode==="run"||mode==="walk"; const pulse=active?Math.abs(Math.sin(t*(mode==="run"?11:7))):Math.sin(t*1.5)*.5+.5; u.sprite.position.y=.02+(active?pulse*.07:Math.sin(t*1.5)*.015); u.sprite.scale.set(base.x*(1+(active?Math.sin(t*7)*.012:0)),base.y*(1-(active?Math.sin(t*7)*.009:0)),1); u.sprite.material.rotation=active?Math.sin(t*(mode==="run"?11:7))*.018:0; } u.head.position.y=hy; return; }
   const swing=(amp,freq)=>{ const sn=Math.sin(t*freq); if(u.legs.length){ u.legs[0].rotation.x=sn*amp; u.legs[1].rotation.x=-sn*amp; } if(!u.hasBook){ u.arms[0].rotation.x=-sn*amp*.9; u.arms[1].rotation.x=sn*amp*.9; u.arms[0].rotation.z=.06; u.arms[1].rotation.z=-.06; } };
   if(mode==="run"){ swing(.8,13); u.body.rotation.x=.12; u.head.position.y=hy+Math.abs(Math.sin(t*13))*.05; u.head.rotation.y=0; }
   else if(mode==="walk"){ swing(.45,8); u.body.rotation.x=.04; u.head.rotation.y=0; }
@@ -1190,7 +1236,7 @@ function buildTitleScene(){
   const rug=new THREE.Mesh(new THREE.CircleGeometry(4.7,48),new THREE.MeshStandardMaterial({color:lin(0xA55F4C),roughness:1})); rug.scale.y=.58; rug.rotation.x=-Math.PI/2; rug.position.set(0,.01,-.7); world.add(rug);
   cast={}; const place=(k,x,z,ry,scale)=>{ const f=figure(k); f.position.set(x,0,z); f.rotation.y=ry||0; if(scale) f.scale.multiplyScalar(scale); world.add(f); cast[k]=f; };
   player.position.set(0,0,-.6); player.rotation.y=0; player.visible=true; P.x=0; P.z=-.6; P.y=0;
-  place("kid3",-3.25,-1.05,.12,1.18); place("elio2",3.45,-1.2,-.1,1.02);
+  place("kade",-3.25,-1.05,.12,1.0); place("elio2",3.45,-1.2,-.1,1.0); place("saren",0,-4.85,0,.94);
   coreLight.position.set(0,5,-1); camera.position.set(.4,3.65,9.1); camera.lookAt(0,1.55,-1.4);
 }
 function playPrologue(){ G.state="dome"; hud(T.prologue,T.dome); document.getElementById("carnetBtn").classList.remove("hidden"); help(T.helpContinue); runDialogue(PROLOGUE, ()=>screenMap()); }
@@ -1207,7 +1253,7 @@ function runDialogue(lines, done){
     const key=L.key||( {"Ayla":"ayla","Kade":"kade","Technicien masqué":"elio","Elio":"elio2","Saren":"saren"}[L.who] );
     const obj=key?anchorFor(key):null;
     if(L.fl){ speech.innerHTML=`<div class="flpanel"><div class="who">${T.friendloop}</div><div class="txt">${L.text}</div>${hint}</div>`; dlgActive=null; }
-    else if(obj){ obj.userData.speaking=true; obj.userData.hop=1; const b=el(`<div class="speech ${L.cls==="ayla"?"ayla-b":(L.cls==="saren"?"saren-b":"")}"><div class="who ${L.cls||""}">${L.who}</div><div class="txt">${L.text}</div>${hint}<div class="tail"></div></div>`); speech.appendChild(b); dlgActive={el:b,obj}; positionBubble(); }
+    else if(obj){ obj.userData.speaking=true; obj.userData.hop=1; const portrait=PORTRAIT_ASSETS[key]?`<div class="portrait"><img src="${PORTRAIT_ASSETS[key]}" alt="${L.who}"></div>`:""; const b=el(`<div class="speech ${portrait?"hasportrait":""} ${L.cls==="ayla"?"ayla-b":(L.cls==="saren"?"saren-b":"")}">${portrait}<div class="copy"><div class="who ${L.cls||""}">${L.who}</div><div class="txt">${L.text}</div>${hint}</div><div class="tail"></div></div>`); speech.appendChild(b); dlgActive={el:b,obj}; positionBubble(); }
     else { speech.innerHTML=`<div class="caption"><div class="txt">${L.text}</div>${hint}</div>`; dlgActive=null; }
   };
   G.action=()=>{ Music.sfx("tick"); i++; if(i<lines.length) show(); else { speech.innerHTML=""; dlgActive=null; G.action=()=>{}; if(G.state==="dialogue") G.state=prev; done(); } };
@@ -1377,7 +1423,7 @@ function loopBody(now, noRender){
     camera.position.lerp(new THREE.Vector3(0.6+Math.sin(t*.15)*1.2,3.6,9.2),dt); camera.lookAt(0,1.6,-1.4);
   }
   // speaking hop
-  [player,...Object.values(cast),...(G.npcObjs?Object.values(G.npcObjs):[])].forEach(f=>{ if(!f) return; const u=f.userData; if(u.hop>0){ const base=(f===player?P.y:(u.seated?-0.62*(f.scale.x||1):0)); u.hop-=dt*2.2; f.position.y=Math.max(0,Math.sin(u.hop*Math.PI))*(u.seated?.25:.5)+base; if(u.hop<=0){ u.hop=0; f.position.y=base; } } });
+  [player,...Object.values(cast),...(G.npcObjs?Object.values(G.npcObjs):[])].forEach(f=>{ if(!f) return; const u=f.userData; if(u.hop>0){ const seatedBase=(u.portrait?-.18:-.62)*(f.scale.x||1); const base=(f===player?P.y:(u.seated?seatedBase:0)); u.hop-=dt*2.2; f.position.y=Math.max(0,Math.sin(u.hop*Math.PI))*(u.seated?.25:.5)+base; if(u.hop<=0){ u.hop=0; f.position.y=base; } } });
   if(level&&level.blinks&&level.blinks.length&&G.state!=="dome"&&G.state!=="title"){ level.blinks.forEach(b=>{ b.material.emissiveIntensity=Math.sin(t*b.userData.f+b.userData.p)>.3?1.8:.1; }); }
   if(alarmOn){ alarmLight.intensity=1.5+Math.sin(t*6)*1.4; alarmLight.position.set(P.x,4,P.z-3); } else alarmLight.intensity=Math.max(0,alarmLight.intensity-dt*3);
   if(dlgActive) positionBubble();
