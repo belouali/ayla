@@ -1,5 +1,41 @@
 # Nettoyage + coloration par projection frontale de la planche de reference.
 import bpy, bmesh, sys, os, math
+import numpy as np
+
+def _flou(a, n=1):
+    for _ in range(n):
+        p = np.pad(a, ((1,1),(1,1),(0,0)), mode='edge')
+        a = (p[:-2,1:-1]+p[2:,1:-1]+p[1:-1,:-2]+p[1:-1,2:]+2.0*p[1:-1,1:-1])/6.0
+    return a
+
+def _diffuse(rgb, w):
+    """Etale les couleurs valables dans les zones vides (pyramide lissee)."""
+    def bas(c, p):
+        return (c[0::2,0::2]+c[1::2,0::2]+c[0::2,1::2]+c[1::2,1::2],
+                p[0::2,0::2]+p[1::2,0::2]+p[0::2,1::2]+p[1::2,1::2])
+    pyr = [(rgb*w[..., None], w)]
+    while pyr[-1][1].shape[0] > 8: pyr.append(bas(*pyr[-1]))
+    haut = None
+    for c, p in reversed(pyr):
+        base = np.where(p[..., None] > 1e-5, c/np.maximum(p, 1e-5)[..., None], 0.0)
+        if haut is not None:
+            gros = _flou(np.repeat(np.repeat(haut,2,0),2,1)[:base.shape[0], :base.shape[1]], 2)
+            base = np.where(p[..., None] > 1e-5, base, gros)
+        haut = base
+    return np.where(w[..., None] > 0.5, rgb, _flou(haut, 1))
+
+def combler_image(img):
+    """Bouche les trous noirs ou transparents d'une texture existante."""
+    L, H = img.size
+    if L != H or L & (L-1): return False
+    px = np.array(img.pixels[:], dtype=np.float32).reshape(H, L, 4)
+    rgb = px[..., :3]
+    plein = ((px[..., 3] > 0.5) & (rgb.sum(axis=2) > 0.012)).astype(np.float32)
+    if plein.mean() > 0.995: return False
+    px[..., :3] = _diffuse(rgb, plein); px[..., 3] = 1.0
+    img.pixels = px.ravel().tolist()
+    print("ATLAS comble", round(100*(1-float(plein.mean())), 1), "pour cent de vide")
+    return True
 a = sys.argv[sys.argv.index("--")+1:]
 SRC, REF, OUT, CIBLE, TAILLE = a[0], a[1], a[2], int(a[3]), int(a[4])
 
@@ -13,6 +49,20 @@ if len(ms) > 1: bpy.ops.object.join()
 ob = bpy.context.view_layer.objects.active; ob.name = "perso"
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 me = ob.data; n0 = len(me.polygons)
+
+# --- texture d'origine si le maillage en porte une -------------------------
+UV0 = me.uv_layers.active.name if me.uv_layers.active else None
+SRCMAT = {}          # matiere -> image de couleur d'origine
+for _m in me.materials:
+    if not (_m and _m.use_nodes): continue
+    for _n in _m.node_tree.nodes:
+        if _n.type == 'TEX_IMAGE' and _n.image and _n.image.size[0]:
+            SRCMAT[_m.name] = _n.image; break
+IMG0 = next(iter(SRCMAT.values()), None)
+if os.environ.get("PROJ", "0") == "1": IMG0 = None
+for _im in set(SRCMAT.values()): combler_image(_im)
+print("MATIERES", len(me.materials), "dont", len(SRCMAT), "avec texture")
+print("SOURCE", "texture d'origine" if IMG0 else "projection de la planche")
 
 # --- socle : Hunyuan sort en Z haut, sujet de face vers -Y ------------------
 bm = bmesh.new(); bm.from_mesh(me)
@@ -37,7 +87,7 @@ bpy.ops.mesh.separate(type='LOOSE')
 bpy.ops.object.mode_set(mode='OBJECT')
 morceaux = [o for o in bpy.context.selected_objects if o.type == 'MESH']
 morceaux.sort(key=lambda o: len(o.data.polygons), reverse=True)
-seuil = max(24, int(0.02 * len(morceaux[0].data.polygons)))
+seuil = int(os.environ.get("SEUIL", "1"))
 gardes = [o for o in morceaux if len(o.data.polygons) >= seuil]
 for o in morceaux:
     if o not in gardes: bpy.data.objects.remove(o, do_unlink=True)
@@ -48,8 +98,12 @@ for o in gardes:
     bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='SELECT')
     bpy.ops.mesh.normals_make_consistent(inside=False)
     bpy.ops.object.mode_set(mode='OBJECT')
-    bv = bmesh.new(); bv.from_mesh(o.data); vol = bv.calc_volume(signed=True); bv.free()
-    if vol < 0:
+    bv = bmesh.new(); bv.from_mesh(o.data)
+    vol = bv.calc_volume(signed=True)
+    ouvert = any(len(e.link_faces) != 2 for e in bv.edges)
+    bv.free()
+    gros = len(o.data.polygons) >= 0.20 * len(morceaux[0].data.polygons)
+    if vol < 0 and gros:
         bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='SELECT')
         bpy.ops.mesh.flip_normals(); bpy.ops.object.mode_set(mode='OBJECT')
 bpy.ops.object.select_all(action='DESELECT')
@@ -61,7 +115,8 @@ me = ob.data
 print("MORCEAUX", len(morceaux), "gardes", len(gardes))
 
 bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='SELECT')
-bpy.ops.mesh.remove_doubles(threshold=0.0006)
+_fus = float(os.environ.get("FUSION", "0.0006"))
+if _fus > 0: bpy.ops.mesh.remove_doubles(threshold=_fus)
 bpy.ops.object.mode_set(mode='OBJECT')
 bpy.ops.mesh.customdata_custom_splitnormals_clear()
 # volume signe negatif : les normales regardent vers l'interieur
@@ -69,6 +124,10 @@ bpy.ops.mesh.customdata_custom_splitnormals_clear()
 if len(me.polygons) > CIBLE:
     d = ob.modifiers.new("dec", "DECIMATE"); d.ratio = CIBLE/len(me.polygons)
     bpy.ops.object.modifier_apply(modifier=d.name)
+    # la decimation perce les maillages en ecailles : on referme
+    bpy.ops.object.mode_set(mode="EDIT"); bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.mesh.fill_holes(sides=6)
+    bpy.ops.object.mode_set(mode="OBJECT")
 bpy.ops.object.shade_smooth()
 
 me.uv_layers.new(name="bake"); me.uv_layers.active = me.uv_layers["bake"]
@@ -93,52 +152,67 @@ SENS = float(os.environ.get("SENS", "-1"))
 print("SENS", "face vers -Y" if SENS < 0 else "face vers +Y")
 # la planche est recadree au plus juste sur le sujet : les deux boites coincident
 
-ref = bpy.data.images.load(os.path.abspath(REF))
-mat = bpy.data.materials.new("proj"); mat.use_nodes = True
-nt = mat.node_tree; nt.nodes.clear()
-out = nt.nodes.new("ShaderNodeOutputMaterial")
-emi = nt.nodes.new("ShaderNodeEmission")
-geo = nt.nodes.new("ShaderNodeNewGeometry")
-sep = nt.nodes.new("ShaderNodeSeparateXYZ")
-nt.links.new(geo.outputs["Position"], sep.inputs["Vector"])
 axn = ["X","Y","Z"]
-
-def maprange(inp, fmin, fmax):
-    m = nt.nodes.new("ShaderNodeMapRange")
-    m.inputs[1].default_value = fmin; m.inputs[2].default_value = fmax
-    m.inputs[3].default_value = 0.0;  m.inputs[4].default_value = 1.0
-    m.clamp = True
-    nt.links.new(inp, m.inputs[0]); return m.outputs[0]
-
-u = maprange(sep.outputs[axn[LAR]], bnds[LAR][0], bnds[LAR][1])
-if SENS > 0:
-    _m = nt.nodes.new("ShaderNodeMath"); _m.operation = 'SUBTRACT'
-    _m.inputs[0].default_value = 1.0; nt.links.new(u, _m.inputs[1]); u = _m.outputs[0]
-v = maprange(sep.outputs[axn[UP]], bnds[UP][0], bnds[UP][1])
-uinv = nt.nodes.new("ShaderNodeMath"); uinv.operation = 'SUBTRACT'
-uinv.inputs[0].default_value = 1.0; nt.links.new(u, uinv.inputs[1])
-
-def coords(uu):
-    c = nt.nodes.new("ShaderNodeCombineXYZ")
-    nt.links.new(uu, c.inputs[0]); nt.links.new(v, c.inputs[1]); return c.outputs[0]
-
-tf = nt.nodes.new("ShaderNodeTexImage"); tf.image = ref; tf.extension = 'EXTEND'
-nt.links.new(coords(u), tf.inputs["Vector"])
-nt.links.new(tf.outputs["Color"], emi.inputs["Color"])
-nt.links.new(emi.outputs["Emission"], out.inputs["Surface"])
-me.materials.clear(); me.materials.append(mat)
-
-# visibilite : la planche est une vue de face, donc normale vers -Y
-nsep = nt.nodes.new("ShaderNodeSeparateXYZ")
-nt.links.new(geo.outputs["Normal"], nsep.inputs["Vector"])
-vis = nt.nodes.new("ShaderNodeMath"); vis.operation = 'MULTIPLY_ADD'
-vis.inputs[1].default_value = 7.0 * SENS; vis.inputs[2].default_value = -0.9
-vis.use_clamp = True
-nt.links.new(nsep.outputs["Y"], vis.inputs[0])
-
-import numpy as np
+ref = bpy.data.images.load(os.path.abspath(REF))
 img = bpy.data.images.new("tex", TAILLE, TAILLE)
-tn = nt.nodes.new("ShaderNodeTexImage"); tn.image = img; nt.nodes.active = tn
+
+if SRCMAT and UV0:
+    # chaque matiere d'origine devient une emission de sa propre texture
+    cibles = []
+    for slot in me.materials:
+        if slot is None: continue
+        src = SRCMAT.get(slot.name)
+        slot.use_nodes = True
+        nt = slot.node_tree; nt.nodes.clear()
+        o = nt.nodes.new("ShaderNodeOutputMaterial")
+        e = nt.nodes.new("ShaderNodeEmission")
+        if src is not None:
+            uvn = nt.nodes.new("ShaderNodeUVMap"); uvn.uv_map = UV0
+            t = nt.nodes.new("ShaderNodeTexImage"); t.image = src; t.interpolation = 'Smart'
+            nt.links.new(uvn.outputs["UV"], t.inputs["Vector"])
+            nt.links.new(t.outputs["Color"], e.inputs["Color"])
+        else:
+            e.inputs["Color"].default_value = (.72,.70,.68,1)
+        nt.links.new(e.outputs["Emission"], o.inputs["Surface"])
+        tgt = nt.nodes.new("ShaderNodeTexImage"); tgt.image = img
+        nt.nodes.active = tgt
+        cibles.append((slot, e))
+    PLEIN = True
+else:
+    PLEIN = False
+    mat = bpy.data.materials.new("proj"); mat.use_nodes = True
+    nt = mat.node_tree; nt.nodes.clear()
+    out = nt.nodes.new("ShaderNodeOutputMaterial")
+    emi = nt.nodes.new("ShaderNodeEmission")
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(geo.outputs["Position"], sep.inputs["Vector"])
+    def maprange(inp, fmin, fmax):
+        m = nt.nodes.new("ShaderNodeMapRange")
+        m.inputs[1].default_value = fmin; m.inputs[2].default_value = fmax
+        m.inputs[3].default_value = 0.0;  m.inputs[4].default_value = 1.0
+        m.clamp = True
+        nt.links.new(inp, m.inputs[0]); return m.outputs[0]
+    u = maprange(sep.outputs[axn[LAR]], bnds[LAR][0], bnds[LAR][1])
+    if SENS > 0:
+        _m = nt.nodes.new("ShaderNodeMath"); _m.operation = 'SUBTRACT'
+        _m.inputs[0].default_value = 1.0; nt.links.new(u, _m.inputs[1]); u = _m.outputs[0]
+    v = maprange(sep.outputs[axn[UP]], bnds[UP][0], bnds[UP][1])
+    c = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(u, c.inputs[0]); nt.links.new(v, c.inputs[1])
+    tf = nt.nodes.new("ShaderNodeTexImage"); tf.image = ref; tf.extension = 'EXTEND'
+    nt.links.new(c.outputs[0], tf.inputs["Vector"])
+    nt.links.new(tf.outputs["Color"], emi.inputs["Color"])
+    nt.links.new(emi.outputs["Emission"], out.inputs["Surface"])
+    me.materials.clear(); me.materials.append(mat)
+    nsep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(geo.outputs["Normal"], nsep.inputs["Vector"])
+    vis = nt.nodes.new("ShaderNodeMath"); vis.operation = 'MULTIPLY_ADD'
+    vis.inputs[1].default_value = 7.0 * SENS; vis.inputs[2].default_value = -0.9
+    vis.use_clamp = True
+    nt.links.new(nsep.outputs["Y"], vis.inputs[0])
+    tn = nt.nodes.new("ShaderNodeTexImage"); tn.image = img; nt.nodes.active = tn
+
 sc = bpy.context.scene
 sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'; sc.cycles.samples = 2
 sc.render.bake.use_pass_direct = False; sc.render.bake.use_pass_indirect = False
@@ -146,42 +220,21 @@ sc.render.bake.margin = 10
 bpy.ops.object.bake(type='EMIT')
 coul = np.array(img.pixels[:], dtype=np.float32).reshape(TAILLE, TAILLE, 4)
 
-# seconde cuisson : ou la projection est valable
-mimg = bpy.data.images.new("msk", TAILLE, TAILLE)
-nt.links.new(vis.outputs[0], emi.inputs["Color"])
-tn.image = mimg; nt.nodes.active = tn
-bpy.ops.object.bake(type='EMIT')
-msk = np.array(mimg.pixels[:], dtype=np.float32).reshape(TAILLE, TAILLE, 4)[..., 0]
-w = (msk > 0.35).astype(np.float32)
-
-# diffusion pyramidale lissee : les zones non vues heritent du voisinage
-def flou(a, n=1):
-    for _ in range(n):
-        p = np.pad(a, ((1,1),(1,1),(0,0)), mode='edge')
-        a = (p[:-2,1:-1]+p[2:,1:-1]+p[1:-1,:-2]+p[1:-1,2:]+2.0*p[1:-1,1:-1])/6.0
-    return a
-def descend(c, p):
-    cs = (c[0::2,0::2]+c[1::2,0::2]+c[0::2,1::2]+c[1::2,1::2])
-    ps = (p[0::2,0::2]+p[1::2,0::2]+p[0::2,1::2]+p[1::2,1::2])
-    return cs, ps
-pyr = [(coul[..., :3]*w[..., None], w)]
-while pyr[-1][1].shape[0] > 8:
-    pyr.append(descend(*pyr[-1]))
-haut = None
-for c, p in reversed(pyr):
-    base = np.where(p[..., None] > 1e-5, c/np.maximum(p, 1e-5)[..., None], 0.0)
-    if haut is not None:
-        gros = flou(np.repeat(np.repeat(haut, 2, 0), 2, 1)[:base.shape[0], :base.shape[1]], 2)
-        base = np.where(p[..., None] > 1e-5, base, gros)
-    haut = base
-haut = flou(haut, 1)
-rgb = np.where(w[..., None] > 0.5, coul[..., :3], haut)
-coul[..., :3] = rgb; coul[..., 3] = 1.0
+if PLEIN:
+    w = ((coul[..., 3] > 0.5) & (coul[..., :3].sum(axis=2) > 0.010)).astype(np.float32)
+else:
+    mimg = bpy.data.images.new("msk", TAILLE, TAILLE)
+    nt.links.new(vis.outputs[0], emi.inputs["Color"])
+    tn.image = mimg; nt.nodes.active = tn
+    bpy.ops.object.bake(type='EMIT')
+    msk = np.array(mimg.pixels[:], dtype=np.float32).reshape(TAILLE, TAILLE, 4)[..., 0]
+    w = (msk > 0.35).astype(np.float32)
+coul[..., :3] = _diffuse(coul[..., :3], w); coul[..., 3] = 1.0
 img.pixels = coul.ravel().tolist()
 img.filepath_raw = os.path.splitext(OUT)[0] + "_tex.png"; img.file_format = 'PNG'; img.save()
-mimg.filepath_raw = os.path.splitext(OUT)[0] + "_masque.png"; mimg.file_format='PNG'; mimg.save()
 print("VISIBLE", round(100*float(w.mean()), 1), "pour cent de l'atlas")
 
+me.materials.clear()
 fin = bpy.data.materials.new("perso"); fin.use_nodes = True
 b = fin.node_tree.nodes["Principled BSDF"]
 t2 = fin.node_tree.nodes.new("ShaderNodeTexImage"); t2.image = img
