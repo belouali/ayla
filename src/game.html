@@ -163,6 +163,8 @@ body.rtl .ph{font-family:"Tajawal",sans-serif}
 <div id="fade"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script>
 const BUILD="__BUILD__";
 (function(){ try{ if(!/github\.io$/.test(location.hostname)) return; fetch("version.json?ts="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{ if(j && j.build && j.build!==BUILD){ const u=new URL(location.href); if(u.searchParams.get("v")!==j.build){ u.searchParams.set("v", j.build); location.replace(u.toString()); } } }).catch(()=>{}); }catch(e){} })();
@@ -946,9 +948,71 @@ const CHARS={
   kid5:{kind:"kid5",skin:0xE9C7A6,hair:0xE8C36A,style:"spiky",top:0xE06060,topTex:"dots",topTexBase:"#E06060",topTexAccent:"#FFF6E5",legs:0x2B3A55,shin:0xE9C7A6,shoe:0x2A2A2A,scale:.64,cheeks:0xE0876B,iris:0x2F5F8F},
   kid6:{kind:"kid6",skin:0xC68642,hair:0x3B2314,style:"pigtails",top:0x6FE3D8,topTex:"weave",topTexBase:"#6FE3D8",topTexAccent:"#3E7D3A",legs:0xF57C00,shin:0xC68642,shoe:0xF5F5F5,scale:.67,cheeks:0xE0876B,iris:0x4A2C15,lashes:true}
 };
-function figure(kind){ return human(CHARS[kind]); }
+/* ---- personnages modelés : squelette, poids et animations cuites ---- */
+const MODELES={ayla:"ayla",elio:"elio",elio2:"elio",kade:"kade",saren:"saren"};
+const GABARITS={}, ATTENTE=[], HAUTEURS={};
+(function chargerModeles(){
+  if(!THREE.GLTFLoader||!THREE.SkeletonUtils) return;
+  const L=new THREE.GLTFLoader();
+  [...new Set(Object.values(MODELES))].forEach(k=>L.load("assets/personnages/anim/"+k+".glb", g=>{
+    g.scene.traverse(o=>{ if(o.isMesh){ o.frustumCulled=false; const mt=o.material; if(mt){ mt.roughness=.86; mt.metalness=0; } } });
+    GABARITS[k]=g;
+    for(let i=ATTENTE.length-1;i>=0;i--){ if(ATTENTE[i].userData.modeleCle===k){ habiller(ATTENTE[i]); ATTENTE.splice(i,1); } }
+  }, undefined, e=>console.warn("modèle indisponible", k, e)));
+})();
+function hauteurDe(kind){
+  if(HAUTEURS[kind]===undefined){ const t=human(CHARS[kind]); t.updateMatrixWorld(true); const b=new THREE.Box3();
+    t.traverse(o=>{ if(o.isMesh && o.geometry.type!=="CircleGeometry") b.expandByObject(o); }); HAUTEURS[kind]=b.max.y; }
+  return HAUTEURS[kind];
+}
+function figure(kind){
+  const f=human(CHARS[kind]); const k=MODELES[kind];
+  if(k && THREE.GLTFLoader && THREE.SkeletonUtils){ f.userData.modeleCle=k; if(GABARITS[k]) habiller(f); else ATTENTE.push(f); }
+  return f;
+}
+function osNomme(racine, nom){ let r=null; racine.traverse(o=>{ if(!r && o.isBone && o.name===nom) r=o; }); return r; }
+function habiller(f){
+  const u=f.userData, g=GABARITS[u.modeleCle]; if(!g || u.modele) return;
+  const H=hauteurDe(u.kind);
+  const inst=THREE.SkeletonUtils.clone(g.scene); inst.scale.setScalar(H);
+  // la silhouette dessinée reste en coulisse (ombre au sol et livre conservés)
+  const garder=new Set([f.children[0], u.book]);
+  f.children.forEach(c=>{ if(!garder.has(c)) c.visible=false; });
+  f.add(inst);
+  const mixer=new THREE.AnimationMixer(inst), actions={};
+  g.animations.forEach(cl=>{ actions[cl.name]=mixer.clipAction(cl); });
+  if(actions.repos){ actions.repos.play(); actions.repos.time=Math.random()*actions.repos.getClip().duration; }
+  // repère de tête pour les bulles et les étiquettes
+  const ancre=new THREE.Object3D(); const tete=osNomme(inst,"tete");
+  if(tete){ tete.add(ancre); ancre.position.set(0,.07,0); } else { ancre.position.y=H*.9; f.add(ancre); }
+  u.teteDessinee=u.head; u.head=ancre;
+  // le technicien masqué garde sa visière lumineuse
+  if(CHARS[u.kind] && CHARS[u.kind].visor && tete){
+    const vz=new THREE.Mesh(new THREE.BoxGeometry(.158,.038,.055), new THREE.MeshStandardMaterial({color:0x0B121C, emissive:0x2F7FD8, emissiveIntensity:.5, metalness:.6, roughness:.25}));
+    vz.position.set(0,.046,.058); tete.add(vz);
+  }
+  // le livre de Saren passe dans sa main gauche
+  if(u.book){ const main=osNomme(inst,"mainL"); if(main){ main.add(u.book); u.book.scale.setScalar(1/H); u.book.position.set(.01,.05,-.035); u.book.rotation.set(.2,0,Math.PI/2); } }
+  u.modele={inst,mixer,actions,cur:"repos"};
+}
+// cadence des pas calée sur les vitesses du jeu (6 u/s sur la place, jusqu'à 16 u/s en course)
+const CADENCE={repos:1, marche:1.4, course:1.3};
+function animerModele(u, dt, mode){
+  const M=u.modele; const saut=mode==="jump";
+  const nom=(mode==="run"||saut)?"course":(mode==="walk"?"marche":"repos");
+  if(nom!==M.cur && M.actions[nom]){
+    const a=M.actions[M.cur], b=M.actions[nom];
+    b.reset(); b.setEffectiveTimeScale(CADENCE[nom]); b.setEffectiveWeight(1);
+    // entre marche et course, le pas continue au même point du cycle
+    if(M.cur!=="repos" && nom!=="repos") b.time=(a.time/a.getClip().duration)*b.getClip().duration;
+    b.play(); a.crossFadeTo(b, nom==="repos"?.35:.22, false); M.cur=nom;
+  }
+  // en l'air, la foulée se suspend presque : l'élan reste lisible
+  const act=M.actions[M.cur]; if(act){ const ts=saut?.22:CADENCE[M.cur]; act.timeScale+=(ts-act.timeScale)*Math.min(1,dt*10); }
+  M.mixer.update(dt);
+}
 function sit(f){ const u=f.userData; f.position.y=-0.62*(f.scale.x||1); u.legs.forEach(l=>{ l.rotation.x=-1.45; }); u.arms.forEach((a,i)=>{ a.rotation.x=-.5; a.rotation.z=(i?-1:1)*.25; }); u.seated=true; }
-function animFigure(f, dt, mode){ const u=f.userData; u.t+=dt; const t=u.t; const hy=u.headY||2.5;
+function animFigure(f, dt, mode){ const u=f.userData; if(u.modele){ animerModele(u,dt,mode); return; } u.t+=dt; const t=u.t; const hy=u.headY||2.5;
   const swing=(amp,freq)=>{ const sn=Math.sin(t*freq); if(u.legs.length){ u.legs[0].rotation.x=sn*amp; u.legs[1].rotation.x=-sn*amp; } if(!u.hasBook){ u.arms[0].rotation.x=-sn*amp*.9; u.arms[1].rotation.x=sn*amp*.9; u.arms[0].rotation.z=.06; u.arms[1].rotation.z=-.06; } };
   if(mode==="run"){ swing(.8,13); u.body.rotation.x=.12; u.head.position.y=hy+Math.abs(Math.sin(t*13))*.05; u.head.rotation.y=0; }
   else if(mode==="walk"){ swing(.45,8); u.body.rotation.x=.04; u.head.rotation.y=0; }
@@ -1306,7 +1370,7 @@ function loopBody(now, noRender){
     P.speed=Math.min(16, P.speed+dt*8); P.z-=P.speed*dt;
     const targetX=LANES[P.lane]; P.x+=(targetX-P.x)*Math.min(1,dt*10);
     if(P.jumping){ P.vy-=28*dt; P.y+=P.vy*dt; if(P.y<=0){ P.y=0; P.jumping=false; } }
-    player.position.set(P.x,P.y,P.z); player.rotation.y=Math.PI+(targetX-P.x)*.15; animFigure(player,dt,P.jumping?"idle":"run");
+    player.position.set(P.x,P.y,P.z); player.rotation.y=Math.PI+(targetX-P.x)*.15; animFigure(player,dt,P.jumping?"jump":"run");
     if(P.jumping){ player.scale.set(.95,1.08,.95); } else player.scale.set(1,1,1);
     // obstacles
     level.obs.forEach(o=>{ const u=o.userData;

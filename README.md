@@ -49,3 +49,21 @@ course propre à chaque mission, teaser de 95 secondes.
 En cours : remplacement des personnages par des modèles 3D générés depuis les planches de
 référence. Ayla est faite, sans texture fine. Il manque un jeton Hugging Face pour
 débloquer la texture, puis les trois autres personnages, puis le squelette d'animation.
+
+## Branche ayla2 : personnages modelés et animés
+
+Ayla, Saren, Kade et Elio (masqué ou non) sont des modèles 3D texturés, dotés d'un
+squelette de dix-neuf os et de trois animations cuites : repos, marche et course.
+Le jeu les charge au démarrage (`assets/personnages/anim/*.glb`) et les anime avec
+un mélangeur Three.js : fondus enchaînés entre les allures, pas qui reprend au même
+point du cycle entre marche et course, foulée suspendue pendant les sauts. Tant qu'un
+modèle n'est pas chargé, la silhouette dessinée d'origine reste en place.
+
+Fabrication (dossier `tools/rig/`) : `articulations.json` donne la position des
+articulations relevée sur des vues de face quadrillées ; `rig.py` construit le
+squelette dans Blender, calcule les poids sur un double revoxelisé puis les transfère,
+retire les faces tendues entre les jambes et cuit les animations ; `planche.py`
+produit les planches de contrôle.
+
+Construction : `./publier_ayla2.sh` depuis le dossier AYLA ; avec un message, il
+commite et pousse la branche. Aperçu : https://raw.githack.com/belouali/ayla/ayla2/index.html
