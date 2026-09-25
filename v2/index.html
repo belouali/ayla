@@ -183,7 +183,7 @@ body.rtl .ph{font-family:"Tajawal",sans-serif}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 <script>
-const BUILD="20260925010706";
+const BUILD="20260925100746";
 (function(){ try{ if(!/github\.io$/.test(location.hostname)) return; fetch("version.json?ts="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{ if(j && j.build && j.build!==BUILD){ const u=new URL(location.href); if(u.searchParams.get("v")!==j.build){ u.searchParams.set("v", j.build); location.replace(u.toString()); } } }).catch(()=>{}); }catch(e){} })();
 /* ============================== I18N : fr / en / ar ============================== */
 const I18N = {
@@ -1305,10 +1305,12 @@ function habiller(f){
   const mixer=new THREE.AnimationMixer(inst), actions={};
   g.animations.forEach(cl=>{ actions[cl.name]=mixer.clipAction(cl); });
   const assis=Object.keys(actions).find(n=>/sit/.test(n));
-  const debut=actions.repos||actions[assis]||Object.values(actions)[0];
+  const nomDebut=actions.repos?"repos":(assis||Object.keys(actions)[0]); const debut=actions[nomDebut];
+  // les clips assis (Rocketbox) ne bouclent pas proprement : aller-retour pour éviter le saut à la fin
+  Object.keys(actions).forEach(n=>{ if(/sit/.test(n)) actions[n].setLoop(THREE.LoopPingPong, Infinity); });
   if(debut){ debut.play(); debut.time=Math.random()*debut.getClip().duration; }
   // repère de tête pour les bulles et les étiquettes
-  const ancre=new THREE.Object3D(); const tete=osNomme(inst,"tete");
+  const ancre=new THREE.Object3D(); const tete=osNomme(inst,"tete")||osNomme(inst,"Bip02_Head")||osNomme(inst,"Bip01_Head");
   if(tete){ tete.add(ancre); ancre.position.set(0,.07,0); } else { ancre.position.y=H*.9; f.add(ancre); }
   u.teteDessinee=u.head; u.head=ancre;
   // le technicien masqué garde sa visière lumineuse
@@ -1318,33 +1320,34 @@ function habiller(f){
   }
   // le livre de Saren passe dans sa main gauche
   if(u.book){ const main=osNomme(inst,"mainL"); if(main){ main.add(u.book); u.book.scale.setScalar(1/H); u.book.position.set(.01,.05,-.035); u.book.rotation.set(.2,0,Math.PI/2); } }
-  u.modele={inst,mixer,actions,cur:actions.repos?"repos":(assis||Object.keys(actions)[0]),assis};
+  u.modele={inst,mixer,actions,cur:nomDebut,assis};
 }
 // cadence des pas calée sur les vitesses du jeu (6 u/s sur la place, jusqu'à 16 u/s en course)
 const CADENCE={repos:1, marche:1.4, course:1.3};
 function animerModele(u, dt, mode){
   const M=u.modele; const saut=mode==="jump";
   const nom=(u.seated&&M.assis)?M.assis:((mode==="run"||saut)?"course":(mode==="walk"?"marche":"repos"));
+  // poids tenus ici, jamais relus dans three.js (une action arrêtée y garde une valeur périmée)
+  if(!M.poids){ M.poids={}; for(const n in M.actions) M.poids[n]=(n===M.cur)?1:0; }
   if(nom!==M.cur && M.actions[nom]){
     const a=M.actions[M.cur], b=M.actions[nom];
-    if(!b.isRunning() || b.getEffectiveWeight()<.001){ b.reset(); b.setEffectiveWeight(0); b.play(); }
+    if(!(M.poids[nom]>0)) b.reset();
     // entre marche et course, le pas continue au même point du cycle
-    if(a && M.cur!=="repos" && nom!=="repos") b.time=(a.time/a.getClip().duration)*b.getClip().duration;
+    if(a && M.cur!=="repos" && nom!=="repos" && (M.cur==="marche"||M.cur==="course")) b.time=(a.time/a.getClip().duration)*b.getClip().duration;
     M.cur=nom; M.fondu=(nom==="repos")?.35:.22;
   }
-  // un seul mouvement à pleine force : les autres s'effacent, sans jamais se superposer durablement
   const pas=dt/(M.fondu||.25);
   for(const n in M.actions){
     const act=M.actions[n], cible=(n===M.cur)?1:0;
-    let w=act.enabled?act.getEffectiveWeight():0;
-    w=cible>w?Math.min(1,w+pas):Math.max(0,w-pas);
-    if(w>0){ if(!act.isRunning()) act.play(); act.enabled=true; act.setEffectiveWeight(w); }
-    else if(act.isRunning()){ act.stop(); }
+    let w=M.poids[n]||0; if(cible>w) w=Math.min(1,w+pas); else if(cible<w) w=Math.max(0,w-pas); M.poids[n]=w;
+    if(w>0){ if(!act.isRunning()){ act.enabled=true; act.play(); } act.setEffectiveWeight(w); }
+    else if(act.isRunning()) act.stop();
   }
   // en l'air, la foulée se suspend presque : l'élan reste lisible
   const act=M.actions[M.cur]; if(act){ const ts=saut?.22:(CADENCE[M.cur]||1); act.setEffectiveTimeScale(act.getEffectiveTimeScale()+(ts-act.getEffectiveTimeScale())*Math.min(1,dt*10)); }
   M.mixer.update(dt);
 }
+
 
 function sit(f){ const u=f.userData; if(u.modeleCle){ u.seated=true; u.assisModele=true; f.position.y=0; return; } f.position.y=-0.62*(f.scale.x||1); u.legs.forEach(l=>{ l.rotation.x=-1.45; }); u.arms.forEach((a,i)=>{ a.rotation.x=-.5; a.rotation.z=(i?-1:1)*.25; }); u.seated=true; }
 function animFigure(f, dt, mode){ const u=f.userData; if(u.modele){ animerModele(u,dt,mode); return; } u.t+=dt; const t=u.t; const hy=u.headY||2.5;
@@ -1702,8 +1705,11 @@ function loop(now, noRender){
   try{ loopBody(now, noRender); }catch(e){ loopErrors++; if(loopErrors<5) console.error("loop error", e); }
   if(!noRender) requestAnimationFrame(loop);
 }
+let _dernierRAF=0;
 function loopBody(now, noRender){
-  const dt=Math.min(.05,(now-last)/1000); last=now; const t=now/1000;
+  // une seule horloge, toujours croissante : l'horodatage rAF précède souvent performance.now(), d'où des pas négatifs qui faisaient trembler les corps
+  now=performance.now(); if(!noRender) _dernierRAF=now; else if(now-_dernierRAF<200) return;
+  const dt=Math.max(0,Math.min(.05,(now-last)/1000)); last=Math.max(last,now); const t=now/1000;
   if(G.state==="run"){
     P.speed=Math.min(16, P.speed+dt*8); P.z-=P.speed*dt;
     const targetX=LANES[P.lane]; P.x+=(targetX-P.x)*Math.min(1,dt*10);
@@ -1750,10 +1756,15 @@ function loopBody(now, noRender){
   if(++_trame%20===1) affinerScene();
   resolutionAdaptative();
   if(G.miroirs) G.miroirs.forEach(m=>{ if(m.parent) m.material.uniforms.temps.value=t; });
-  if(sun.castShadow){ const fx=player.position.x, fz=player.position.z; sun.position.set(fx+6,14,fz+4); sun.target.position.set(fx,0,fz); }
+  if(sun.castShadow){ // ombres calées sur la grille de texels de la lumière : le soleil suit par pas entiers, sans scintillement
+    const pas=30/(sun.shadow.mapSize.x||2048), c=_cible.set(player.position.x,0,player.position.z);
+    const a=c.dot(_axeX), b=c.dot(_axeY), p=c.dot(_axeZ);
+    c.copy(_axeX).multiplyScalar(Math.round(a/pas)*pas).addScaledVector(_axeY,Math.round(b/pas)*pas).addScaledVector(_axeZ,p);
+    sun.target.position.copy(c); sun.position.copy(c).add(_decalSoleil); }
   if(composer) composer.render(); else renderer.render(scene,camera);
 }
 let _trame=0;
+const _decalSoleil=new THREE.Vector3(6,14,4), _axeZ=_decalSoleil.clone().normalize(), _axeX=new THREE.Vector3(0,1,0).cross(_axeZ).normalize(), _axeY=_axeZ.clone().cross(_axeX), _cible=new THREE.Vector3();
 /* résolution adaptative (idée de Clearwater, licence MIT) : on garde la fluidité avant la finesse */
 const PR_MAX=Math.min(devicePixelRatio||1,2), PR_MIN=Math.max(.55,PR_MAX*.5);
 let _prActuel=renderer.getPixelRatio(), _fpsT0=performance.now(), _fpsN=0;
