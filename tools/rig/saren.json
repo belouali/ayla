@@ -1,0 +1,5 @@
+[
+ {"nom":"gris jamais peint (partout sauf barbe)", "h":[0,1], "faux":"(abs(r-206)<7)&(abs(g-206)<7)&(abs(b-206)<7)&(p<0.02)"},
+ {"nom":"panneaux clairs sans couleur (robe, mains, baton)", "h":[0,0.56], "faux":"(lum>125)&(sat<38)"},
+ {"nom":"taches blanches capuche (dos et flancs, pas la barbe)", "h":[0.56,1], "faux":"(lum>140)&(sat<36)&(p<0.0)"}
+]
