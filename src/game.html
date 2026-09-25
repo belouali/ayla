@@ -905,6 +905,8 @@ function chargerCielVille(){
     if(G.theme==="city") scene.environment=envVille;
   });
 }
+// préchargement dès l'écran titre : la ville arrive déjà habillée
+if(HAUTE) setTimeout(()=>{ Object.keys(MATX_INFO).forEach(matx); chargerCielVille(); }, 1500);
 /* ---- cône de lumière des réverbères : un volume additif qui s'estompe vers le sol et sur les bords ---- */
 let _coneMat=null;
 function coneLumiere(){
