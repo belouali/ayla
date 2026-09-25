@@ -249,7 +249,7 @@ def marche(ph, k=1.0, course=False):
         else:
             # bras oppose a la jambe du meme cote ; le bras qui avance se plie, celui qui recule se deplie
             amp = B*(1.3 if course else 1.0)
-            bs = amp*sp if cote == "L" else -amp*sp
+            bs = amp*sp            # sp porte deja le demi-cycle du cote droit : meme formule des deux cotes
             av = -bs/amp if amp else 0.0                  # +1 bras devant, -1 bras derriere
             flex = (-0.95 - 0.42*av) if course else (-0.22 - 0.18*av)
             r["bras."+cote] = (bs, 0, (-0.05 if cote == "L" else 0.05) + (0.06*max(0.0, av) if course else 0.0)*(1 if cote == "R" else -1))
