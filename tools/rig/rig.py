@@ -89,26 +89,33 @@ for b in eb: aligne(b)
 bpy.ops.object.mode_set(mode='OBJECT')
 
 # --- poids : squelette pose sur un double revoxelise, puis transfert
-bpy.ops.object.select_all(action='DESELECT')
-corps.select_set(True); bpy.context.view_layer.objects.active = corps
-bpy.ops.object.duplicate(); proxy = bpy.context.object; proxy.name = "proxy"
-for m in list(proxy.data.materials): pass
-proxy.data.materials.clear()
-for g in list(proxy.vertex_groups): proxy.vertex_groups.remove(g)
-proxy.data.remesh_voxel_size = 0.006
-bpy.ops.object.voxel_remesh()
-print("VOXEL faces", len(proxy.data.polygons))
-if len(proxy.data.polygons) > 60000:
-    d = proxy.modifiers.new("dec", "DECIMATE"); d.ratio = 60000/len(proxy.data.polygons)
-    bpy.ops.object.modifier_apply(modifier=d.name)
-bpy.ops.object.select_all(action='DESELECT')
-proxy.select_set(True); rig.select_set(True); bpy.context.view_layer.objects.active = rig
-bpy.ops.object.parent_set(type='ARMATURE_AUTO')
-tot = {g.name: 0.0 for g in proxy.vertex_groups}
-for v in proxy.data.vertices:
-    for gg in v.groups: tot[proxy.vertex_groups[gg.group].name] += gg.weight
-vides = [k for k, w in tot.items() if w < 1e-3]
-print("PROXY groupes", len(proxy.vertex_groups), "faces", len(proxy.data.polygons), "vides", vides)
+def essai_poids(voxel, plafond):
+    bpy.ops.object.select_all(action='DESELECT')
+    corps.select_set(True); bpy.context.view_layer.objects.active = corps
+    bpy.ops.object.duplicate(); px = bpy.context.object; px.name = "proxy"
+    px.data.materials.clear()
+    for g in list(px.vertex_groups): px.vertex_groups.remove(g)
+    px.data.remesh_voxel_size = voxel
+    bpy.ops.object.voxel_remesh()
+    if len(px.data.polygons) > plafond:
+        d = px.modifiers.new("dec", "DECIMATE"); d.ratio = plafond/len(px.data.polygons)
+        with bpy.context.temp_override(object=px, active_object=px):
+            bpy.ops.object.modifier_apply(modifier=d.name)
+    bpy.ops.object.select_all(action='DESELECT')
+    px.select_set(True); rig.select_set(True); bpy.context.view_layer.objects.active = rig
+    bpy.ops.object.parent_set(type='ARMATURE_AUTO')
+    tot = {g.name: 0.0 for g in px.vertex_groups}
+    for v in px.data.vertices:
+        for gg in v.groups: tot[px.vertex_groups[gg.group].name] += gg.weight
+    vides = [k for k, w in tot.items() if w < 1e-3]
+    print("PROXY voxel", voxel, "faces", len(px.data.polygons), "vides", vides)
+    return px, vides
+for voxel, plafond in ((0.006, 60000), (0.009, 40000), (0.013, 25000), (0.018, 15000)):
+    proxy, vides = essai_poids(voxel, plafond)
+    if not vides: break
+    bpy.data.objects.remove(proxy, do_unlink=True)
+else:
+    raise SystemExit("aucun essai de ponderation n'a abouti")
 
 for b in arm.bones: corps.vertex_groups.new(name=b.name)
 dt = corps.modifiers.new("transfert", "DATA_TRANSFER")
@@ -142,6 +149,7 @@ def cote(v):
     r = sum(g.weight for g in v.groups if g.group in jambeR)
     return 1 if l > 0.6 else (-1 if r > 0.6 else 0)
 cotes = [cote(v) for v in corps.data.vertices]
+chev = [J["cheville"][0][0], J["cheville"][1][0]]
 bm = bmesh.new(); bm.from_mesh(corps.data); bm.verts.ensure_lookup_table()
 mauv = []
 for fa in bm.faces:
@@ -150,6 +158,8 @@ for fa in bm.faces:
     if 1 in cs and -1 in cs: mauv.append(fa)
     elif max(v.co.z for v in fa.verts) < 0.025 and abs(fa.calc_center_median().x) < 0.035 and abs(fa.normal.z) > 0.6:
         mauv.append(fa)
+    elif max(v.co.z for v in fa.verts) < 0.075 and min(abs(fa.calc_center_median().x - c) for c in chev) > 0.085:
+        mauv.append(fa)          # ailerons de socle colles aux chaussures
 bmesh.ops.delete(bm, geom=mauv, context='FACES')
 bm.to_mesh(corps.data); bm.free()
 print("MEMBRANE", len(mauv), "faces retirees entre les jambes")
