@@ -183,7 +183,7 @@ body.rtl .ph{font-family:"Tajawal",sans-serif}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 <script>
-const BUILD="20260925003920";
+const BUILD="20260925010032";
 (function(){ try{ if(!/github\.io$/.test(location.hostname)) return; fetch("version.json?ts="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{ if(j && j.build && j.build!==BUILD){ const u=new URL(location.href); if(u.searchParams.get("v")!==j.build){ u.searchParams.set("v", j.build); location.replace(u.toString()); } } }).catch(()=>{}); }catch(e){} })();
 /* ============================== I18N : fr / en / ar ============================== */
 const I18N = {
@@ -214,7 +214,7 @@ fr: {
     helpProof:"Ramasse le document qui flotte", proof:n=>`Preuve ${n}`, keep:"Ranger dans le carnet", noteTitle:"Note dans le carnet", noteHint:"Garder, modifier ou remplacer.", nextDistrict:"Vers le quartier suivant", finish:"Terminer",
     endTitle:"Fin du prototype", endText:"Deux missions accomplies. Ayla connaît maintenant deux des dix principes de la Recommandation, et deux maillons de la chaîne qui a effacé ses parents.",
     endNext:"Prochain quartier : Quartier Indigo, « Les logements oubliés ». Non inclus dans ce prototype.", openCarnet:"Ouvrir le carnet",
-    creditsTitle:"Crédits musique", creditsSfx:"Effets sonores synthétisés dans le navigateur. Moteur 3D : three.js (licence MIT).", close:"Fermer",
+    creditsTitle:"Crédits musique", creditsSfx:"Effets sonores synthétisés dans le navigateur. Moteur 3D : three.js (licence MIT). Enfants : Microsoft Rocketbox Avatar Library (licence MIT). Matériaux et ciel de la ville : Poly Haven (CC0).", close:"Fermer",
     tabs:[["missions","Missions"],["preuves","Preuves"],["principes","Principes"],["jauges","Jauges"]],
     inProgress:"En cours", choice:k=>`Choix : option ${k}`, fragments:"fragments", qLabels:["Qui est concerné ?","Quelles conséquences ?","Quelles valeurs en tension ?","Quelle autre voie ?"],
     notYet:"Pas encore.", notChosen:"Pas encore choisi.", note:"Note", proofs:"Preuves", noProof:"Aucune preuve pour l'instant.", principles:"Les dix principes de la Recommandation", gauges:"Jauges",
@@ -362,7 +362,7 @@ en: {
     helpProof:"Pick up the floating document", proof:n=>`Evidence ${n}`, keep:"Put it in the notebook", noteTitle:"Note in the notebook", noteHint:"Keep, edit or replace.", nextDistrict:"To the next district", finish:"Finish",
     endTitle:"End of the prototype", endText:"Two missions completed. Ayla now knows two of the ten principles of the Recommendation, and two links in the chain that erased her parents.",
     endNext:"Next district: Indigo District, \"The forgotten housing\". Not included in this prototype.", openCarnet:"Open the notebook",
-    creditsTitle:"Music credits", creditsSfx:"Sound effects synthesised in the browser. 3D engine: three.js (MIT licence).", close:"Close",
+    creditsTitle:"Music credits", creditsSfx:"Sound effects synthesised in the browser. 3D engine: three.js (MIT licence). Children: Microsoft Rocketbox Avatar Library (MIT licence). City materials and sky: Poly Haven (CC0).", close:"Close",
     tabs:[["missions","Missions"],["preuves","Evidence"],["principes","Principles"],["jauges","Gauges"]],
     inProgress:"In progress", choice:k=>`Choice: option ${k}`, fragments:"fragments", qLabels:["Who is affected?","What consequences?","Which values in tension?","What other way?"],
     notYet:"Not yet.", notChosen:"Not chosen yet.", note:"Note", proofs:"Evidence", noProof:"No evidence yet.", principles:"The ten principles of the Recommendation", gauges:"Gauges",
@@ -510,7 +510,7 @@ ar: {
     helpProof:"التقطي الوثيقة الطافية", proof:n=>`الدليل ${n}`, keep:"وضعه في الدفتر", noteTitle:"ملاحظة في الدفتر", noteHint:"احتفظي بها أو عدّليها أو استبدليها.", nextDistrict:"إلى الحيّ التالي", finish:"إنهاء",
     endTitle:"نهاية النموذج الأولي", endText:"أُنجزت مهمّتان. تعرف آيلا الآن مبدأين من مبادئ التوصية العشرة، وحلقتين من السلسلة التي محت والديها.",
     endNext:"الحيّ التالي: حيّ إنديغو، «المساكن المنسيّة». غير مُدرج في هذا النموذج.", openCarnet:"فتح الدفتر",
-    creditsTitle:"شكر للموسيقى", creditsSfx:"المؤثّرات الصوتية مُولَّدة في المتصفّح. محرّك ثلاثي الأبعاد: three.js (رخصة MIT).", close:"إغلاق",
+    creditsTitle:"شكر للموسيقى", creditsSfx:"المؤثّرات الصوتية مُولَّدة في المتصفّح. محرّك ثلاثي الأبعاد: three.js (رخصة MIT). الأطفال: مكتبة Microsoft Rocketbox (رخصة MIT). مواد المدينة وسماؤها: Poly Haven (CC0).", close:"إغلاق",
     tabs:[["missions","المهمّات"],["preuves","الأدلّة"],["principes","المبادئ"],["jauges","المقاييس"]],
     inProgress:"قيد التنفيذ", choice:k=>`الاختيار: الخيار ${k}`, fragments:"شظايا", qLabels:["من المعنيّ؟","ما العواقب؟","أيّ قيم في توتّر؟","أيّ طريق آخر؟"],
     notYet:"ليس بعد.", notChosen:"لم يُختر بعد.", note:"ملاحظة", proofs:"الأدلّة", noProof:"لا أدلّة حتى الآن.", principles:"مبادئ التوصية العشرة", gauges:"المقاييس",
@@ -1239,7 +1239,9 @@ const CHARS={
   kid6:{kind:"kid6",skin:0xC68642,hair:0x3B2314,style:"pigtails",top:0x6FE3D8,topTex:"weave",topTexBase:"#6FE3D8",topTexAccent:"#3E7D3A",legs:0xF57C00,shin:0xC68642,shoe:0xF5F5F5,scale:.67,cheeks:0xE0876B,iris:0x4A2C15,lashes:true}
 };
 /* ---- personnages modelés : squelette, poids et animations cuites ---- */
-const MODELES={ayla:"ayla",elio:"elio",elio2:"elio",kade:"kade",saren:"saren"};
+const ASSISE=.265, RECUL=-.035;   // hauteur et recul du pouf, en fraction de la taille de l'enfant
+const MODELES={ayla:"ayla",elio:"elio",elio2:"elio",kade:"kade",saren:"saren",
+  kid1:"enfant_g1",kid2:"enfant_f1",kid3:"enfant_f2",kid4:"enfant_g2",kid5:"enfant_g1",kid6:"enfant_f1"};   // enfants : Microsoft Rocketbox (MIT)
 const GABARITS={}, ATTENTE=[], HAUTEURS={}, MANQUANTS={};
 (function chargerModeles(){
   if(!THREE.GLTFLoader||!THREE.SkeletonUtils) return;
@@ -1268,7 +1270,7 @@ function osNomme(racine, nom){ let r=null; racine.traverse(o=>{ if(!r && o.isBon
 function habiller(f){
   const u=f.userData, g=GABARITS[u.modeleCle]; if(!g || u.modele) return;
   const H=hauteurDe(u.kind);
-  const inst=THREE.SkeletonUtils.clone(g.scene); inst.scale.setScalar(H);
+  const inst=THREE.SkeletonUtils.clone(g.scene); inst.scale.setScalar(H/((CHARS[u.kind]&&CHARS[u.kind].scale)||1));
   // la silhouette dessinée reste en coulisse (ombre au sol et livre conservés)
   const garder=new Set([f.children[0], u.book]);
   f.children.forEach(c=>{ c.visible=garder.has(c); });
@@ -1277,7 +1279,9 @@ function habiller(f){
   f.add(inst);
   const mixer=new THREE.AnimationMixer(inst), actions={};
   g.animations.forEach(cl=>{ actions[cl.name]=mixer.clipAction(cl); });
-  if(actions.repos){ actions.repos.play(); actions.repos.time=Math.random()*actions.repos.getClip().duration; }
+  const assis=Object.keys(actions).find(n=>/sit/.test(n));
+  const debut=actions.repos||actions[assis]||Object.values(actions)[0];
+  if(debut){ debut.play(); debut.time=Math.random()*debut.getClip().duration; }
   // repère de tête pour les bulles et les étiquettes
   const ancre=new THREE.Object3D(); const tete=osNomme(inst,"tete");
   if(tete){ tete.add(ancre); ancre.position.set(0,.07,0); } else { ancre.position.y=H*.9; f.add(ancre); }
@@ -1289,13 +1293,13 @@ function habiller(f){
   }
   // le livre de Saren passe dans sa main gauche
   if(u.book){ const main=osNomme(inst,"mainL"); if(main){ main.add(u.book); u.book.scale.setScalar(1/H); u.book.position.set(.01,.05,-.035); u.book.rotation.set(.2,0,Math.PI/2); } }
-  u.modele={inst,mixer,actions,cur:"repos"};
+  u.modele={inst,mixer,actions,cur:actions.repos?"repos":(assis||Object.keys(actions)[0]),assis};
 }
 // cadence des pas calée sur les vitesses du jeu (6 u/s sur la place, jusqu'à 16 u/s en course)
 const CADENCE={repos:1, marche:1.4, course:1.3};
 function animerModele(u, dt, mode){
   const M=u.modele; const saut=mode==="jump";
-  const nom=(mode==="run"||saut)?"course":(mode==="walk"?"marche":"repos");
+  const nom=(u.seated&&M.assis)?M.assis:((mode==="run"||saut)?"course":(mode==="walk"?"marche":"repos"));
   if(nom!==M.cur && M.actions[nom]){
     const a=M.actions[M.cur], b=M.actions[nom];
     if(!b.isRunning() || b.getEffectiveWeight()<.001){ b.reset(); b.setEffectiveWeight(0); b.play(); }
@@ -1313,11 +1317,11 @@ function animerModele(u, dt, mode){
     else if(act.isRunning()){ act.stop(); }
   }
   // en l'air, la foulée se suspend presque : l'élan reste lisible
-  const act=M.actions[M.cur]; if(act){ const ts=saut?.22:CADENCE[M.cur]; act.setEffectiveTimeScale(act.getEffectiveTimeScale()+(ts-act.getEffectiveTimeScale())*Math.min(1,dt*10)); }
+  const act=M.actions[M.cur]; if(act){ const ts=saut?.22:(CADENCE[M.cur]||1); act.setEffectiveTimeScale(act.getEffectiveTimeScale()+(ts-act.getEffectiveTimeScale())*Math.min(1,dt*10)); }
   M.mixer.update(dt);
 }
 
-function sit(f){ const u=f.userData; f.position.y=-0.62*(f.scale.x||1); u.legs.forEach(l=>{ l.rotation.x=-1.45; }); u.arms.forEach((a,i)=>{ a.rotation.x=-.5; a.rotation.z=(i?-1:1)*.25; }); u.seated=true; }
+function sit(f){ const u=f.userData; if(u.modeleCle){ u.seated=true; u.assisModele=true; f.position.y=0; return; } f.position.y=-0.62*(f.scale.x||1); u.legs.forEach(l=>{ l.rotation.x=-1.45; }); u.arms.forEach((a,i)=>{ a.rotation.x=-.5; a.rotation.z=(i?-1:1)*.25; }); u.seated=true; }
 function animFigure(f, dt, mode){ const u=f.userData; if(u.modele){ animerModele(u,dt,mode); return; } u.t+=dt; const t=u.t; const hy=u.headY||2.5;
   const swing=(amp,freq)=>{ const sn=Math.sin(t*freq); if(u.legs.length){ u.legs[0].rotation.x=sn*amp; u.legs[1].rotation.x=-sn*amp; } if(!u.hasBook){ u.arms[0].rotation.x=-sn*amp*.9; u.arms[1].rotation.x=sn*amp*.9; u.arms[0].rotation.z=.06; u.arms[1].rotation.z=-.06; } };
   if(mode==="run"){ swing(.8,13); u.body.rotation.x=.12; u.head.position.y=hy+Math.abs(Math.sin(t*13))*.05; u.head.rotation.y=0; }
@@ -1522,7 +1526,9 @@ function buildDome(){
   place("saren",0,-3.2,0.15);
   const ring=[["kid1",-3.6,-0.2],["kid2",-2.0,1.4],["kid3",2.1,1.5],["kid4",3.7,-0.1],["kid5",-4.6,-2.3],["kid6",4.6,-2.4]];
   const cushCol=[0xE06060,0x6FCF97,0x5EA8FF,0xE8A24A,0x9B7BD6,0x6FE3D8];
-  ring.forEach(([k,x,z],i)=>{ const cu=new THREE.Mesh(new THREE.CylinderGeometry(.6,.65,.18,16), new THREE.MeshStandardMaterial({color:cushCol[i], roughness:.95})); cu.position.set(x,.09,z); world.add(cu); place(k,x,z,Math.atan2(0-x,-3.2-z)); sit(cast[k]); });
+  ring.forEach(([k,x,z],i)=>{ const ry=Math.atan2(0-x,-3.2-z), Hk=hauteurDe(k), pouf=!!MODELES[k], hp=pouf?Hk*ASSISE:.18;
+    const cu=new THREE.Mesh(pouf?new THREE.CylinderGeometry(Hk*.2,Hk*.23,hp,24):new THREE.CylinderGeometry(.6,.65,.18,16), new THREE.MeshStandardMaterial({color:cushCol[i], roughness:.95}));
+    cu.position.set(x-(pouf?Math.sin(ry)*Hk*RECUL:0), hp/2, z-(pouf?Math.cos(ry)*Hk*RECUL:0)); world.add(cu); place(k,x,z,Math.atan2(0-x,-3.2-z)); sit(cast[k]); });
   G_bookLabel=makeLabel(T.bookLabel,"reco");
   player.position.set(-2.9,0,3.8); player.rotation.y=Math.atan2(0-(-2.9), -3.2-3.8); player.visible=true; P.x=-2.9; P.z=3.8; P.y=0;
   camera.position.set(0.6,3.6,9.2); camera.lookAt(0,1.6,-1.4);
@@ -1711,7 +1717,7 @@ function loopBody(now, noRender){
     camera.position.lerp(new THREE.Vector3(0.6+Math.sin(t*.15)*1.2,3.6,9.2),dt); camera.lookAt(0,1.6,-1.4);
   }
   // speaking hop
-  [player,...Object.values(cast),...(G.npcObjs?Object.values(G.npcObjs):[])].forEach(f=>{ if(!f) return; const u=f.userData; if(u.hop>0){ const base=(f===player?P.y:(u.seated?-0.62*(f.scale.x||1):0)); u.hop-=dt*2.2; f.position.y=Math.max(0,Math.sin(u.hop*Math.PI))*(u.seated?.25:.5)+base; if(u.hop<=0){ u.hop=0; f.position.y=base; } } });
+  [player,...Object.values(cast),...(G.npcObjs?Object.values(G.npcObjs):[])].forEach(f=>{ if(!f) return; const u=f.userData; if(u.hop>0){ const base=(f===player?P.y:((u.seated&&!u.assisModele)?-0.62*(f.scale.x||1):0)); u.hop-=dt*2.2; f.position.y=Math.max(0,Math.sin(u.hop*Math.PI))*(u.seated?.25:.5)+base; if(u.hop<=0){ u.hop=0; f.position.y=base; } } });
   if(level&&level.blinks&&level.blinks.length&&G.state!=="dome"&&G.state!=="title"){ level.blinks.forEach(b=>{ b.material.emissiveIntensity=Math.sin(t*b.userData.f+b.userData.p)>.3?1.8:.1; }); }
   if(alarmOn){ alarmLight.intensity=1.5+Math.sin(t*6)*1.4; alarmLight.position.set(P.x,4,P.z-3); } else alarmLight.intensity=Math.max(0,alarmLight.intensity-dt*3);
   if(dlgActive) positionBubble();
