@@ -44,6 +44,7 @@ cheville_y = V[(V[:, 2] > 0.06) & (V[:, 2] < 0.10)][:, 1].mean()
 avant = cheville_y - np.percentile(pieds[:, 1], 1)
 arriere = np.percentile(pieds[:, 1], 99) - cheville_y
 SENS = -1 if avant >= arriere else 1
+if "sens" in J: SENS = J["sens"]   # pieds caches sous une robe : sens donne a la main
 print("SENS", NOM, "regarde -Y" if SENS < 0 else "regarde +Y", round(float(avant), 3), round(float(arriere), 3))
 if SENS > 0:
     corps.rotation_euler = (0, 0, math.pi); bpy.ops.object.transform_apply(rotation=True)
@@ -140,8 +141,22 @@ bpy.ops.object.modifier_apply(modifier=dt.name)
 
 # accessoire tenu (baton de Saren) : entierement porte par la main
 if "baton" in J:
-    bt = J["baton"]; xm = bt["x_max"] if SENS < 0 else bt["x_max"]
-    ids = [v.index for v in corps.data.vertices if v.co.x < xm and v.co.z < bt["z_max"]]
+    bt = J["baton"]
+    if "graine" in bt:
+        # le baton est une piece a part sous la main : on la suit par les aretes depuis son pied
+        gx, gz = bt["graine"]; gx = gx if SENS < 0 else -gx
+        vs = corps.data.vertices; voisins = {}
+        for e in corps.data.edges:
+            a_, b_ = e.vertices; voisins.setdefault(a_, []).append(b_); voisins.setdefault(b_, []).append(a_)
+        pile = [v.index for v in vs if abs(v.co.x-gx) < .03 and v.co.z < gz]; vus = set(pile)
+        while pile:
+            u = pile.pop()
+            for w in voisins.get(u, ()):
+                if w not in vus and vs[w].co.z < bt["z_max"]: vus.add(w); pile.append(w)
+        ids = list(vus)
+    else:
+        xm = bt["x_max"]
+        ids = [v.index for v in corps.data.vertices if v.co.x < xm and v.co.z < bt["z_max"]]
     for g in corps.vertex_groups: g.remove(ids)
     corps.vertex_groups[bt["os"]].add(ids, 1.0, 'REPLACE')
     print("BATON", len(ids), "sommets portes par", bt["os"])
