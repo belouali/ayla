@@ -756,7 +756,7 @@ let composer=null, halo=null;
 function liserer(mat){
   mat.onBeforeCompile=sh=>{ sh.uniforms.teinteLisere=LISERE;
     sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform vec3 teinteLisere;')
-      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n  float frLis=pow(1.0-saturate(dot(normalize(normal),normalize(vViewPosition))),3.0);\n  totalEmissiveRadiance+=teinteLisere*frLis*.22;'); };
+      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n  float frLis=gl_FrontFacing?pow(1.0-saturate(dot(normalize(normal),normalize(vViewPosition))),3.0):0.0;\n  totalEmissiveRadiance+=teinteLisere*frLis*.22;'); };
   mat.needsUpdate=true;
 }
 // matériaux du décor : reflets discrets, ombres reçues ; petits objets portent leur ombre
@@ -1179,15 +1179,25 @@ function animerModele(u, dt, mode){
   const nom=(mode==="run"||saut)?"course":(mode==="walk"?"marche":"repos");
   if(nom!==M.cur && M.actions[nom]){
     const a=M.actions[M.cur], b=M.actions[nom];
-    b.reset(); b.setEffectiveTimeScale(CADENCE[nom]); b.setEffectiveWeight(1);
+    if(!b.isRunning() || b.getEffectiveWeight()<.001){ b.reset(); b.setEffectiveWeight(0); b.play(); }
     // entre marche et course, le pas continue au même point du cycle
-    if(M.cur!=="repos" && nom!=="repos") b.time=(a.time/a.getClip().duration)*b.getClip().duration;
-    b.play(); a.crossFadeTo(b, nom==="repos"?.35:.22, false); M.cur=nom;
+    if(a && M.cur!=="repos" && nom!=="repos") b.time=(a.time/a.getClip().duration)*b.getClip().duration;
+    M.cur=nom; M.fondu=(nom==="repos")?.35:.22;
+  }
+  // un seul mouvement à pleine force : les autres s'effacent, sans jamais se superposer durablement
+  const pas=dt/(M.fondu||.25);
+  for(const n in M.actions){
+    const act=M.actions[n], cible=(n===M.cur)?1:0;
+    let w=act.enabled?act.getEffectiveWeight():0;
+    w=cible>w?Math.min(1,w+pas):Math.max(0,w-pas);
+    if(w>0){ if(!act.isRunning()) act.play(); act.enabled=true; act.setEffectiveWeight(w); }
+    else if(act.isRunning()){ act.stop(); }
   }
   // en l'air, la foulée se suspend presque : l'élan reste lisible
-  const act=M.actions[M.cur]; if(act){ const ts=saut?.22:CADENCE[M.cur]; act.timeScale+=(ts-act.timeScale)*Math.min(1,dt*10); }
+  const act=M.actions[M.cur]; if(act){ const ts=saut?.22:CADENCE[M.cur]; act.setEffectiveTimeScale(act.getEffectiveTimeScale()+(ts-act.getEffectiveTimeScale())*Math.min(1,dt*10)); }
   M.mixer.update(dt);
 }
+
 function sit(f){ const u=f.userData; f.position.y=-0.62*(f.scale.x||1); u.legs.forEach(l=>{ l.rotation.x=-1.45; }); u.arms.forEach((a,i)=>{ a.rotation.x=-.5; a.rotation.z=(i?-1:1)*.25; }); u.seated=true; }
 function animFigure(f, dt, mode){ const u=f.userData; if(u.modele){ animerModele(u,dt,mode); return; } u.t+=dt; const t=u.t; const hy=u.headY||2.5;
   const swing=(amp,freq)=>{ const sn=Math.sin(t*freq); if(u.legs.length){ u.legs[0].rotation.x=sn*amp; u.legs[1].rotation.x=-sn*amp; } if(!u.hasBook){ u.arms[0].rotation.x=-sn*amp*.9; u.arms[1].rotation.x=sn*amp*.9; u.arms[0].rotation.z=.06; u.arms[1].rotation.z=-.06; } };

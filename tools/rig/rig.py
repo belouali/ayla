@@ -171,6 +171,30 @@ for fa in bm.faces:
         mauv.append(fa)
     elif max(v.co.z for v in fa.verts) < 0.075 and not dans_pied(fa.calc_center_median()):
         mauv.append(fa)          # eclats de socle colles aux chaussures
+# au ras du sol, chaque pied est ramene au contour de sa chaussure (mesure plus haut)
+from mathutils import geometry as _geo, Vector as _V
+def contour(ch):
+    pts = [(v.co.x, v.co.y) for v in bm.verts if .028 < v.co.z < .07 and abs(v.co.x-ch.x) < .08 and -.2 < v.co.y-ch.y < .12]
+    if len(pts) < 8: return None
+    idx = _geo.convex_hull_2d(pts); return [pts[i] for i in idx]
+def dedans(poly, x, y, marge=.012):
+    cx = sum(p[0] for p in poly)/len(poly); cy = sum(p[1] for p in poly)/len(poly)
+    # polygone convexe dilate autour de son centre
+    q = [(cx+(p[0]-cx)*(1+marge/max(1e-4, ((p[0]-cx)**2+(p[1]-cy)**2)**.5)), cy+(p[1]-cy)*(1+marge/max(1e-4, ((p[0]-cx)**2+(p[1]-cy)**2)**.5))) for p in poly]
+    signe = 0
+    for i in range(len(q)):
+        (x1, y1), (x2, y2) = q[i], q[(i+1) % len(q)]
+        c = (x2-x1)*(y-y1)-(y2-y1)*(x-x1)
+        if c != 0:
+            if signe == 0: signe = 1 if c > 0 else -1
+            elif (c > 0) != (signe > 0): return False
+    return True
+contours = [c for c in (contour(ch) for ch, _ in PIEDS) if c]
+dejà = set(mauv)
+for fa in bm.faces:
+    if fa in dejà or max(v.co.z for v in fa.verts) > .032: continue
+    c = fa.calc_center_median()
+    if contours and not any(dedans(p, c.x, c.y) for p in contours): mauv.append(fa)
 bmesh.ops.delete(bm, geom=mauv, context='FACES')
 bm.to_mesh(corps.data); bm.free()
 print("MEMBRANE", len(mauv), "faces retirees (entre les jambes et autour des pieds)")
