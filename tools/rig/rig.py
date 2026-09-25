@@ -29,6 +29,12 @@ bmw = bmesh.new(); bmw.from_mesh(corps.data)
 n_av = len(bmw.verts)
 bmesh.ops.remove_doubles(bmw, verts=bmw.verts, dist=float(os.environ.get("SOUDURE", "0.0016")))
 print("SOUDURE", n_av, "->", len(bmw.verts), "sommets")
+# faces reorientees vers l'exterieur, piece par piece, apres soudure
+import mathutils
+avant = [f.normal.copy() for f in bmw.faces]
+bmesh.ops.recalc_face_normals(bmw, faces=bmw.faces)
+bmw.normal_update()
+print("NORMALES retournees", sum(1 for f, n in zip(bmw.faces, avant) if f.normal.dot(n) < 0), "sur", len(bmw.faces))
 bmw.to_mesh(corps.data); bmw.free(); corps.data.update()
 co = np.empty(len(corps.data.vertices)*3, np.float32); corps.data.vertices.foreach_get("co", co); V = co.reshape(-1, 3)
 

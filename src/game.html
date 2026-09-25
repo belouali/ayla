@@ -758,7 +758,9 @@ let composer=null, halo=null;
 function liserer(mat){
   mat.onBeforeCompile=sh=>{ sh.uniforms.teinteLisere=LISERE;
     sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform vec3 teinteLisere;')
-      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n  float frLis=gl_FrontFacing?pow(1.0-saturate(dot(normalize(normal),normalize(vViewPosition))),3.0):0.0;\n  totalEmissiveRadiance+=teinteLisere*frLis*.22;'); };
+      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n  float frLis=gl_FrontFacing?pow(1.0-saturate(dot(normalize(normal),normalize(vViewPosition))),3.0):0.0;\n  totalEmissiveRadiance+=teinteLisere*frLis*.22;')
+      // faces intérieures vues par une fente : sans reflet, dans l'ombre (une couture sombre, jamais un éclat blanc)
+      .replace('#include <lights_fragment_end>','#include <lights_fragment_end>\n  if(!gl_FrontFacing){ reflectedLight.directSpecular*=0.0; reflectedLight.indirectSpecular*=0.0; }'); };
   mat.needsUpdate=true;
 }
 // matériaux du décor : reflets discrets, ombres reçues ; petits objets portent leur ombre
@@ -976,7 +978,7 @@ const MATX={}, _texLoader=new THREE.TextureLoader();
 function matx(cle){
   if(MATX[cle]) return MATX[cle];
   const pret={value:0}; let n=0;
-  const t=(suf)=>{ const tx=_texLoader.load("assets/materiaux/"+cle+"_"+suf+".jpg", ()=>{ if(++n===3) pret.value=1; }); tx.wrapS=tx.wrapT=THREE.RepeatWrapping; tx.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy()); return tx; };
+  const t=(suf)=>{ const tx=_texLoader.load("assets/materiaux/"+cle+"_"+suf+".jpg?v="+BUILD, ()=>{ if(++n===3) pret.value=1; }); tx.wrapS=tx.wrapT=THREE.RepeatWrapping; tx.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy()); return tx; };
   return MATX[cle]={diff:t("diff"), nor:t("nor"), rough:t("rough"), moy:new THREE.Vector3(...MATX_INFO[cle].moy), pret};
 }
 function detailler(mat, cle, o){
@@ -1010,7 +1012,7 @@ function detailler(mat, cle, o){
 let envVille=null, envSalle=null;
 function chargerCielVille(){
   if(!HAUTE || !THREE.RGBELoader || envVille) return;
-  new THREE.RGBELoader().setDataType(THREE.UnsignedByteType).load("assets/materiaux/shanghai_bund_1k.hdr", tex=>{
+  new THREE.RGBELoader().setDataType(THREE.UnsignedByteType).load("assets/materiaux/shanghai_bund_1k.hdr?v="+BUILD, tex=>{
     const pm=new THREE.PMREMGenerator(renderer); envVille=pm.fromEquirectangular(tex).texture; pm.dispose(); tex.dispose();
     if(G.theme==="city") scene.environment=envVille;
   });
@@ -1235,8 +1237,8 @@ const GABARITS={}, ATTENTE=[], HAUTEURS={}, MANQUANTS={};
 (function chargerModeles(){
   if(!THREE.GLTFLoader||!THREE.SkeletonUtils) return;
   const L=new THREE.GLTFLoader();
-  [...new Set(Object.values(MODELES))].forEach(k=>L.load("assets/personnages/anim/"+k+".glb", g=>{
-    g.scene.traverse(o=>{ if(o.isMesh){ o.frustumCulled=false; o.userData.perso=true; const mt=o.material; if(mt){ mt.roughness=.78; mt.metalness=0; mt.envMapIntensity=.5; mt.side=THREE.DoubleSide; liserer(mt); } } });
+  [...new Set(Object.values(MODELES))].forEach(k=>L.load("assets/personnages/anim/"+k+".glb?v="+BUILD, g=>{
+    g.scene.traverse(o=>{ if(o.isMesh){ o.frustumCulled=false; o.userData.perso=true; const mt=o.material; if(mt){ mt.roughness=.95; mt.metalness=0; mt.envMapIntensity=.3; mt.side=THREE.DoubleSide; liserer(mt); } } });
     GABARITS[k]=g;
     for(let i=ATTENTE.length-1;i>=0;i--){ if(ATTENTE[i].userData.modeleCle===k){ habiller(ATTENTE[i]); ATTENTE.splice(i,1); } }
   }, undefined, e=>{ console.warn("modèle indisponible", k, e); MANQUANTS[k]=true;
