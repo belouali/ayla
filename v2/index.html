@@ -181,8 +181,9 @@ body.rtl .ph{font-family:"Tajawal",sans-serif}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/Reflector.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 <script>
-const BUILD="20260925001313";
+const BUILD="20260925002027";
 (function(){ try{ if(!/github\.io$/.test(location.hostname)) return; fetch("version.json?ts="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{ if(j && j.build && j.build!==BUILD){ const u=new URL(location.href); if(u.searchParams.get("v")!==j.build){ u.searchParams.set("v", j.build); location.replace(u.toString()); } } }).catch(()=>{}); }catch(e){} })();
 /* ============================== I18N : fr / en / ar ============================== */
 const I18N = {
@@ -720,7 +721,8 @@ const coreLight=new THREE.PointLight(0x5EA8FF,1.4,60); scene.add(coreLight);
 const alarmLight=new THREE.PointLight(0xE06060,0,40); scene.add(alarmLight);
 const fill=new THREE.PointLight(0xFFE2BF,.22,40); fill.position.set(0.6,1.2,2.5); camera.add(fill); scene.add(camera);
 /* ---- rendu v2 : lumière d'ambiance réfléchie, ombres portées, halo, étalonnage, liseré des personnages ---- */
-const HAUTE = !matchMedia("(pointer:coarse)").matches && Math.min(innerWidth,innerHeight)>=560;
+// qualité décidée par l'appareil, pas par la taille de la fenêtre au chargement
+const HAUTE = !(/Mobi|Android|iPhone|iPod/i.test(navigator.userAgent)) && Math.min(screen.width,screen.height)>=600;
 const LISERE={value:new THREE.Color(0x8FB8FF)};
 const ETALONNAGE={
   uniforms:{tDiffuse:{value:null}, vignette:{value:.30}, sature:{value:1.08}, contraste:{value:1.03}, exposition:{value:1.08}},
@@ -851,7 +853,115 @@ function roadTex(theme){ const T=THEMES[theme]; const c=document.createElement("
   g.fillStyle=col; g.globalAlpha=.32; [-4.5,4.5].forEach(u=>g.fillRect(px(u)-1,0,2,512)); g.globalAlpha=.5; [-1.5,1.5].forEach(u=>{ for(let y=0;y<512;y+=84) g.fillRect(px(u)-1,y,2,42); });
   g.globalAlpha=.9; [-6.4,6.4].forEach(u=>g.fillRect(px(u)-1,0,2,512)); g.globalAlpha=1;
   const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=4; return t; }
-function makeBuilding(theme, rnd, w, h, d, side){ const g=new THREE.Group(); const T=THEMES[theme];
+/* ==== immeubles de Chroma, façon cinéma d'animation : fenêtres à l'échelle, lumière chaude, corniches, boutiques ==== */
+const ETAGE=3.4, TRAVEE=3.0, BLOC_C=8, BLOC_R=12;              // un motif de 8 travées sur 12 étages
+const PALETTE_FACADES=[0x8A5A45,0xB59A7A,0x4F6E73,0x6E5A7E,0x46546E,0x9A6B52,0x5E7A5A];
+const _fen={};
+function fenetresChaudes(seed){
+  if(_fen[seed]) return _fen[seed];
+  const W=512, H=1024, cw=W/BLOC_C, rh=H/BLOC_R;
+  const cm=document.createElement("canvas"); cm.width=W; cm.height=H; const gm=cm.getContext("2d");   // couleur (mur blanc, vitres sombres)
+  const ce=document.createElement("canvas"); ce.width=W; ce.height=H; const ge=ce.getContext("2d");   // lumière des fenêtres
+  gm.fillStyle="#FFFFFF"; gm.fillRect(0,0,W,H); ge.fillStyle="#000"; ge.fillRect(0,0,W,H);
+  let r=seed*7919+13; const rnd=()=>{ r=(r*9301+49297)%233280; return r/233280; };
+  const chauds=["#FFC46E","#FFB45A","#FFD68F","#FFA95E","#FFE0A8"];
+  for(let y=0;y<BLOC_R;y++){ const etageNoir=rnd()<.12;
+    for(let x=0;x<BLOC_C;x++){
+      const x0=x*cw+11, y0=y*rh+16, ww=cw-22, hh=rh-30;
+      gm.fillStyle="#E6DDD0"; gm.fillRect(x0-4,y0-4,ww+8,hh+8);           // encadrement
+      gm.fillStyle="#D9CFC0"; gm.fillRect(x0-7,y0+hh+4,ww+14,6);            // appui
+      gm.fillStyle="#1B2230"; gm.fillRect(x0,y0,ww,hh);                      // vitre
+      gm.fillStyle="#2A3444"; gm.fillRect(x0+ww/2-1,y0,2,hh); gm.fillRect(x0,y0+hh*.38,ww,2);
+      const v=rnd();
+      if(!etageNoir && v<.58){                                              // fenêtre éclairée chaude
+        const c=chauds[Math.floor(rnd()*chauds.length)];
+        const gr=ge.createLinearGradient(0,y0,0,y0+hh); gr.addColorStop(0,c); gr.addColorStop(1,"#C8622A");
+        ge.globalAlpha=.55+rnd()*.45; ge.fillStyle=gr; ge.fillRect(x0,y0,ww,hh);
+        ge.globalAlpha=1; ge.fillStyle="rgba(60,25,10,.55)";
+        if(rnd()<.6){ const rc=rnd()*.35*ww; ge.fillRect(x0,y0,rc,hh); ge.fillRect(x0+ww-rc*.8,y0,rc*.8,hh); }   // rideaux
+        if(rnd()<.25){ ge.beginPath(); ge.arc(x0+ww*(.3+rnd()*.4), y0+hh*.95, ww*.18, Math.PI, 0); ge.fill(); }   // plante sur l'appui
+        ge.fillStyle="#1B2230"; ge.fillRect(x0+ww/2-1,y0,2,hh); ge.fillRect(x0,y0+hh*.38,ww,2);
+      } else if(!etageNoir && v<.68){                                       // lueur bleue d'écran
+        ge.globalAlpha=.35+rnd()*.3; ge.fillStyle="#7FB6FF"; ge.fillRect(x0,y0,ww,hh); ge.globalAlpha=1;
+      } else { ge.globalAlpha=.08; ge.fillStyle="#6D8DB8"; ge.fillRect(x0,y0,ww*.6,hh*.5); ge.globalAlpha=1; }   // reflet du ciel
+    } }
+  const mk=(c,srgb)=>{ const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; return t; };
+  return _fen[seed]={map:mk(cm), emi:mk(ce)};
+}
+const _facades={};
+function materiauFacade(teinte, seed){
+  const k=teinte+"_"+seed; if(_facades[k]) return _facades[k];
+  const F=fenetresChaudes(seed);
+  const cote=new THREE.MeshStandardMaterial({color:new THREE.Color(teinte).convertSRGBToLinear().multiplyScalar(.5), map:F.map, emissive:new THREE.Color(0xFFFFFF), emissiveMap:F.emi, emissiveIntensity:.95, roughness:.85});
+  const toit=new THREE.MeshStandardMaterial({color:lin(0x3A3F4A), roughness:1});
+  detailler(cote,'concrete_tile_facade',{echelle:.16, force:.35, relief:.45, rugo:1.5, envI:.12});
+  return _facades[k]=[cote,cote,toit,toit,cote,cote];
+}
+// UV à l'échelle du monde : une travée de 3 m, un étage de 3,4 m, quelle que soit la taille du bâtiment
+function uvEchelle(geo, w, h, d, decal){
+  const uv=geo.attributes.uv, n=uv.count/6;   // 6 faces : +x, -x, +y, -y, +z, -z
+  const dims=[[d,h],[d,h],[w,d],[w,d],[w,h],[w,h]];
+  for(let fce=0;fce<6;fce++){ const [a,b]=dims[fce];
+    for(let i=fce*n;i<(fce+1)*n;i++){ uv.setXY(i, uv.getX(i)*a/(TRAVEE*BLOC_C)+decal, uv.getY(i)*b/(ETAGE*BLOC_R)); } }
+  uv.needsUpdate=true; return geo;
+}
+const _boutiques={};
+function texBoutique(k){
+  if(_boutiques[k]) return _boutiques[k];
+  const noms=["CAFÉ","LIBRAIRIE","ÉPICERIE","RÉPARATIONS","BOULANGERIE","FLEURS"];
+  const c=document.createElement("canvas"); c.width=512; c.height=160; const g=c.getContext("2d");
+  const gr=g.createLinearGradient(0,0,0,160); gr.addColorStop(0,"#FFD08A"); gr.addColorStop(1,"#E0853A"); g.fillStyle=gr; g.fillRect(0,0,512,160);
+  let r=k*131+7; const rnd=()=>{ r=(r*9301+49297)%233280; return r/233280; };
+  g.fillStyle="rgba(90,40,15,.55)"; for(let i=0;i<3;i++){ g.fillRect(20,40+i*38,300,6); for(let j=0;j<14;j++) g.fillRect(24+j*21,40+i*38-10-rnd()*14,12,10+rnd()*14); }   // étagères
+  g.fillStyle="rgba(70,30,10,.7)"; g.fillRect(360,30,90,130);                   // porte
+  g.fillStyle="#3A2A22"; [0,120,240,350,460].forEach(x=>g.fillRect(x,0,8,160)); g.fillRect(0,0,512,8);   // montants
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding;
+  const e=document.createElement("canvas"); e.width=512; e.height=96; const ge=e.getContext("2d");
+  const fonds=["#1F3A5F","#5A2A2A","#2E4A2E","#4A3A20","#3A2A4A","#20404A"]; ge.fillStyle=fonds[k%fonds.length]; ge.fillRect(0,0,512,96);
+  ge.fillStyle="#FFE3B0"; ge.font="bold 58px Georgia, serif"; ge.textAlign="center"; ge.textBaseline="middle"; ge.fillText(noms[k%noms.length],256,52);
+  const te=new THREE.CanvasTexture(e); te.encoding=THREE.sRGBEncoding;
+  const rayures=document.createElement("canvas"); rayures.width=128; rayures.height=16; const gs=rayures.getContext("2d");
+  const coul=[["#C0392B","#F4E6D0"],["#2E7D5B","#F1E4C8"],["#2F5A8A","#EFE6D2"],["#B8860B","#F5EBD5"]][k%4];
+  for(let i=0;i<8;i++){ gs.fillStyle=coul[i%2]; gs.fillRect(i*16,0,16,16); }
+  const ts=new THREE.CanvasTexture(rayures); ts.encoding=THREE.sRGBEncoding; ts.wrapS=THREE.RepeatWrapping;
+  return _boutiques[k]={vitrine:new THREE.MeshStandardMaterial({color:0x222222, emissive:0xFFFFFF, emissiveMap:t, emissiveIntensity:.42, roughness:.2}),
+    enseigne:new THREE.MeshStandardMaterial({color:0x111111, emissive:0xFFFFFF, emissiveMap:te, emissiveIntensity:.7}),
+    store:new THREE.MeshStandardMaterial({color:0xFFFFFF, map:ts, roughness:.9}), rayures:ts};
+}
+let _pierre=null;
+function matPierre(){ return _pierre||(_pierre=detailler(new THREE.MeshStandardMaterial({color:new THREE.Color(0xCFC3AE).convertSRGBToLinear().multiplyScalar(.55), roughness:.9}),'concrete_pavement_02',{echelle:.5, force:.5, relief:.4, envI:.15})); }
+function batimentVille(rnd, w, h, d, side){
+  const g=new THREE.Group(); const teinte=PALETTE_FACADES[Math.floor(rnd()*PALETTE_FACADES.length)], seed=1+Math.floor(rnd()*6);
+  const corps=new THREE.Mesh(uvEchelle(new THREE.BoxGeometry(w,h,d), w,h,d, rnd()), materiauFacade(teinte,seed)); corps.position.y=h/2; g.add(corps);
+  const pieces=[]; const pose=(geo,x,y,z)=>{ geo.translate(x,y,z); pieces.push(geo); };
+  // corniches : socle au-dessus des boutiques, bandeau tous les quatre étages, couronnement
+  pose(new THREE.BoxGeometry(w+.36,.36,d+.36),0,4.25,0);
+  for(let y=4.25+ETAGE*4; y<h-2; y+=ETAGE*4) pose(new THREE.BoxGeometry(w+.28,.26,d+.28),0,y,0);
+  pose(new THREE.BoxGeometry(w+.6,.6,d+.6),0,h+.3,0);
+  let top=h+.6;
+  // retrait supérieur
+  if(rnd()<.45 && h>14){ const w2=w*(.55+rnd()*.25), h2=ETAGE*(2+Math.floor(rnd()*3)), d2=d*(.55+rnd()*.25);
+    const b2=new THREE.Mesh(uvEchelle(new THREE.BoxGeometry(w2,h2,d2), w2,h2,d2, rnd()), materiauFacade(teinte,seed)); b2.position.y=h+.6+h2/2; g.add(b2);
+    pose(new THREE.BoxGeometry(w2+.5,.5,d2+.5),0,h+.6+h2+.25,0); top=h+.6+h2+.5; }
+  // toit : réservoir d'eau sur pieds, blocs de climatisation
+  if(rnd()<.55){ const tx=(rnd()-.5)*w*.4, tz=(rnd()-.5)*d*.4;
+    pose(new THREE.CylinderGeometry(.95,.95,1.7,14),tx,top+1.75,tz); pose(new THREE.ConeGeometry(1.05,.6,14),tx,top+2.9,tz);
+    [[-.6,-.6],[.6,-.6],[-.6,.6],[.6,.6]].forEach(([a,b])=>pose(new THREE.BoxGeometry(.12,.9,.12),tx+a,top+.45,tz+b)); }
+  const nAC=Math.floor(rnd()*3); for(let i=0;i<nAC;i++) pose(new THREE.BoxGeometry(1.1,.7,.8),(rnd()-.5)*w*.6,top+.35,(rnd()-.5)*d*.6);
+  if(pieces.length && THREE.BufferGeometryUtils){ const geo=THREE.BufferGeometryUtils.mergeBufferGeometries(pieces.map(p=>p.index?p:p)); if(geo){ g.add(new THREE.Mesh(geo, matPierre())); } }
+  // rez-de-chaussée côté rue : vitrine éclairée, store rayé, enseigne
+  const k=Math.floor(rnd()*6), B=texBoutique(k), L=d*.86, fx=-side*(w/2);
+  const vit=new THREE.Mesh(new THREE.PlaneGeometry(L,3.3), B.vitrine); vit.position.set(fx-side*.03,1.75,0); vit.rotation.y=-side*Math.PI/2; g.add(vit);
+  const store=new THREE.Mesh(new THREE.BoxGeometry(1.1,.07,L), B.store); store.position.set(fx-side*.55,3.75,0); store.rotation.z=side*.32; g.add(store);
+  B.rayures.repeat.set(L/2.2,1);
+  const ens=new THREE.Mesh(new THREE.BoxGeometry(.12,.62,Math.min(L*.6,4.2)), [B.enseigne,B.enseigne,B.enseigne,B.enseigne,B.enseigne,B.enseigne]); ens.position.set(fx-side*.08,4.75,0); g.add(ens);
+  // antenne clignotante (conservée)
+  if(rnd()<.35){ const sh=3+rnd()*5; const sp=new THREE.Mesh(new THREE.CylinderGeometry(.06,.16,sh,6), darkMat()); sp.position.y=top+sh/2; g.add(sp); const l=new THREE.Mesh(new THREE.SphereGeometry(.2,8,6), blinkMat()); l.position.y=top+sh; l.userData={f:2+rnd()*2,p:rnd()*6}; g.add(l); blinks.push(l); }
+  // écran publicitaire de FriendLoop (conservé), au-dessus des boutiques
+  if(rnd()<.3 && h>12){ const sw=Math.min(d*.7,5), shh=sw*.62; const sc=new THREE.Mesh(new THREE.PlaneGeometry(sw,shh), screenMat("city",Math.floor(rnd()*3))); sc.position.set(-side*(w/2+.06), 7+rnd()*Math.max(1,h-12), 0); sc.rotation.y=-side*Math.PI/2; g.add(sc); }
+  return g;
+}
+function makeBuilding(theme, rnd, w, h, d, side){ if(theme==="city") return batimentVille(rnd,w,h,d,side); const g=new THREE.Group(); const T=THEMES[theme];
   const main=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), buildingMat(theme,1+Math.floor(rnd()*5))); main.position.y=h/2; g.add(main); let top=h;
   if(rnd()<.55){ const w2=w*(.5+rnd()*.3), h2=h*(.2+rnd()*.3), d2=d*(.5+rnd()*.3); const b2=new THREE.Mesh(new THREE.BoxGeometry(w2,h2,d2), buildingMat(theme,1+Math.floor(rnd()*5))); b2.position.set((rnd()-.5)*(w-w2)*.8, h+h2/2, (rnd()-.5)*(d-d2)*.8); g.add(b2); top=h+h2; }
   if(rnd()<.45){ const sh=3+rnd()*6; const sp=new THREE.Mesh(new THREE.CylinderGeometry(.08,.2,sh,6), darkMat()); sp.position.y=top+sh/2; g.add(sp); const l=new THREE.Mesh(new THREE.SphereGeometry(.22,8,6), blinkMat()); l.position.y=top+sh; l.userData={f:2+rnd()*2,p:rnd()*6}; g.add(l); blinks.push(l); }
@@ -988,7 +1098,7 @@ function plazaCity(pz, rnd){
   strand([-7.2,pz-12.6],[7.2,pz-12.6],12,6.4);
 }
 function cityStreet(length, rnd){ const T=THEMES.city; const z0=20, z1=-length-80, plazaZ=-length-12;
-  for(let z=z0; z>z1; z-=7+rnd()*9){ [-1,1].forEach(side=>{ const h=10+rnd()*34, w=6+rnd()*7, d=6+rnd()*6; const b=makeBuilding("city",rnd,w,h,d,side); b.position.set(side*(9.4+w/2+rnd()*2.5),0,z); world.add(b); }); }
+  for(let z=z0; z>z1; z-=7+rnd()*9){ [-1,1].forEach(side=>{ const haut=rnd()<.35; const h=haut?ETAGE*(7+Math.floor(rnd()*6))+4.6:ETAGE*(2+Math.floor(rnd()*3))+4.6, w=7+rnd()*6, d=7+rnd()*6; const b=makeBuilding("city",rnd,w,h,d,side); b.position.set(side*(9.4+w/2+rnd()*2.5),0,z); world.add(b); }); }
   for(let z=z0+30; z>z1-60; z-=12+rnd()*10){ [-1,1].forEach(side=>{ const h=24+rnd()*50, w=8+rnd()*12, d=8+rnd()*8; const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), farMat(1+Math.floor(rnd()*3))); b.position.set(side*(30+rnd()*45), h/2, z); world.add(b); }); }
   for(let z=-35; z>z1+20; z-=40+rnd()*35){ if(Math.abs(z-plazaZ)<16) continue; const y=10+rnd()*10; const br=new THREE.Mesh(new THREE.BoxGeometry(21,.9,2.6), darkMat()); br.position.set(0,y,z); world.add(br); const st=new THREE.Mesh(new THREE.BoxGeometry(21,.08,.35), neonMat(T.lane)); st.position.set(0,y-.5,z); world.add(st); }
   for(let z=10; z>z1+40; z-=16){ if(Math.abs(z-plazaZ)<15) continue; addLamp(-7.4,z); addLamp(7.4,z); }
