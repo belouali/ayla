@@ -180,8 +180,9 @@ body.rtl .ph{font-family:"Tajawal",sans-serif}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/Reflector.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
 <script>
-const BUILD="20260924213233";
+const BUILD="20260924214102";
 (function(){ try{ if(!/github\.io$/.test(location.hostname)) return; fetch("version.json?ts="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{ if(j && j.build && j.build!==BUILD){ const u=new URL(location.href); if(u.searchParams.get("v")!==j.build){ u.searchParams.set("v", j.build); location.replace(u.toString()); } } }).catch(()=>{}); }catch(e){} })();
 /* ============================== I18N : fr / en / ar ============================== */
 const I18N = {
@@ -739,7 +740,7 @@ const ETALONNAGE={
 };
 let composer=null, halo=null;
 (function rendu2(){
-  if(THREE.RoomEnvironment){ const pm=new THREE.PMREMGenerator(renderer); scene.environment=pm.fromScene(new THREE.RoomEnvironment(),.04).texture; pm.dispose(); }
+  if(THREE.RoomEnvironment){ const pm=new THREE.PMREMGenerator(renderer); scene.environment=pm.fromScene(new THREE.RoomEnvironment(),.04).texture; pm.dispose(); window._envSalle=scene.environment; }
   if(!HAUTE) return;
   renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   sun.castShadow=true; sun.intensity=.8; sun.shadow.mapSize.set(2048,2048);
@@ -770,7 +771,7 @@ const _vus=new WeakSet(), _tailleV=new THREE.Vector3();
 function affinerScene(){
   scene.traverse(o=>{ if(!o.isMesh || _vus.has(o)) return; _vus.add(o);
     const m=o.material; const perso=!!o.userData.perso;
-    if(m && m.isMeshStandardMaterial && !_vus.has(m)){ _vus.add(m); if(!perso) m.envMapIntensity=.16; }
+    if(m && m.isMeshStandardMaterial && !_vus.has(m)){ _vus.add(m); if(!perso) m.envMapIntensity=(m.userData.envI!==undefined)?m.userData.envI:.16; }
     if(!HAUTE) return;
     o.receiveShadow=true;
     if(!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
@@ -784,14 +785,15 @@ const THEMES={
   lab:{bg:0x071417, fog:[0x071417,20,120], ground:0x08191C, road:"#0C2226", walk:0x0F2A30, lane:0x6FE3D8, build:0x12343B, win:"#6FE3D8", core:0x6FE3D8, hemiSky:0x7FD8CF, hemiGround:0x061214, hemiI:1.05, skyTop:"#03090B", skyMid:"#06181C", skyBot:"#071417", stars:false},
   dome:{bg:0x120E26, fog:[0x120E26,20,90], ground:0x1A1433, lane:0x9B7BD6, build:0x241B45, win:"#9B7BD6", core:0x9B7BD6, hemiSky:0xB9A6E6, hemiGround:0x0A0818}
 };
-function applyTheme(name){ const T=THEMES[name]; hemi.intensity=T.hemiI||.9; scene.background=new THREE.Color(T.bg); scene.fog=new THREE.Fog(T.fog[0],T.fog[1],T.fog[2]); hemi.color.set(T.hemiSky); hemi.groundColor.set(T.hemiGround); coreLight.color.set(T.core); LISERE.value.set(T.core).lerp(new THREE.Color(0xFFFFFF),.35);
+function applyTheme(name){ const T=THEMES[name]; G.theme=name; if(name==='city'){ chargerCielVille(); if(envVille) scene.environment=envVille; } else if(window._envSalle) scene.environment=window._envSalle; hemi.intensity=T.hemiI||.9; scene.background=new THREE.Color(T.bg); scene.fog=new THREE.Fog(T.fog[0],T.fog[1],T.fog[2]); hemi.color.set(T.hemiSky); hemi.groundColor.set(T.hemiGround); coreLight.color.set(T.core); LISERE.value.set(T.core).lerp(new THREE.Color(0xFFFFFF),.35);
   // halo fort dans la ville de nuit, discret sous le dôme clair
   if(halo){ const clair=(name==="dome"); halo.strength=clair?.14:.5; halo.threshold=clair?.93:.86; halo.radius=clair?.3:.5; } }
 function windowTexture(color, seed, cols=8, rows=26){ const c=document.createElement("canvas"); c.width=128; c.height=512; const g=c.getContext("2d"); g.fillStyle="#070C18"; g.fillRect(0,0,128,512); let r=seed; const rnd=()=>{ r=(r*9301+49297)%233280; return r/233280; }; const cw=128/cols, rh=512/rows;
   for(let y=0;y<rows;y++){ const dark=rnd()<.1; g.fillStyle="rgba(255,255,255,.03)"; g.fillRect(0,y*rh,128,1); for(let x=0;x<cols;x++){ if(dark) continue; const v=rnd(); if(v>.52){ g.globalAlpha=.25+rnd()*.7; g.fillStyle=rnd()>.82?"#FFD9A0":color; g.fillRect(x*cw+3,y*rh+4,cw-6,rh-8); } else if(v>.3){ g.globalAlpha=.07; g.fillStyle=color; g.fillRect(x*cw+3,y*rh+4,cw-6,rh-8); } } }
   g.globalAlpha=1; const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; }
 const mats={};
-function buildingMat(theme,seed){ const key=theme+seed; if(mats[key]) return mats[key]; const T=THEMES[theme]; const tex=windowTexture(T.win, seed); const side=new THREE.MeshStandardMaterial({color:lin(T.build), emissive:new THREE.Color(0xFFFFFF), emissiveMap:tex, emissiveIntensity:.9, roughness:.9}); const top=new THREE.MeshStandardMaterial({color:lin(T.build), roughness:1}); mats[key]=[side,side,top,top,side,side]; return mats[key]; }
+function buildingMat(theme,seed){ const key=theme+seed; if(mats[key]) return mats[key]; const T=THEMES[theme]; const tex=windowTexture(T.win, seed); const side=new THREE.MeshStandardMaterial({color:lin(T.build), emissive:new THREE.Color(0xFFFFFF), emissiveMap:tex, emissiveIntensity:.9, roughness:.9}); const top=new THREE.MeshStandardMaterial({color:lin(T.build), roughness:1});
+  if(theme==='city'){ detailler(side,'concrete_tile_facade',{echelle:.16, force:.55, relief:.6, rugo:1.5, envI:.12}); detailler(top,'concrete_tile_facade',{echelle:.16, force:.5, relief:.4, envI:.1}); } mats[key]=[side,side,top,top,side,side]; return mats[key]; }
 const world=new THREE.Group(); scene.add(world); let G_bookLabel=null;
 /* ---- dome dressing: mosaic floor, starry vault, banners, memory portraits ---- */
 function domeFloorTex(){ if(texCache.domeFloor) return texCache.domeFloor; const c=document.createElement("canvas"); c.width=c.height=1024; const g=c.getContext("2d"); const cx=512,cy=512; g.fillStyle="#5B4F8E"; g.fillRect(0,0,1024,1024);
@@ -860,6 +862,56 @@ function makeRack(rnd,h,side){ const g=new THREE.Group(); const body=new THREE.M
   [-1.1,1.1].forEach(z=>{ const fr=new THREE.Mesh(new THREE.BoxGeometry(.14,h+.1,.14), darkMat()); fr.position.set(-side*1.1,h/2,z); g.add(fr); });
   if(rnd()<.3){ const l=new THREE.Mesh(new THREE.SphereGeometry(.12,8,6), blinkMat()); l.position.set(-side*.9,h+.15,.7); l.userData={f:3+rnd()*3,p:rnd()*6}; g.add(l); blinks.push(l); }
   return g; }
+/* ---- matériaux Poly Haven (CC0) posés en détail dans l'espace du monde ----
+   Chaque surface garde son dessin (marquages, fenêtres) ; le grain, le relief et la rugosité
+   viennent de la texture réelle, projetée selon la position dans le monde (échelle en mètres). */
+const MATX_INFO={
+  asphalt_02:{moy:[.1112,.1095,.0969]}, concrete_pavement_02:{moy:[.2476,.2053,.1640]},
+  concrete_pavers_02:{moy:[.1723,.1185,.0795]}, concrete_tile_facade:{moy:[.0340,.0358,.0423]}
+};
+const MATX={}, _texLoader=new THREE.TextureLoader();
+function matx(cle){
+  if(MATX[cle]) return MATX[cle];
+  const pret={value:0}; let n=0;
+  const t=(suf)=>{ const tx=_texLoader.load("assets/materiaux/"+cle+"_"+suf+".jpg", ()=>{ if(++n===3) pret.value=1; }); tx.wrapS=tx.wrapT=THREE.RepeatWrapping; tx.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy()); return tx; };
+  return MATX[cle]={diff:t("diff"), nor:t("nor"), rough:t("rough"), moy:new THREE.Vector3(...MATX_INFO[cle].moy), pret};
+}
+function detailler(mat, cle, o){
+  if(!HAUTE || !mat || !mat.isMeshStandardMaterial) return mat;
+  const X=matx(cle); o=Object.assign({echelle:.25, force:.9, relief:.5, rugo:1, forceR:.8}, o||{});
+  mat.userData.envI=o.envI;
+  mat.onBeforeCompile=sh=>{
+    Object.assign(sh.uniforms,{ detD:{value:X.diff}, detN:{value:X.nor}, detR:{value:X.rough}, detMoy:{value:X.moy}, detPret:X.pret,
+      detE:{value:o.echelle}, detF:{value:o.force}, detFN:{value:o.relief}, detRugo:{value:o.rugo}, detFR:{value:o.forceR} });
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vDetP; varying vec3 vDetN;')
+      .replace('#include <project_vertex>','#include <project_vertex>\n  vDetP=(modelMatrix*vec4(transformed,1.0)).xyz; vDetN=normalize(mat3(modelMatrix)*objectNormal);');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
+      uniform sampler2D detD, detN, detR; uniform vec3 detMoy; uniform float detPret, detE, detF, detFN, detRugo, detFR;
+      varying vec3 vDetP; varying vec3 vDetN;
+      vec4 triDet(sampler2D t, vec3 p, vec3 w){ return texture2D(t,p.zy)*w.x + texture2D(t,p.xz)*w.y + texture2D(t,p.xy)*w.z; }`)
+      .replace('#include <map_fragment>',`#include <map_fragment>
+      vec3 wD=pow(abs(normalize(vDetN)),vec3(4.0)); wD/=(wD.x+wD.y+wD.z);
+      vec3 pD=vDetP*detE;
+      vec3 cD=pow(triDet(detD,pD,wD).rgb, vec3(2.2));
+      diffuseColor.rgb*=mix(vec3(1.0), clamp(cD/detMoy,vec3(.35),vec3(1.7)), detF*detPret);`)
+      .replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
+      roughnessFactor=mix(roughnessFactor, clamp(triDet(detR,pD,wD).r*detRugo,.04,1.0), detFR*detPret);`)
+      .replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
+      vec3 nD=triDet(detN,pD,wD).xyz*2.0-1.0;
+      vec3 pert=wD.x*vec3(0.0,nD.y,nD.x)+wD.y*vec3(nD.x,0.0,-nD.y)+wD.z*vec3(nD.x,nD.y,0.0);
+      normal=normalize(normal+(viewMatrix*vec4(pert,0.0)).xyz*detFN*detPret);`);
+  };
+  mat.needsUpdate=true; return mat;
+}
+/* ciel nocturne de ville (Poly Haven, shanghai_bund) pour les reflets des rues */
+let envVille=null, envSalle=null;
+function chargerCielVille(){
+  if(!HAUTE || !THREE.RGBELoader || envVille) return;
+  new THREE.RGBELoader().setDataType(THREE.UnsignedByteType).load("assets/materiaux/shanghai_bund_1k.hdr", tex=>{
+    const pm=new THREE.PMREMGenerator(renderer); envVille=pm.fromEquirectangular(tex).texture; pm.dispose(); tex.dispose();
+    if(G.theme==="city") scene.environment=envVille;
+  });
+}
 /* ---- cône de lumière des réverbères : un volume additif qui s'estompe vers le sol et sur les bords ---- */
 let _coneMat=null;
 function coneLumiere(){
@@ -1152,10 +1204,11 @@ let level=null;
 function buildRun(theme, length){
   clearWorld(); applyTheme(theme); const T=THEMES[theme];
   blinks=[]; world.add(skyDome(theme));
-  const ground=new THREE.Mesh(new THREE.PlaneGeometry(100, length+160), new THREE.MeshStandardMaterial({color:lin(T.ground), roughness:1})); ground.rotation.x=-Math.PI/2; ground.position.set(0,-.02,-length/2+20); world.add(ground);
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(100, length+160), theme==='city'?detailler(new THREE.MeshStandardMaterial({color:lin(0x3A4152), roughness:1}),'asphalt_02',{echelle:.2, force:1, relief:.35, envI:.35}):new THREE.MeshStandardMaterial({color:lin(T.ground), roughness:1})); ground.rotation.x=-Math.PI/2; ground.position.set(0,-.02,-length/2+20); world.add(ground);
   const rt=roadTex(theme); rt.repeat.set(1,(length+120)/24);
-  const road=new THREE.Mesh(new THREE.PlaneGeometry(13, length+120), new THREE.MeshStandardMaterial({color:0xFFFFFF, map:rt, roughness:.85})); road.rotation.x=-Math.PI/2; road.position.set(0,0,-length/2+20); world.add(road);
-  const pzTmp=-length-12; const walkM=new THREE.MeshStandardMaterial({color:lin(T.walk), roughness:1});
+  const roadM=new THREE.MeshStandardMaterial({color:0xFFFFFF, map:rt, roughness:.85}); if(theme==='city') detailler(roadM,'asphalt_02',{echelle:.24, force:.95, relief:.55, rugo:.72, envI:.55});
+  const road=new THREE.Mesh(new THREE.PlaneGeometry(13, length+120), roadM); road.rotation.x=-Math.PI/2; road.position.set(0,0,-length/2+20); world.add(road);
+  const pzTmp=-length-12; const walkM=new THREE.MeshStandardMaterial({color:lin(theme==='city'?0x4A5068:T.walk), roughness:1}); if(theme==='city') detailler(walkM,'concrete_pavement_02',{echelle:.45, force:.9, relief:.6, envI:.3});
   [[60,pzTmp+14.5],[pzTmp-14.5,-length-100]].forEach(([za,zb])=>{ [-1,1].forEach(sd=>{ const wk=new THREE.Mesh(new THREE.BoxGeometry(2.4,.3,za-zb), walkM); wk.position.set(sd*7.7,.15,(za+zb)/2); world.add(wk); }); });
   let seed=theme==="lab"?17:3; const rnd=()=>{ seed=(seed*9301+49297)%233280; return seed/233280; };
   if(theme==="lab") labCorridor(length, rnd); else cityStreet(length, rnd);
@@ -1180,7 +1233,7 @@ function buildRun(theme, length){
     const fl=Math.floor(rnd()*3); if(fl!==lane || kind>=.75){ const high=rnd()>.6; const f=new THREE.Mesh(fragGeo,fragMat); f.position.set(LANES[fl], high?2.6:1.1, z-4); f.userData={type:"frag",lane:fl,z:z-4,high,got:false}; world.add(f); frags.push(f); }
   }
   // arena at the end
-  const plazaZ=-length-12; const plaza=new THREE.Mesh(new THREE.CircleGeometry(14,40), new THREE.MeshStandardMaterial({color:lin(T.road), emissive:T.core, emissiveIntensity:.05, roughness:1})); plaza.rotation.x=-Math.PI/2; plaza.position.set(0,.02,plazaZ); world.add(plaza);
+  const plazaZ=-length-12; const plaza=new THREE.Mesh(new THREE.CircleGeometry(14,40), detailler(new THREE.MeshStandardMaterial({color:lin(0x3C4258), emissive:T.core, emissiveIntensity:.04, roughness:1}),'concrete_pavers_02',{echelle:.32, force:.95, relief:.6, rugo:.8, envI:.4})); plaza.rotation.x=-Math.PI/2; plaza.position.set(0,.02,plazaZ); world.add(plaza);
   const ring=new THREE.Mesh(new THREE.RingGeometry(13.6,14,48), new THREE.MeshBasicMaterial({color:T.lane, transparent:true, opacity:.5, side:THREE.DoubleSide})); ring.rotation.x=-Math.PI/2; ring.position.set(0,.03,plazaZ); world.add(ring);
   // plaza furniture: a wall of screens and a few lamps
   const wallZ=plazaZ-12.8; const frame=new THREE.Mesh(new THREE.BoxGeometry(15,.5,.6), darkMat()); frame.position.set(0,5.3,wallZ); world.add(frame);

@@ -67,3 +67,11 @@ produit les planches de contrôle.
 
 Construction : `./publier_ayla2.sh` depuis le dossier AYLA ; avec un message, il
 commite et pousse la branche. Aperçu : https://raw.githack.com/belouali/ayla/ayla2/index.html
+
+### Matériaux de la ville
+
+Chaussée, sol, trottoirs, place et façades de la ville reçoivent des matériaux réels de
+Poly Haven (licence CC0) : `asphalt_02`, `concrete_pavement_02`, `concrete_pavers_02`,
+`concrete_tile_facade`, et le ciel nocturne `shanghai_bund` pour les reflets. Ils sont posés
+en détail dans l'espace du monde (fonction `detailler`) : chaque surface garde son dessin
+(marquages, fenêtres) et gagne le grain, le relief et la rugosité de la matière.
