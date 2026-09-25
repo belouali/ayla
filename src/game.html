@@ -207,7 +207,7 @@ fr: {
     helpProof:"Ramasse le document qui flotte", proof:n=>`Preuve ${n}`, keep:"Ranger dans le carnet", noteTitle:"Note dans le carnet", noteHint:"Garder, modifier ou remplacer.", nextDistrict:"Vers le quartier suivant", finish:"Terminer",
     endTitle:"Fin du prototype", endText:"Deux missions accomplies. Ayla connaît maintenant deux des dix principes de la Recommandation, et deux maillons de la chaîne qui a effacé ses parents.",
     endNext:"Prochain quartier : Quartier Indigo, « Les logements oubliés ». Non inclus dans ce prototype.", openCarnet:"Ouvrir le carnet",
-    creditsTitle:"Crédits musique", creditsSfx:"Effets sonores synthétisés dans le navigateur. Moteur 3D : three.js (licence MIT). Enfants : Microsoft Rocketbox Avatar Library (licence MIT). Matériaux et ciel de la ville : Poly Haven (CC0).", close:"Fermer",
+    creditsTitle:"Crédits musique", creditsSfx:"Effets sonores synthétisés dans le navigateur. Moteur 3D : three.js (licence MIT). Enfants : Microsoft Rocketbox Avatar Library (licence MIT). Matériaux, ciel et objets de la ville : Poly Haven (CC0).", close:"Fermer",
     tabs:[["missions","Missions"],["preuves","Preuves"],["principes","Principes"],["jauges","Jauges"]],
     inProgress:"En cours", choice:k=>`Choix : option ${k}`, fragments:"fragments", qLabels:["Qui est concerné ?","Quelles conséquences ?","Quelles valeurs en tension ?","Quelle autre voie ?"],
     notYet:"Pas encore.", notChosen:"Pas encore choisi.", note:"Note", proofs:"Preuves", noProof:"Aucune preuve pour l'instant.", principles:"Les dix principes de la Recommandation", gauges:"Jauges",
@@ -355,7 +355,7 @@ en: {
     helpProof:"Pick up the floating document", proof:n=>`Evidence ${n}`, keep:"Put it in the notebook", noteTitle:"Note in the notebook", noteHint:"Keep, edit or replace.", nextDistrict:"To the next district", finish:"Finish",
     endTitle:"End of the prototype", endText:"Two missions completed. Ayla now knows two of the ten principles of the Recommendation, and two links in the chain that erased her parents.",
     endNext:"Next district: Indigo District, \"The forgotten housing\". Not included in this prototype.", openCarnet:"Open the notebook",
-    creditsTitle:"Music credits", creditsSfx:"Sound effects synthesised in the browser. 3D engine: three.js (MIT licence). Children: Microsoft Rocketbox Avatar Library (MIT licence). City materials and sky: Poly Haven (CC0).", close:"Close",
+    creditsTitle:"Music credits", creditsSfx:"Sound effects synthesised in the browser. 3D engine: three.js (MIT licence). Children: Microsoft Rocketbox Avatar Library (MIT licence). City materials, sky and street objects: Poly Haven (CC0).", close:"Close",
     tabs:[["missions","Missions"],["preuves","Evidence"],["principes","Principles"],["jauges","Gauges"]],
     inProgress:"In progress", choice:k=>`Choice: option ${k}`, fragments:"fragments", qLabels:["Who is affected?","What consequences?","Which values in tension?","What other way?"],
     notYet:"Not yet.", notChosen:"Not chosen yet.", note:"Note", proofs:"Evidence", noProof:"No evidence yet.", principles:"The ten principles of the Recommendation", gauges:"Gauges",
@@ -503,7 +503,7 @@ ar: {
     helpProof:"التقطي الوثيقة الطافية", proof:n=>`الدليل ${n}`, keep:"وضعه في الدفتر", noteTitle:"ملاحظة في الدفتر", noteHint:"احتفظي بها أو عدّليها أو استبدليها.", nextDistrict:"إلى الحيّ التالي", finish:"إنهاء",
     endTitle:"نهاية النموذج الأولي", endText:"أُنجزت مهمّتان. تعرف آيلا الآن مبدأين من مبادئ التوصية العشرة، وحلقتين من السلسلة التي محت والديها.",
     endNext:"الحيّ التالي: حيّ إنديغو، «المساكن المنسيّة». غير مُدرج في هذا النموذج.", openCarnet:"فتح الدفتر",
-    creditsTitle:"شكر للموسيقى", creditsSfx:"المؤثّرات الصوتية مُولَّدة في المتصفّح. محرّك ثلاثي الأبعاد: three.js (رخصة MIT). الأطفال: مكتبة Microsoft Rocketbox (رخصة MIT). مواد المدينة وسماؤها: Poly Haven (CC0).", close:"إغلاق",
+    creditsTitle:"شكر للموسيقى", creditsSfx:"المؤثّرات الصوتية مُولَّدة في المتصفّح. محرّك ثلاثي الأبعاد: three.js (رخصة MIT). الأطفال: مكتبة Microsoft Rocketbox (رخصة MIT). مواد المدينة وسماؤها وأغراض الشوارع: Poly Haven (CC0).", close:"إغلاق",
     tabs:[["missions","المهمّات"],["preuves","الأدلّة"],["principes","المبادئ"],["jauges","المقاييس"]],
     inProgress:"قيد التنفيذ", choice:k=>`الاختيار: الخيار ${k}`, fragments:"شظايا", qLabels:["من المعنيّ؟","ما العواقب؟","أيّ قيم في توتّر؟","أيّ طريق آخر؟"],
     notYet:"ليس بعد.", notChosen:"لم يُختر بعد.", note:"ملاحظة", proofs:"الأدلّة", noProof:"لا أدلّة حتى الآن.", principles:"مبادئ التوصية العشرة", gauges:"المقاييس",
@@ -1019,6 +1019,29 @@ function chargerCielVille(){
 }
 // préchargement dès l'écran titre : la ville arrive déjà habillée
 if(HAUTE) setTimeout(()=>{ Object.keys(MATX_INFO).forEach(matx); chargerCielVille(); }, 1500);
+/* ---- objets de rue Poly Haven (CC0) : terrasses, bancs, plantes, bornes, poubelles, caisses ---- */
+const DECOR={}, _decorAttente=[]; const METRE=1.8;          // un mètre réel vaut 1,8 unité du jeu
+function chargerDecor(){
+  if(!HAUTE || !THREE.GLTFLoader) return; const L=new THREE.GLTFLoader();
+  ["terrasse","banc","plante1","plante2","jardiniere","borne","poubelle","caisse"].forEach(k=>L.load("assets/decor/"+k+".glb?v="+BUILD, g=>{
+    g.scene.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; if(o.material){ o.material.envMapIntensity=.2; o.material.userData.envI=.2; } } });
+    DECOR[k]=g.scene; for(let i=_decorAttente.length-1;i>=0;i--){ if(_decorAttente[i].k===k){ poserDecor(_decorAttente[i]); _decorAttente.splice(i,1); } }
+  }, undefined, ()=>{}));
+}
+function objetDecor(k,x,y,z,ry,s){ if(!HAUTE) return; const p={k,x,y,z,ry,s,niveau:G.niveauId}; if(DECOR[k]) poserDecor(p); else _decorAttente.push(p); }
+function poserDecor(p){ if(p.niveau!==G.niveauId) return; const o=DECOR[p.k].clone(); o.position.set(p.x,p.y||0,p.z); o.rotation.y=p.ry||0; o.scale.setScalar(METRE*(p.s||1)); world.add(o); }
+if(HAUTE) setTimeout(chargerDecor, 2500);
+function trottoirsHabites(z0, z1, plazaZ, rnd){
+  for(let z=z0-4; z>z1+40; z-=5+rnd()*7){ if(Math.abs(z-plazaZ)<18) continue;
+    [-1,1].forEach(side=>{ if(rnd()<.4) return; const r=rnd(), x=side*(8.35+rnd()*.3), y=.3, face=side>0?-Math.PI/2:Math.PI/2;
+      if(r<.2) objetDecor("terrasse", x-side*.15, y, z, face+(rnd()-.5)*.4);
+      else if(r<.36) objetDecor("banc", x, y, z, face);
+      else if(r<.54) objetDecor(rnd()<.5?"plante1":"plante2", x+side*.15, y, z, rnd()*6.28);
+      else if(r<.66) objetDecor("jardiniere", x+side*.25, y, z, Math.PI/2);
+      else if(r<.76) objetDecor("borne", side*6.95, y, z, rnd()*6.28, .85);
+      else if(r<.9) objetDecor("poubelle", x, y, z, face, .8);
+      else objetDecor("caisse", x, y, z, (rnd()-.5)*.6); }); }
+}
 /* ---- cône de lumière des réverbères : un volume additif qui s'estompe vers le sol et sur les bords ---- */
 let _coneMat=null;
 function coneLumiere(){
@@ -1066,6 +1089,7 @@ function chausseeMouillee(largeur, z0, z1){
 }
 function addLamp(x,z){ const g=new THREE.Group(); const dir=x>0?-1:1; const pole=new THREE.Mesh(new THREE.CylinderGeometry(.07,.1,4.4,8), darkMat()); pole.position.y=2.2; g.add(pole); const arm=new THREE.Mesh(new THREE.BoxGeometry(.9,.08,.08), darkMat()); arm.position.set(dir*.4,4.4,0); g.add(arm); const head=new THREE.Mesh(new THREE.SphereGeometry(.2,10,8), neonMat(0xFFE2B8)); head.position.set(dir*.8,4.35,0); g.add(head); const glow=new THREE.Mesh(new THREE.CircleGeometry(2.2,20), glowMat()); glow.rotation.x=-Math.PI/2; glow.position.set(dir*.8,.33,0); g.add(glow); const cone=coneLumiere(); cone.position.set(dir*.8,4.3,0); g.add(cone); g.position.set(x,0,z); world.add(g); }
 function plazaCity(pz, rnd){
+  objetDecor("terrasse", 10.9, 0, pz+4.2, -Math.PI/2); objetDecor("terrasse", 10.9, 0, pz-3.8, -Math.PI/2+.2); objetDecor("plante1", 12.1, 0, pz+.3, 0); objetDecor("plante2", -12.3, 0, pz-5.5, 1); objetDecor("jardiniere", 11.9, 0, pz-8.2, Math.PI/2);
   const stone=new THREE.MeshStandardMaterial({color:lin(0x2A3148), roughness:.9}), stoneD=new THREE.MeshStandardMaterial({color:lin(0x1B2136), roughness:1}), wood=new THREE.MeshStandardMaterial({color:lin(0x6B4A2E), roughness:.85}), metal=new THREE.MeshStandardMaterial({color:lin(0x3A4256), roughness:.4, metalness:.6});
   const leaf=new THREE.MeshStandardMaterial({color:lin(0x2E6B3A), roughness:.9}), trunk=new THREE.MeshStandardMaterial({color:lin(0x4A3320), roughness:1}), orangeM=new THREE.MeshStandardMaterial({color:lin(0x5A2A08), emissive:lin(0xE8A24A), emissiveIntensity:.9});
   const add=(m,x,y,z,ry)=>{ m.position.set(x,y,z); if(ry) m.rotation.y=ry; world.add(m); return m; };
@@ -1097,7 +1121,8 @@ function cityStreet(length, rnd){ const T=THEMES.city; const z0=20, z1=-length-8
   for(let z=z0+30; z>z1-60; z-=12+rnd()*10){ [-1,1].forEach(side=>{ const h=24+rnd()*50, w=8+rnd()*12, d=8+rnd()*8; const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), farMat(1+Math.floor(rnd()*3))); b.position.set(side*(30+rnd()*45), h/2, z); world.add(b); }); }
   for(let z=-35; z>z1+20; z-=40+rnd()*35){ if(Math.abs(z-plazaZ)<16) continue; const y=10+rnd()*10; const br=new THREE.Mesh(new THREE.BoxGeometry(21,.9,2.6), darkMat()); br.position.set(0,y,z); world.add(br); const st=new THREE.Mesh(new THREE.BoxGeometry(21,.08,.35), neonMat(T.lane)); st.position.set(0,y-.5,z); world.add(st); }
   for(let z=10; z>z1+40; z-=16){ if(Math.abs(z-plazaZ)<15) continue; addLamp(-7.4,z); addLamp(7.4,z); }
-  chausseeMouillee(30, z0, z1+40); }
+  chausseeMouillee(30, z0, z1+40);
+  trottoirsHabites(z0, z1, plazaZ, rnd); }
 function labCorridor(length, rnd){ const T=THEMES.lab; const z0=20, z1=-length-80, plazaZ=-length-12, L=length+140, zc=-length/2+20;
   const wallM=new THREE.MeshStandardMaterial({color:lin(0x0C2A31), roughness:1});
   [-1,1].forEach(sd=>{ const w=new THREE.Mesh(new THREE.PlaneGeometry(L,14), wallM); w.position.set(sd*13,7,zc); w.rotation.y=-sd*Math.PI/2; world.add(w); });
@@ -1108,7 +1133,7 @@ function labCorridor(length, rnd){ const T=THEMES.lab; const z0=20, z1=-length-8
   [-1,1].forEach(sd=>{ const st=new THREE.Mesh(new THREE.PlaneGeometry(.14,L), neonMat(T.lane)); st.rotation.x=-Math.PI/2; st.position.set(sd*6.7,.32,zc); world.add(st); });
   for(let z=z0; z>z1; z-=3.2+rnd()*2){ [-1,1].forEach(side=>{ const h=5+rnd()*6; const r=makeRack(rnd,h,side); r.position.set(side*(9.6+rnd()*1.2),0,z); world.add(r); }); } }
 
-function clearWorld(){ const lb=document.getElementById("labels"); if(lb) lb.innerHTML=""; G_bookLabel=null; if(G.miroirs){ G.miroirs.forEach(m=>{ const rt=m.getRenderTarget&&m.getRenderTarget(); if(rt) rt.dispose(); }); G.miroirs=[]; } while(world.children.length){ const c=world.children.pop(); c.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); } }
+function clearWorld(){ G.niveauId=(G.niveauId||0)+1; const lb=document.getElementById("labels"); if(lb) lb.innerHTML=""; G_bookLabel=null; if(G.miroirs){ G.miroirs.forEach(m=>{ const rt=m.getRenderTarget&&m.getRenderTarget(); if(rt) rt.dispose(); }); G.miroirs=[]; } while(world.children.length){ const c=world.children.pop(); c.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); } }
 
 /* ---- figures (stylised humans with faces, limbs and personal details) ---- */
 const texCache={};
@@ -1716,11 +1741,27 @@ function loopBody(now, noRender){
   if(dlgActive) positionBubble();
   if(noRender) return;
   if(++_trame%20===1) affinerScene();
+  resolutionAdaptative();
   if(G.miroirs) G.miroirs.forEach(m=>{ if(m.parent) m.material.uniforms.temps.value=t; });
   if(sun.castShadow){ const fx=player.position.x, fz=player.position.z; sun.position.set(fx+6,14,fz+4); sun.target.position.set(fx,0,fz); }
   if(composer) composer.render(); else renderer.render(scene,camera);
 }
 let _trame=0;
+/* résolution adaptative (idée de Clearwater, licence MIT) : on garde la fluidité avant la finesse */
+const PR_MAX=Math.min(devicePixelRatio||1,2), PR_MIN=Math.max(.55,PR_MAX*.5);
+let _prActuel=renderer.getPixelRatio(), _fpsT0=performance.now(), _fpsN=0;
+function resolutionAdaptative(){
+  _fpsN++; const now=performance.now(), duree=now-_fpsT0;
+  if(duree<1500) return;
+  const fps=_fpsN*1000/duree; _fpsT0=now; _fpsN=0;
+  if(document.hidden) return;
+  let cible=_prActuel;
+  if(fps<42 && _prActuel>PR_MIN) cible=Math.max(PR_MIN,_prActuel-.15);
+  else if(fps>57 && _prActuel<PR_MAX) cible=Math.min(PR_MAX,_prActuel+.1);
+  if(Math.abs(cible-_prActuel)<.01) return;
+  _prActuel=cible; renderer.setPixelRatio(cible); renderer.setSize(innerWidth,innerHeight);
+  if(composer) composer.setSize(innerWidth*cible, innerHeight*cible);
+}
 requestAnimationFrame(loop);
 setInterval(()=>{ if(document.hidden) loop(performance.now(), true); }, 33);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ last=performance.now(); } });
