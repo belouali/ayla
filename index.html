@@ -179,8 +179,9 @@ body.rtl .ph{font-family:"Tajawal",sans-serif}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/Reflector.js"></script>
 <script>
-const BUILD="20260924211400";
+const BUILD="20260924213233";
 (function(){ try{ if(!/github\.io$/.test(location.hostname)) return; fetch("version.json?ts="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{ if(j && j.build && j.build!==BUILD){ const u=new URL(location.href); if(u.searchParams.get("v")!==j.build){ u.searchParams.set("v", j.build); location.replace(u.toString()); } } }).catch(()=>{}); }catch(e){} })();
 /* ============================== I18N : fr / en / ar ============================== */
 const I18N = {
@@ -716,7 +717,7 @@ const hemi=new THREE.HemisphereLight(0x8FB4E0,0x101828,.9); scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xFFFFFF,.55); sun.position.set(6,14,4); scene.add(sun);
 const coreLight=new THREE.PointLight(0x5EA8FF,1.4,60); scene.add(coreLight);
 const alarmLight=new THREE.PointLight(0xE06060,0,40); scene.add(alarmLight);
-const fill=new THREE.PointLight(0xFFE2BF,.5,40); fill.position.set(0.6,1.2,2.5); camera.add(fill); scene.add(camera);
+const fill=new THREE.PointLight(0xFFE2BF,.22,40); fill.position.set(0.6,1.2,2.5); camera.add(fill); scene.add(camera);
 /* ---- rendu v2 : lumière d'ambiance réfléchie, ombres portées, halo, étalonnage, liseré des personnages ---- */
 const HAUTE = !matchMedia("(pointer:coarse)").matches && Math.min(innerWidth,innerHeight)>=560;
 const LISERE={value:new THREE.Color(0x8FB8FF)};
@@ -761,7 +762,7 @@ let composer=null, halo=null;
 function liserer(mat){
   mat.onBeforeCompile=sh=>{ sh.uniforms.teinteLisere=LISERE;
     sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform vec3 teinteLisere;')
-      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n  float frLis=pow(1.0-saturate(dot(normalize(normal),normalize(vViewPosition))),3.0);\n  totalEmissiveRadiance+=teinteLisere*frLis*.45;'); };
+      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n  float frLis=pow(1.0-saturate(dot(normalize(normal),normalize(vViewPosition))),3.0);\n  totalEmissiveRadiance+=teinteLisere*frLis*.22;'); };
   mat.needsUpdate=true;
 }
 // matériaux du décor : reflets discrets, ombres reçues ; petits objets portent leur ombre
@@ -774,6 +775,7 @@ function affinerScene(){
     o.receiveShadow=true;
     if(!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
     o.getWorldScale(_tailleV); const r=o.geometry.boundingSphere.radius*Math.max(_tailleV.x,_tailleV.y,_tailleV.z);
+    if(o.userData.sansOmbre){ o.receiveShadow=false; return; }
     if(perso || (r<2.2 && !(m && (m.transparent || m.isMeshBasicMaterial)) && o.geometry.type!=="PlaneGeometry" && o.geometry.type!=="CircleGeometry")) o.castShadow=true;
   });
 }
@@ -784,7 +786,7 @@ const THEMES={
 };
 function applyTheme(name){ const T=THEMES[name]; hemi.intensity=T.hemiI||.9; scene.background=new THREE.Color(T.bg); scene.fog=new THREE.Fog(T.fog[0],T.fog[1],T.fog[2]); hemi.color.set(T.hemiSky); hemi.groundColor.set(T.hemiGround); coreLight.color.set(T.core); LISERE.value.set(T.core).lerp(new THREE.Color(0xFFFFFF),.35);
   // halo fort dans la ville de nuit, discret sous le dôme clair
-  if(halo){ const clair=(name==="dome"); halo.strength=clair?.14:.5; halo.threshold=clair?.93:.72; halo.radius=clair?.3:.5; } }
+  if(halo){ const clair=(name==="dome"); halo.strength=clair?.14:.5; halo.threshold=clair?.93:.86; halo.radius=clair?.3:.5; } }
 function windowTexture(color, seed, cols=8, rows=26){ const c=document.createElement("canvas"); c.width=128; c.height=512; const g=c.getContext("2d"); g.fillStyle="#070C18"; g.fillRect(0,0,128,512); let r=seed; const rnd=()=>{ r=(r*9301+49297)%233280; return r/233280; }; const cw=128/cols, rh=512/rows;
   for(let y=0;y<rows;y++){ const dark=rnd()<.1; g.fillStyle="rgba(255,255,255,.03)"; g.fillRect(0,y*rh,128,1); for(let x=0;x<cols;x++){ if(dark) continue; const v=rnd(); if(v>.52){ g.globalAlpha=.25+rnd()*.7; g.fillStyle=rnd()>.82?"#FFD9A0":color; g.fillRect(x*cw+3,y*rh+4,cw-6,rh-8); } else if(v>.3){ g.globalAlpha=.07; g.fillStyle=color; g.fillRect(x*cw+3,y*rh+4,cw-6,rh-8); } } }
   g.globalAlpha=1; const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; }
@@ -858,7 +860,52 @@ function makeRack(rnd,h,side){ const g=new THREE.Group(); const body=new THREE.M
   [-1.1,1.1].forEach(z=>{ const fr=new THREE.Mesh(new THREE.BoxGeometry(.14,h+.1,.14), darkMat()); fr.position.set(-side*1.1,h/2,z); g.add(fr); });
   if(rnd()<.3){ const l=new THREE.Mesh(new THREE.SphereGeometry(.12,8,6), blinkMat()); l.position.set(-side*.9,h+.15,.7); l.userData={f:3+rnd()*3,p:rnd()*6}; g.add(l); blinks.push(l); }
   return g; }
-function addLamp(x,z){ const g=new THREE.Group(); const dir=x>0?-1:1; const pole=new THREE.Mesh(new THREE.CylinderGeometry(.07,.1,4.4,8), darkMat()); pole.position.y=2.2; g.add(pole); const arm=new THREE.Mesh(new THREE.BoxGeometry(.9,.08,.08), darkMat()); arm.position.set(dir*.4,4.4,0); g.add(arm); const head=new THREE.Mesh(new THREE.SphereGeometry(.2,10,8), neonMat(0xFFE2B8)); head.position.set(dir*.8,4.35,0); g.add(head); const glow=new THREE.Mesh(new THREE.CircleGeometry(2.2,20), glowMat()); glow.rotation.x=-Math.PI/2; glow.position.set(dir*.8,.33,0); g.add(glow); g.position.set(x,0,z); world.add(g); }
+/* ---- cône de lumière des réverbères : un volume additif qui s'estompe vers le sol et sur les bords ---- */
+let _coneMat=null;
+function coneLumiere(){
+  if(!_coneMat) _coneMat=new THREE.ShaderMaterial({
+    uniforms:{teinte:{value:new THREE.Color(0xFFD9A8)}, force:{value:.3}},
+    vertexShader:"varying float vH; varying vec3 vN; varying vec3 vV; void main(){ vH=uv.y; vec4 mv=modelViewMatrix*vec4(position,1.0); vN=normalize(normalMatrix*normal); vV=normalize(-mv.xyz); gl_Position=projectionMatrix*mv; }",
+    fragmentShader:"uniform vec3 teinte; uniform float force; varying float vH; varying vec3 vN; varying vec3 vV; void main(){ float bord=pow(abs(dot(normalize(vN),normalize(vV))),1.6); float haut=pow(vH,1.4); gl_FragColor=vec4(teinte*force*bord*(.25+.75*haut), 1.0); }",
+    transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
+  const geo=new THREE.CylinderGeometry(.22,2.1,4.3,28,1,true); geo.translate(0,-2.15,0);
+  const m=new THREE.Mesh(geo,_coneMat); m.renderOrder=5; m.userData.sansOmbre=true; return m;
+}
+/* ---- chaussée mouillée : miroir plan vu à travers des flaques, avec un léger frisson ---- */
+let _flaquesTex=null;
+function texFlaques(){
+  if(_flaquesTex) return _flaquesTex;
+  const c=document.createElement("canvas"); c.width=c.height=512; const g=c.getContext("2d");
+  g.fillStyle="#000"; g.fillRect(0,0,512,512); let r=7; const rnd=()=>{ r=(r*9301+49297)%233280; return r/233280; };
+  for(let i=0;i<48;i++){ const x=rnd()*512, y=rnd()*512, rad=14+rnd()*46, sx=.55+rnd()*1.7;
+    [[0,0],[512,0],[-512,0],[0,512],[0,-512]].forEach(([ox,oy])=>{ g.save(); g.translate(x+ox,y+oy); g.scale(sx,1/sx);
+      const gr=g.createRadialGradient(0,0,0,0,0,rad); gr.addColorStop(0,"rgba(255,255,255,.95)"); gr.addColorStop(.55,"rgba(255,255,255,.55)"); gr.addColorStop(1,"rgba(255,255,255,0)");
+      g.fillStyle=gr; g.beginPath(); g.arc(0,0,rad,0,Math.PI*2); g.fill(); g.restore(); }); }
+  _flaquesTex=new THREE.CanvasTexture(c); _flaquesTex.wrapS=_flaquesTex.wrapT=THREE.RepeatWrapping; return _flaquesTex;
+}
+function chausseeMouillee(largeur, z0, z1){
+  if(!HAUTE || !THREE.Reflector) return;
+  const L=z0-z1, pr=renderer.getPixelRatio();
+  const miroir=new THREE.Reflector(new THREE.PlaneGeometry(largeur, L), {
+    clipBias:.003, textureWidth:innerWidth*pr*.5, textureHeight:innerHeight*pr*.5, color:0x7C88A0,
+    shader:{
+      uniforms:{ color:{value:null}, tDiffuse:{value:null}, textureMatrix:{value:null}, tFlaques:{value:texFlaques()}, temps:{value:0} },
+      vertexShader:"uniform mat4 textureMatrix; varying vec4 vUv; varying vec2 vP; void main(){ vUv=textureMatrix*vec4(position,1.0); vP=position.xy; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
+      fragmentShader:`uniform vec3 color; uniform sampler2D tDiffuse; uniform sampler2D tFlaques; uniform float temps; varying vec4 vUv; varying vec2 vP;
+        void main(){
+          float m=texture2D(tFlaques, vP*.028).r; float fin=texture2D(tFlaques, vP*.11+vec2(temps*.01,0.)).r;
+          m=smoothstep(.55,.92,m*.9+fin*.18);
+          vec4 uv=vUv; uv.xy+=(fin-.5)*.0035*uv.w;
+          vec3 refl=texture2DProj(tDiffuse, uv).rgb*color;
+          refl=pow(max(refl,0.0), vec3(1.0/2.2));
+          gl_FragColor=vec4(refl, mix(.0,.55,m));
+        }`
+    }});
+  miroir.material.transparent=true; miroir.material.depthWrite=false;
+  miroir.rotation.x=-Math.PI/2; miroir.position.set(0,.035,(z0+z1)/2); miroir.renderOrder=2; miroir.userData.sansOmbre=true;
+  world.add(miroir); G.miroirs=(G.miroirs||[]); G.miroirs.push(miroir);
+}
+function addLamp(x,z){ const g=new THREE.Group(); const dir=x>0?-1:1; const pole=new THREE.Mesh(new THREE.CylinderGeometry(.07,.1,4.4,8), darkMat()); pole.position.y=2.2; g.add(pole); const arm=new THREE.Mesh(new THREE.BoxGeometry(.9,.08,.08), darkMat()); arm.position.set(dir*.4,4.4,0); g.add(arm); const head=new THREE.Mesh(new THREE.SphereGeometry(.2,10,8), neonMat(0xFFE2B8)); head.position.set(dir*.8,4.35,0); g.add(head); const glow=new THREE.Mesh(new THREE.CircleGeometry(2.2,20), glowMat()); glow.rotation.x=-Math.PI/2; glow.position.set(dir*.8,.33,0); g.add(glow); const cone=coneLumiere(); cone.position.set(dir*.8,4.3,0); g.add(cone); g.position.set(x,0,z); world.add(g); }
 function plazaCity(pz, rnd){
   const stone=new THREE.MeshStandardMaterial({color:lin(0x2A3148), roughness:.9}), stoneD=new THREE.MeshStandardMaterial({color:lin(0x1B2136), roughness:1}), wood=new THREE.MeshStandardMaterial({color:lin(0x6B4A2E), roughness:.85}), metal=new THREE.MeshStandardMaterial({color:lin(0x3A4256), roughness:.4, metalness:.6});
   const leaf=new THREE.MeshStandardMaterial({color:lin(0x2E6B3A), roughness:.9}), trunk=new THREE.MeshStandardMaterial({color:lin(0x4A3320), roughness:1}), orangeM=new THREE.MeshStandardMaterial({color:lin(0x5A2A08), emissive:lin(0xE8A24A), emissiveIntensity:.9});
@@ -890,7 +937,8 @@ function cityStreet(length, rnd){ const T=THEMES.city; const z0=20, z1=-length-8
   for(let z=z0; z>z1; z-=7+rnd()*9){ [-1,1].forEach(side=>{ const h=10+rnd()*34, w=6+rnd()*7, d=6+rnd()*6; const b=makeBuilding("city",rnd,w,h,d,side); b.position.set(side*(9.4+w/2+rnd()*2.5),0,z); world.add(b); }); }
   for(let z=z0+30; z>z1-60; z-=12+rnd()*10){ [-1,1].forEach(side=>{ const h=24+rnd()*50, w=8+rnd()*12, d=8+rnd()*8; const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), farMat(1+Math.floor(rnd()*3))); b.position.set(side*(30+rnd()*45), h/2, z); world.add(b); }); }
   for(let z=-35; z>z1+20; z-=40+rnd()*35){ if(Math.abs(z-plazaZ)<16) continue; const y=10+rnd()*10; const br=new THREE.Mesh(new THREE.BoxGeometry(21,.9,2.6), darkMat()); br.position.set(0,y,z); world.add(br); const st=new THREE.Mesh(new THREE.BoxGeometry(21,.08,.35), neonMat(T.lane)); st.position.set(0,y-.5,z); world.add(st); }
-  for(let z=10; z>z1+40; z-=16){ if(Math.abs(z-plazaZ)<15) continue; addLamp(-7.4,z); addLamp(7.4,z); } }
+  for(let z=10; z>z1+40; z-=16){ if(Math.abs(z-plazaZ)<15) continue; addLamp(-7.4,z); addLamp(7.4,z); }
+  chausseeMouillee(30, z0, z1+40); }
 function labCorridor(length, rnd){ const T=THEMES.lab; const z0=20, z1=-length-80, plazaZ=-length-12, L=length+140, zc=-length/2+20;
   const wallM=new THREE.MeshStandardMaterial({color:lin(0x0C2A31), roughness:1});
   [-1,1].forEach(sd=>{ const w=new THREE.Mesh(new THREE.PlaneGeometry(L,14), wallM); w.position.set(sd*13,7,zc); w.rotation.y=-sd*Math.PI/2; world.add(w); });
@@ -901,7 +949,7 @@ function labCorridor(length, rnd){ const T=THEMES.lab; const z0=20, z1=-length-8
   [-1,1].forEach(sd=>{ const st=new THREE.Mesh(new THREE.PlaneGeometry(.14,L), neonMat(T.lane)); st.rotation.x=-Math.PI/2; st.position.set(sd*6.7,.32,zc); world.add(st); });
   for(let z=z0; z>z1; z-=3.2+rnd()*2){ [-1,1].forEach(side=>{ const h=5+rnd()*6; const r=makeRack(rnd,h,side); r.position.set(side*(9.6+rnd()*1.2),0,z); world.add(r); }); } }
 
-function clearWorld(){ const lb=document.getElementById("labels"); if(lb) lb.innerHTML=""; G_bookLabel=null; while(world.children.length){ const c=world.children.pop(); c.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); } }
+function clearWorld(){ const lb=document.getElementById("labels"); if(lb) lb.innerHTML=""; G_bookLabel=null; if(G.miroirs){ G.miroirs.forEach(m=>{ const rt=m.getRenderTarget&&m.getRenderTarget(); if(rt) rt.dispose(); }); G.miroirs=[]; } while(world.children.length){ const c=world.children.pop(); c.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); } }
 
 /* ---- figures (stylised humans with faces, limbs and personal details) ---- */
 const texCache={};
@@ -1031,7 +1079,7 @@ const GABARITS={}, ATTENTE=[], HAUTEURS={};
   if(!THREE.GLTFLoader||!THREE.SkeletonUtils) return;
   const L=new THREE.GLTFLoader();
   [...new Set(Object.values(MODELES))].forEach(k=>L.load("assets/personnages/anim/"+k+".glb", g=>{
-    g.scene.traverse(o=>{ if(o.isMesh){ o.frustumCulled=false; o.userData.perso=true; const mt=o.material; if(mt){ mt.roughness=.78; mt.metalness=0; mt.envMapIntensity=.9; liserer(mt); } } });
+    g.scene.traverse(o=>{ if(o.isMesh){ o.frustumCulled=false; o.userData.perso=true; const mt=o.material; if(mt){ mt.roughness=.78; mt.metalness=0; mt.envMapIntensity=.5; liserer(mt); } } });
     GABARITS[k]=g;
     for(let i=ATTENTE.length-1;i>=0;i--){ if(ATTENTE[i].userData.modeleCle===k){ habiller(ATTENTE[i]); ATTENTE.splice(i,1); } }
   }, undefined, e=>console.warn("modèle indisponible", k, e)));
@@ -1488,6 +1536,7 @@ function loopBody(now, noRender){
   if(dlgActive) positionBubble();
   if(noRender) return;
   if(++_trame%20===1) affinerScene();
+  if(G.miroirs) G.miroirs.forEach(m=>{ if(m.parent) m.material.uniforms.temps.value=t; });
   if(sun.castShadow){ const fx=player.position.x, fz=player.position.z; sun.position.set(fx+6,14,fz+4); sun.target.position.set(fx,0,fz); }
   if(composer) composer.render(); else renderer.render(scene,camera);
 }
