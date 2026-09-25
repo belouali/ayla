@@ -25,6 +25,11 @@ hi = co[co[:, 2] > zmin + 0.3*H]
 cx = float(np.median(hi[:, 0])); cy = float(np.median(hi[:, 1]))
 corps.location = (-cx, -cy, -zmin); bpy.ops.object.transform_apply(location=True)
 corps.scale = (1/H, 1/H, 1/H); bpy.ops.object.transform_apply(scale=True)
+bmw = bmesh.new(); bmw.from_mesh(corps.data)
+n_av = len(bmw.verts)
+bmesh.ops.remove_doubles(bmw, verts=bmw.verts, dist=float(os.environ.get("SOUDURE", "0.0016")))
+print("SOUDURE", n_av, "->", len(bmw.verts), "sommets")
+bmw.to_mesh(corps.data); bmw.free(); corps.data.update()
 co = np.empty(len(corps.data.vertices)*3, np.float32); corps.data.vertices.foreach_get("co", co); V = co.reshape(-1, 3)
 
 # --- sens : les pointes de pied depassent vers l'avant
@@ -66,6 +71,7 @@ os_("colonne", axe["colonne"], axe["poitrine"], "bassin", True)
 os_("poitrine", axe["poitrine"], axe["cou"], "colonne", True)
 os_("cou", axe["cou"], tete_bas, "poitrine", True)
 os_("tete", tete_bas, tete_haut, "cou", True)
+PIEDS = []
 for i, c in ((0, "R"), (1, "L")):
     ep = P3(*J["epaule"][i]); co_ = P3(*J["coude"][i]); po = P3(*J["poignet"][i]); ma = P3(*J["main"][i], 0.03)
     cl = Vector((ep.x*0.28, axe["cou"].y, J["epaule"][i][1] - 0.012))
@@ -76,6 +82,7 @@ for i, c in ((0, "R"), (1, "L")):
     ha = P3(*J["hanche"][i], 0.04); ge = P3(*J["genou"][i]); ch = P3(*J["cheville"][i])
     f = V[(V[:, 2] < 0.04) & (np.abs(V[:, 0]-ch.x) < 0.05)]
     orteil = Vector((ch.x, float(np.percentile(f[:, 1], 3)) + 0.015 if len(f) else ch.y - 0.07, 0.018))
+    PIEDS.append((ch.copy(), orteil.copy()))
     os_("cuisse."+c, ha, ge, "bassin")
     os_("jambe."+c, ge, ch, "cuisse."+c, True)
     os_("pied."+c, ch, orteil, "jambe."+c, True)
@@ -150,6 +157,10 @@ def cote(v):
     return 1 if l > 0.6 else (-1 if r > 0.6 else 0)
 cotes = [cote(v) for v in corps.data.vertices]
 chev = [J["cheville"][0][0], J["cheville"][1][0]]
+def dans_pied(c):
+    for ch, ot in PIEDS:
+        if abs(c.x - ch.x) < .068 and (ot.y - .035) < c.y < (ch.y + .075): return True
+    return False
 bm = bmesh.new(); bm.from_mesh(corps.data); bm.verts.ensure_lookup_table()
 mauv = []
 for fa in bm.faces:
@@ -158,11 +169,11 @@ for fa in bm.faces:
     if 1 in cs and -1 in cs: mauv.append(fa)
     elif max(v.co.z for v in fa.verts) < 0.025 and abs(fa.calc_center_median().x) < 0.035 and abs(fa.normal.z) > 0.6:
         mauv.append(fa)
-    elif max(v.co.z for v in fa.verts) < 0.075 and min(abs(fa.calc_center_median().x - c) for c in chev) > 0.085:
-        mauv.append(fa)          # ailerons de socle colles aux chaussures
+    elif max(v.co.z for v in fa.verts) < 0.075 and not dans_pied(fa.calc_center_median()):
+        mauv.append(fa)          # eclats de socle colles aux chaussures
 bmesh.ops.delete(bm, geom=mauv, context='FACES')
 bm.to_mesh(corps.data); bm.free()
-print("MEMBRANE", len(mauv), "faces retirees entre les jambes")
+print("MEMBRANE", len(mauv), "faces retirees (entre les jambes et autour des pieds)")
 corps.parent = rig
 am = corps.modifiers.new("squelette", "ARMATURE"); am.object = rig
 

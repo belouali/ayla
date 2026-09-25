@@ -1121,15 +1121,16 @@ const CHARS={
 };
 /* ---- personnages modelés : squelette, poids et animations cuites ---- */
 const MODELES={ayla:"ayla",elio:"elio",elio2:"elio",kade:"kade",saren:"saren"};
-const GABARITS={}, ATTENTE=[], HAUTEURS={};
+const GABARITS={}, ATTENTE=[], HAUTEURS={}, MANQUANTS={};
 (function chargerModeles(){
   if(!THREE.GLTFLoader||!THREE.SkeletonUtils) return;
   const L=new THREE.GLTFLoader();
   [...new Set(Object.values(MODELES))].forEach(k=>L.load("assets/personnages/anim/"+k+".glb", g=>{
-    g.scene.traverse(o=>{ if(o.isMesh){ o.frustumCulled=false; o.userData.perso=true; const mt=o.material; if(mt){ mt.roughness=.78; mt.metalness=0; mt.envMapIntensity=.5; liserer(mt); } } });
+    g.scene.traverse(o=>{ if(o.isMesh){ o.frustumCulled=false; o.userData.perso=true; const mt=o.material; if(mt){ mt.roughness=.78; mt.metalness=0; mt.envMapIntensity=.5; mt.side=THREE.DoubleSide; liserer(mt); } } });
     GABARITS[k]=g;
     for(let i=ATTENTE.length-1;i>=0;i--){ if(ATTENTE[i].userData.modeleCle===k){ habiller(ATTENTE[i]); ATTENTE.splice(i,1); } }
-  }, undefined, e=>console.warn("modèle indisponible", k, e)));
+  }, undefined, e=>{ console.warn("modèle indisponible", k, e); MANQUANTS[k]=true;
+    for(let i=ATTENTE.length-1;i>=0;i--){ if(ATTENTE[i].userData.modeleCle===k){ ATTENTE[i].children.forEach(c=>c.visible=true); ATTENTE.splice(i,1); } } }));
 })();
 function hauteurDe(kind){
   if(HAUTEURS[kind]===undefined){ const t=human(CHARS[kind]); t.updateMatrixWorld(true); const b=new THREE.Box3();
@@ -1138,7 +1139,10 @@ function hauteurDe(kind){
 }
 function figure(kind){
   const f=human(CHARS[kind]); const k=MODELES[kind];
-  if(k && THREE.GLTFLoader && THREE.SkeletonUtils){ f.userData.modeleCle=k; if(GABARITS[k]) habiller(f); else ATTENTE.push(f); }
+  if(k && THREE.GLTFLoader && THREE.SkeletonUtils){ f.userData.modeleCle=k;
+    if(GABARITS[k]) habiller(f);
+    else if(MANQUANTS[k]) {}
+    else { f.children.forEach((c,i)=>{ if(i>0) c.visible=false; }); ATTENTE.push(f); } }
   return f;
 }
 function osNomme(racine, nom){ let r=null; racine.traverse(o=>{ if(!r && o.isBone && o.name===nom) r=o; }); return r; }
@@ -1148,7 +1152,7 @@ function habiller(f){
   const inst=THREE.SkeletonUtils.clone(g.scene); inst.scale.setScalar(H);
   // la silhouette dessinée reste en coulisse (ombre au sol et livre conservés)
   const garder=new Set([f.children[0], u.book]);
-  f.children.forEach(c=>{ if(!garder.has(c)) c.visible=false; });
+  f.children.forEach(c=>{ c.visible=garder.has(c); });
   if(HAUTE) f.children[0].visible=false;          // l'ombre portée remplace le rond au sol
   inst.traverse(o=>{ if(o.isMesh) o.userData.perso=true; });
   f.add(inst);
