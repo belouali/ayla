@@ -142,6 +142,7 @@ body.rtl .ph{font-family:"Tajawal",sans-serif}
 .label.reco{background:rgba(58,42,100,.9);color:#EADFFB;border:1px solid #9B7BD6;white-space:normal;max-width:240px;text-align:center;font-size:11px;transform:translate(-50%,6px)}
 #hit{position:fixed;inset:0;pointer-events:none;z-index:12;background:radial-gradient(circle, rgba(224,96,96,0) 40%, rgba(224,96,96,.55));opacity:0;transition:opacity .15s}
 @media (max-width:1180px){#hudRight{display:none}}
+@media (max-width:480px){ #hud{padding:12px} #hud .chip{padding:7px 10px;letter-spacing:.04em} #hudLeft{min-width:0;max-width:44vw;overflow:hidden;text-overflow:ellipsis} #hud>div:last-child{flex-shrink:0} }
 @media (max-width:900px){.phases{display:none} .ph{width:70px} #hudRight{display:none} .gauges{grid-template-columns:1fr} .book{grid-template-columns:1fr;grid-template-rows:auto 1fr} .book nav{flex-direction:row;flex-wrap:wrap;border-right:0;border-bottom:2px dashed #D9B98A}}
 </style>
 
@@ -707,7 +708,10 @@ const renderer=new THREE.WebGLRenderer({canvas, antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight); renderer.outputEncoding=THREE.sRGBEncoding; renderer.shadowMap.enabled=false; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.08;
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(58, innerWidth/innerHeight, .1, 1000);
-window.addEventListener("resize",()=>{ renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); });
+// écrans étroits (téléphone en portrait) : on élargit le champ pour garder la scène entière dans le cadre
+function ajusterCadre(){ const a=innerWidth/Math.max(1,innerHeight); camera.aspect=a; camera.fov=Math.min(85,Math.max(58, 2*Math.atan(Math.tan(32*Math.PI/180)/a)*180/Math.PI)); camera.updateProjectionMatrix(); }
+ajusterCadre();
+window.addEventListener("resize",()=>{ renderer.setSize(innerWidth,innerHeight); ajusterCadre(); });
 const hemi=new THREE.HemisphereLight(0x8FB4E0,0x101828,.9); scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xFFFFFF,.55); sun.position.set(6,14,4); scene.add(sun);
 const coreLight=new THREE.PointLight(0x5EA8FF,1.4,60); scene.add(coreLight);
@@ -1631,6 +1635,12 @@ function flammeBrasero(){
   const h=new THREE.Sprite(new THREE.SpriteMaterial({map:texPoint(), color:0xFF9A4A, transparent:true, opacity:.35, blending:THREE.AdditiveBlending, depthWrite:false})); h.scale.set(2.6,2.6,1); h.position.y=.4; g.add(h);
   return g;
 }
+// cadrage du dôme : en portrait, la caméra recule et vise un peu à gauche pour garder Ayla dans l'image
+const _cadre={pos:new THREE.Vector3(), vise:new THREE.Vector3()};
+function cadreDome(t){ const portrait=camera.aspect<.8;
+  if(portrait){ _cadre.pos.set(-.5+Math.sin(t*.15)*.3,3.0,11.2); _cadre.vise.set(-.9,2.6,-1.2); }
+  else { _cadre.pos.set(0.6+Math.sin(t*.15)*1.2,3.6,9.2); _cadre.vise.set(0,1.6,-1.4); }
+  return _cadre; }
 function buildDome(){
   clearWorld(); applyTheme("dome"); Music.set("dome");
   const TS=texSolDome();
@@ -1696,7 +1706,7 @@ function buildDome(){
     cu.position.set(x-(pouf?Math.sin(ry)*Hk*RECUL:0), pouf?0:hp/2, z-(pouf?Math.cos(ry)*Hk*RECUL:0)); world.add(cu); place(k,x,z,Math.atan2(0-x,-3.2-z)); sit(cast[k]); });
   G_bookLabel=makeLabel(T.bookLabel,"reco");
   player.position.set(-2.9,0,3.8); player.rotation.y=Math.atan2(0-(-2.9), -3.2-3.8); player.visible=true; P.x=-2.9; P.z=3.8; P.y=0;
-  camera.position.set(0.6,3.6,9.2); camera.lookAt(0,1.6,-1.4);
+  { const c=cadreDome(0); camera.position.copy(c.pos); camera.lookAt(c.vise); }
 }
 function playPrologue(){ G.state="dome"; hud(T.prologue,T.dome); document.getElementById("carnetBtn").classList.remove("hidden"); help(T.helpContinue); runDialogue(PROLOGUE, ()=>screenMap()); }
 
@@ -1882,7 +1892,7 @@ function loopBody(now, noRender){
     animFigure(player,dt,"idle"); Object.values(cast).forEach(f=>animFigure(f,dt,"idle"));
     if(G.domeFx){ G.domeFx.holos.forEach((h,i)=>{ h.position.y=h.userData.y+Math.sin(t*.8+i)*.25; h.rotation.y=h.userData.ry+Math.sin(t*.5+i)*.12; }); G.domeFx.flames.forEach((f,i)=>{ f.scale.set(1+Math.sin(t*9+i)*.12,1+Math.sin(t*11+i*2)*.22,1+Math.cos(t*9+i)*.12); }); G.domeFx.lights.forEach((l,i)=>{ l.intensity=1+Math.sin(t*7+i)*.12+Math.sin(t*13+i*3)*.06; }); if(G.domeFx.poussiere) G.domeFx.poussiere.rotation.y=t*.025; }
     if(G_bookLabel && cast.saren && cast.saren.userData.book){ const pb=project(cast.saren,-.05); G_bookLabel.style.left=pb.x+"px"; G_bookLabel.style.top=pb.y+"px"; G_bookLabel.style.display=(G.state==="dome")?"":"none"; }
-    camera.position.lerp(new THREE.Vector3(0.6+Math.sin(t*.15)*1.2,3.6,9.2),dt); camera.lookAt(0,1.6,-1.4);
+    { const c=cadreDome(t); camera.position.lerp(c.pos,dt); camera.lookAt(c.vise); }
   }
   // speaking hop
   [player,...Object.values(cast),...(G.npcObjs?Object.values(G.npcObjs):[])].forEach(f=>{ if(!f) return; const u=f.userData; if(u.hop>0){ const base=(f===player?P.y:((u.seated&&!u.assisModele)?-0.62*(f.scale.x||1):0)); u.hop-=dt*2.2; f.position.y=Math.max(0,Math.sin(u.hop*Math.PI))*(u.seated?.25:.5)+base; if(u.hop<=0){ u.hop=0; f.position.y=base; } } });
