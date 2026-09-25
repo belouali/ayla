@@ -247,14 +247,18 @@ def marche(ph, k=1.0, course=False):
         if A["baton"] and cote == "R":
             r["bras."+cote] = (-0.05, 0, 0); r["avantbras."+cote] = (-0.10, 0, 0)
         else:
-            bs = B*sp if cote == "L" else -B*sp
-            flex = (-1.25 - 0.35*max(0.0, -bs/B if B else 0)) if course else (-0.18 - 0.22*max(0.0, -bs/B if B else 0))
-            r["bras."+cote] = (bs, 0, -0.05 if cote == "L" else 0.05)
+            # bras oppose a la jambe du meme cote ; le bras qui avance se plie, celui qui recule se deplie
+            amp = B*(1.3 if course else 1.0)
+            bs = amp*sp if cote == "L" else -amp*sp
+            av = -bs/amp if amp else 0.0                  # +1 bras devant, -1 bras derriere
+            flex = (-0.95 - 0.42*av) if course else (-0.22 - 0.18*av)
+            r["bras."+cote] = (bs, 0, (-0.05 if cote == "L" else 0.05) + (0.06*max(0.0, av) if course else 0.0)*(1 if cote == "R" else -1))
             r["avantbras."+cote] = (flex, 0, 0)
     pen = A["penche"] + (0.16 if course else 0.0)
     r["bassin"] = (0, 0.07*s*k, 0)
-    r["colonne"] = (pen*0.5, -0.05*s*k, 0.015*math.sin(2*ph))
-    r["poitrine"] = (pen*0.5, -0.04*s*k, 0)
+    tors = 0.09 if course else 0.05
+    r["colonne"] = (pen*0.5, -tors*s*k, 0.015*math.sin(2*ph))
+    r["poitrine"] = (pen*0.5, -tors*0.8*s*k, 0)
     r["cou"] = (-pen*0.5, 0.02*s, 0)
     r["tete"] = (-pen*0.3 + 0.015*math.cos(2*ph), 0.02*s, 0)
     reb = A["rebond"]*(2.2 if course else 1.0)
