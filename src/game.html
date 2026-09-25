@@ -633,7 +633,7 @@ function mstate(id){ if(!S.missions[id]) S.missions[id]={ideas:[[],[],[],[]],ans
 function doneCount(){ return MISSIONS.filter(m=>mstate(m.id).done).length; }
 
 /* ============================== MUSIC : real tracks (CC BY) with synthesised fallback ============================== */
-const AUDIO_BASE = (/github\.io$/.test(location.hostname)||/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) ? "audio/" : "https://belouali.github.io/ayla/audio/";
+const AUDIO_BASE = /github\.io$/.test(location.hostname) ? "/ayla/audio/" : (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? "audio/" : "https://belouali.github.io/ayla/audio/");
 const CAN_STREAM = !/claude\.ai$/.test(location.hostname);
 const TRACKS={snowfall:{file:"snowfall.mp3",vol:.5,title:"Snowfall",by:"Scott Buckley"}, neon:{file:"neon-laser-horizon.mp3",vol:.42,title:"Neon Laser Horizon",by:"Kevin MacLeod"}, cipher:{file:"cipher.mp3",vol:.38,title:"Cipher",by:"Kevin MacLeod"}, darkfog:{file:"dark-fog.mp3",vol:.45,title:"Dark Fog",by:"Kevin MacLeod"}};
 const MOOD2TRACK={dome:"snowfall",paper:"snowfall",good:"snowfall",city:"cipher",tense:"cipher",run:"neon",lab:"darkfog",bad:"darkfog"};
