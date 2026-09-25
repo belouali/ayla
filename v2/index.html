@@ -184,7 +184,7 @@ body.rtl .ph{font-family:"Tajawal",sans-serif}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 <script>
-const BUILD="20260925173122";
+const BUILD="20260925180147";
 (function(){ try{ if(!/github\.io$/.test(location.hostname)) return; fetch("version.json?ts="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{ if(j && j.build && j.build!==BUILD){ const u=new URL(location.href); if(u.searchParams.get("v")!==j.build){ u.searchParams.set("v", j.build); location.replace(u.toString()); } } }).catch(()=>{}); }catch(e){} })();
 /* ============================== I18N : fr / en / ar ============================== */
 const I18N = {
@@ -1255,7 +1255,7 @@ function human(o){
   return g;
 }
 const CHARS={
-  ayla:{kind:"ayla",scale:.82,skin:0xC68642,hair:0x3B2314,style:"bob",top:0xE8A24A,topTex:"weave",topTexBase:"#E8A24A",topTexAccent:"#C0782A",longSleeve:true,legs:0x2B3A55,shin:0x2B3A55,shoe:0xF5F5F5,carnet:true,cheeks:0xE0876B,iris:0x4A2C15,lashes:true,collar:0xFFF6E5,pockets:true,pocket:0xC0782A},
+  ayla:{kind:"ayla",skin:0xC68642,hair:0x3B2314,style:"bob",top:0xE8A24A,topTex:"weave",topTexBase:"#E8A24A",topTexAccent:"#C0782A",longSleeve:true,legs:0x2B3A55,shin:0x2B3A55,shoe:0xF5F5F5,carnet:true,cheeks:0xE0876B,iris:0x4A2C15,lashes:true,collar:0xFFF6E5,pockets:true,pocket:0xC0782A},
   kade:{kind:"kade",skin:0xB8865B,hair:0xE8E8E8,style:"white",moustache:true,top:0x4E8A5A,topTex:"weave",topTexBase:"#4E8A5A",topTexAccent:"#2E5E2B",longSleeve:true,legs:0x3E4A3C,shin:0x3E4A3C,shoe:0x2E2E2E,cap:0x3E7D3A,iris:0x3B2A1A,buttons:true,scarf:0xE8A24A,wrinkles:true,bigNose:true,belt:0x2A2A2A},
   elio:{kind:"elio",skin:0xE9C7A6,hair:0x3B2A1A,style:"spiky",top:0x2E3F66,topTex:"denim",topTexBase:"#2E3F66",longSleeve:true,legs:0x2E3F66,legTex:"denim",legTexBase:"#2E3F66",shin:0x2E3F66,shoe:0x1F2933,visor:true,iris:0x2F5F8F,pockets:true,belt:0x1A1A1A,tools:true},
   elio2:{kind:"elio2",skin:0xE9C7A6,hair:0x3B2A1A,style:"spiky",top:0x2E3F66,topTex:"denim",topTexBase:"#2E3F66",longSleeve:true,legs:0x2E3F66,legTex:"denim",legTexBase:"#2E3F66",shin:0x2E3F66,shoe:0x1F2933,iris:0x2F5F8F,pockets:true,belt:0x1A1A1A,tools:true},
@@ -1287,6 +1287,9 @@ function hauteurDe(kind){
     t.traverse(o=>{ if(o.isMesh && o.geometry.type!=="CircleGeometry") b.expandByObject(o); }); HAUTEURS[kind]=b.max.y; }
   return HAUTEURS[kind];
 }
+// Ayla reste une enfant parmi les enfants : sa taille découle de la leur, jamais d'un modèle ou d'un facteur isolé
+const RAPPORT_AYLA_ENFANTS=1.18;
+CHARS.ayla.scale=RAPPORT_AYLA_ENFANTS*hauteurDe("kid1")/hauteurDe("ayla"); delete HAUTEURS.ayla;
 function figure(kind){
   const f=human(CHARS[kind]); const k=MODELES[kind];
   if(k && THREE.GLTFLoader && THREE.SkeletonUtils){ f.userData.modeleCle=k;
@@ -1300,6 +1303,10 @@ function habiller(f){
   const u=f.userData, g=GABARITS[u.modeleCle]; if(!g || u.modele) return;
   const H=hauteurDe(u.kind);
   const inst=THREE.SkeletonUtils.clone(g.scene); inst.scale.setScalar(H/((CHARS[u.kind]&&CHARS[u.kind].scale)||1));
+  // contrôle des modèles de notre chaîne (debout, hauteur 1) ; les enfants Rocketbox ont leur propre échelle et une pose de repos assise
+  if(!/^enfant_/.test(u.modeleCle)){ inst.updateMatrixWorld(true); const b=new THREE.Box3(); inst.traverse(o=>{ if(o.isSkinnedMesh||o.isMesh){ if(!o.geometry.boundingBox) o.geometry.computeBoundingBox(); b.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld)); } });
+    const voulu=H/((CHARS[u.kind]&&CHARS[u.kind].scale)||1), mesure=b.max.y-b.min.y;
+    if(mesure>0 && Math.abs(mesure-voulu)/voulu>.04){ inst.scale.multiplyScalar(voulu/mesure); console.warn("taille corrigée", u.kind, mesure.toFixed(3), "→", voulu.toFixed(3)); } }
   // la silhouette dessinée reste en coulisse (ombre au sol et livre conservés)
   const garder=new Set([f.children[0], u.book]);
   f.children.forEach(c=>{ c.visible=garder.has(c); });
