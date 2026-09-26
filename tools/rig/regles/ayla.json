@@ -1,0 +1,54 @@
+[
+ {
+  "nom": "gris jamais peint (partout)",
+  "h": [
+   0,
+   1
+  ],
+  "faux": "(abs(r-131)<7)&(abs(g-133)<7)&(abs(b-132)<7)"
+ },
+ {
+  "nom": "arriere des chaussures gris",
+  "h": [
+   0,
+   0.09
+  ],
+  "faux": "(lum>105)&(lum<155)&(sat<14)"
+ },
+ {
+  "nom": "trainees sombres du jean",
+  "h": [
+   0.09,
+   0.44
+  ],
+  "faux": "(lum<42)&(b>=r)"
+ },
+ {
+  "nom": "fente orange sur les manches",
+  "h": [
+   0.45,
+   0.78
+  ],
+  "zone": "abs(x)>0.12",
+  "faux": "(g<0.53*r)&(lum<85)"
+ },
+ {
+  "nom": "bleu aux poignets",
+  "h": [
+   0.42,
+   0.52
+  ],
+  "zone": "abs(x)>0.13",
+  "faux": "(b>r)&(lum<95)"
+ },
+ {
+  "nom": "tache orange et points sur la manche (choisis sur deux vues)",
+  "h": [
+   0.47,
+   0.62
+  ],
+  "masque": "ayla_manche.npy",
+  "source": "(h>0.5)&(h<0.72)&(abs(x)>0.1)&(g>0.6*r)&(b<0.42*r)&(lum>115)",
+  "zone": "(x>0.078)"
+ }
+]
